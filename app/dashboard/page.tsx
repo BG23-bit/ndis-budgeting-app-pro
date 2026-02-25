@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import Client from "../client";
 
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
@@ -68,7 +69,7 @@ export default function DashboardPage() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "#0f172a",
+        background: "#000",
         color: "white",
       }}>
         Loading...
@@ -76,94 +77,126 @@ export default function DashboardPage() {
     );
   }
 
-  if (!paid) {
-    return (
+  // PAID - show full calculator
+  if (paid) {
+    return <Client />;
+  }
+
+  // NOT PAID - show blurred calculator with pay overlay
+  return (
+    <div style={{ position: "relative", minHeight: "100vh", overflow: "hidden" }}>
+      {/* Blurred calculator in background */}
       <div style={{
-        minHeight: "100vh",
+        filter: "blur(6px)",
+        pointerEvents: "none",
+        userSelect: "none",
+        opacity: 0.6,
+      }}>
+        <Client />
+      </div>
+
+      {/* Pay overlay */}
+      <div style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        background: "#0f172a",
-        color: "white",
-        fontFamily: "sans-serif",
-        textAlign: "center",
-        padding: "20px",
+        background: "rgba(0, 0, 0, 0.7)",
+        zIndex: 50,
       }}>
-        <h1 style={{ marginBottom: "10px" }}>Unlock NDIS Budget Calculator</h1>
-        <p style={{ color: "#94a3b8", marginBottom: "20px" }}>
-          One-time payment of $9.99 AUD to get lifetime access.
-        </p>
-        <button
-          onClick={handleCheckout}
-          disabled={checkoutLoading}
-          style={{
-            padding: "15px 40px",
-            fontSize: "1.2rem",
-            backgroundColor: "#22d3ee",
-            color: "#0f172a",
-            border: "none",
-            borderRadius: "8px",
-            cursor: "pointer",
-            fontWeight: "bold",
-          }}
-        >
-          {checkoutLoading ? "Redirecting..." : "Pay $9.99 → Unlock"}
-        </button>
-        <p
-          onClick={handleLogout}
-          style={{ marginTop: "20px", color: "#94a3b8", cursor: "pointer" }}
-        >
-          Log out
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{
-      minHeight: "100vh",
-      background: "#0f172a",
-      color: "white",
-      fontFamily: "sans-serif",
-      padding: "40px",
-    }}>
-      <div style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: "30px",
-      }}>
-        <h1>NDIS Budget Calculator</h1>
-        <button
-          onClick={handleLogout}
-          style={{
-            padding: "8px 20px",
-            backgroundColor: "#334155",
+        <div style={{
+          background: "#1e293b",
+          padding: "40px",
+          borderRadius: "16px",
+          textAlign: "center",
+          maxWidth: "450px",
+          width: "90%",
+          border: "1px solid #334155",
+        }}>
+          <h2 style={{
+            fontSize: "1.8rem",
             color: "white",
-            border: "none",
-            borderRadius: "6px",
-            cursor: "pointer",
-          }}
-        >
-          Log out
-        </button>
-      </div>
-
-      <div style={{
-        background: "#1e293b",
-        padding: "30px",
-        borderRadius: "12px",
-        textAlign: "center",
-      }}>
-        <h2>✅ Access Unlocked!</h2>
-        <p style={{ color: "#94a3b8", marginTop: "10px" }}>
-          Your NDIS Budget Calculator is ready to use.
-        </p>
-        {/* YOUR ACTUAL BUDGET CALCULATOR GOES HERE */}
-        <p style={{ color: "#475569", marginTop: "30px" }}>
-          Budget calculator coming soon...
-        </p>
+            marginBottom: "10px",
+          }}>
+            🔒 Unlock NDIS Budget Calculator
+          </h2>
+          <p style={{
+            color: "#94a3b8",
+            marginBottom: "8px",
+            fontSize: "1rem",
+          }}>
+            Get lifetime access to the full NDIS Budget Calculator.
+          </p>
+          <p style={{
+            color: "#94a3b8",
+            marginBottom: "8px",
+            fontSize: "0.9rem",
+          }}>
+            ✅ Unlimited support lines
+          </p>
+          <p style={{
+            color: "#94a3b8",
+            marginBottom: "8px",
+            fontSize: "0.9rem",
+          }}>
+            ✅ Export to CSV & PDF
+          </p>
+          <p style={{
+            color: "#94a3b8",
+            marginBottom: "8px",
+            fontSize: "0.9rem",
+          }}>
+            ✅ Auto-save in your browser
+          </p>
+          <p style={{
+            color: "#94a3b8",
+            marginBottom: "20px",
+            fontSize: "0.9rem",
+          }}>
+            ✅ One-time payment — no subscriptions
+          </p>
+          <p style={{
+            fontSize: "2rem",
+            color: "#22d3ee",
+            fontWeight: "bold",
+            marginBottom: "20px",
+          }}>
+            $9.99 AUD
+          </p>
+          <button
+            onClick={handleCheckout}
+            disabled={checkoutLoading}
+            style={{
+              padding: "15px 40px",
+              fontSize: "1.2rem",
+              backgroundColor: "#22d3ee",
+              color: "#0f172a",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer",
+              fontWeight: "bold",
+              width: "100%",
+            }}
+          >
+            {checkoutLoading ? "Redirecting to checkout..." : "Pay $9.99 → Unlock Now"}
+          </button>
+          <p
+            onClick={handleLogout}
+            style={{
+              marginTop: "15px",
+              color: "#64748b",
+              cursor: "pointer",
+              fontSize: "0.9rem",
+            }}
+          >
+            Log out
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -105,10 +105,8 @@ function escapeHtml(s: string) {
 export default function PageClient() {
   const STORAGE_KEY = "ndis_budget_calc_v2";
 
-  // Paywall removed ✅
   const unlocked = true;
 
-  // Optional: show who is logged in (team can still use /login)
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
@@ -152,7 +150,6 @@ export default function PageClient() {
     },
   ]);
 
-  // Load saved state
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -166,7 +163,6 @@ export default function PageClient() {
     }
   }, []);
 
-  // Save state
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ rates, lines }));
@@ -319,16 +315,13 @@ export default function PageClient() {
             <td>${escapeHtml(l.code)}</td>
             <td>${escapeHtml(l.description)}</td>
             <td class="num">${escapeHtml(money(l.totalFunding))}</td>
-
             <td class="num">${l.hrsWeekdayOrd}</td>
             <td class="num">${l.hrsWeekdayNight}</td>
             <td class="num">${l.hrsSat}</td>
             <td class="num">${l.hrsSun}</td>
             <td class="num">${l.hrsPublicHoliday}</td>
-
             <td class="num">${l.activeSleepoverHours}</td>
             <td class="num">${l.fixedSleepovers}</td>
-
             <td class="num">${escapeHtml(money(l.weeklyTotal))}</td>
             <td class="num">${escapeHtml(money(l.annualTotal))}</td>
             <td class="num ${remClass}">${escapeHtml(money(l.remaining))}</td>
@@ -351,12 +344,11 @@ export default function PageClient() {
     .kpi b { display: inline-block; min-width: 170px; }
     table { width: 100%; border-collapse: collapse; font-size: 11px; }
     th, td { border: 1px solid #ddd; padding: 6px; vertical-align: top; }
-    th { background: #f6f6f6; text-align: left; }
-    .num { text-align: right; white-space: nowrap; }
-    .neg { color: #b00020; font-weight: 700; }
-    .pos { color: #0a7a2f; font-weight: 700; }
-    .sectionTitle { margin: 20px 0 8px 0; font-size: 14px; font-weight: 700; }
-    @media print { body { padding: 0; } }
+    th { background: #f4f4f4; font-weight: 600; text-align: left; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .neg { color: #c0392b; font-weight: 700; }
+    .pos { color: #27ae60; font-weight: 700; }
+    .sectionTitle { font-size: 14px; font-weight: 600; margin: 18px 0 6px 0; }
   </style>
 </head>
 <body>
@@ -385,16 +377,13 @@ export default function PageClient() {
       <th>Code</th>
       <th>Description</th>
       <th>Total Funding</th>
-
       <th>WD Ord hrs/wk</th>
       <th>WD Night hrs/wk</th>
       <th>Sat hrs/wk</th>
       <th>Sun hrs/wk</th>
       <th>PH hrs/wk</th>
-
       <th>Active SO hrs/wk</th>
       <th>Fixed SO count/wk</th>
-
       <th>Weekly (inc GST)</th>
       <th>Annual</th>
       <th>Remaining</th>
@@ -421,15 +410,10 @@ export default function PageClient() {
   return (
     <main className="min-h-screen bg-black text-white">
       <div className="mx-auto max-w-6xl p-6">
-        <h1 className="text-3xl font-bold mb-2">NDIS Budget Calculator (MVP)</h1>
+        <h1 className="text-3xl font-bold mb-2">NDIS Budget Calculator</h1>
 
         <div className="text-sm text-slate-400 mb-6">
-          Team mode: Paywall removed ✅{" "}
-          {userEmail ? (
-            <span className="text-slate-300">Logged in as {userEmail}</span>
-          ) : (
-            <span className="text-slate-500">(not logged in)</span>
-          )}
+          NDIS Budget Calculator Pro
         </div>
 
         {/* Top summary */}
@@ -559,3 +543,4 @@ export default function PageClient() {
     </main>
   );
 }
+
