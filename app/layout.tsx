@@ -1,8 +1,3 @@
-"use client";
-
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -16,27 +11,16 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const metadata = {
+  title: "NDIS Budget Calculator",
+  description: "The easiest way to manage NDIS budgets",
+};
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const router = useRouter();
-
-  useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        if (!session) {
-          router.replace("/login");
-        }
-      }
-    );
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, [router]);
-
   return (
     <html lang="en">
       <body
@@ -47,3 +31,4 @@ export default function RootLayout({
     </html>
   );
 }
+
