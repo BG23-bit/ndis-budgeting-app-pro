@@ -384,9 +384,9 @@ export default function PageClient() {
   });
 
   const [lines, setLines] = useState<SupportLine[]>([{
-    id: uid(), code: "01", description: "Core Supports", totalFunding: 200000, ratio: "1:1", workOnPH: true,
-    hrsWeekdayOrd: 8, hrsWeekdayNight: 8, hrsSat: 8, hrsSun: 8, hrsPublicHoliday: 0,
-    activeSleepoverHours: 0, fixedSleepovers: 3,
+    id: uid(), code: "01", description: "Core Supports", totalFunding: 0, ratio: "1:1", workOnPH: true,
+    hrsWeekdayOrd: 0, hrsWeekdayNight: 0, hrsSat: 0, hrsSun: 0, hrsPublicHoliday: 0,
+    activeSleepoverHours: 0, fixedSleepovers: 0,
   }]);
 
   const planWeeks = useMemo(() => getWeeksInPlan(planDates.start, planDates.end), [planDates.start, planDates.end]);
