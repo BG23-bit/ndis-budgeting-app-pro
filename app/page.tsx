@@ -380,7 +380,7 @@ export default function LandingPage() {
             },
             {
               q: "What if I need help?",
-              a: "Contact us at support@kevria.com.au and we'll help you out.",
+              a: "Contact us at support@kevria.com and we'll help you out.",
             },
           ].map((faq, i) => (
             <div
