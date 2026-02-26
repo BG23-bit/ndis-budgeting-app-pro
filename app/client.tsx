@@ -14,6 +14,12 @@ type Rates = {
   gstRate: number;
 };
 
+type PlanDates = {
+  start: string;
+  end: string;
+  state: string;
+};
+
 type SupportLine = {
   id: string;
   code: string;
@@ -35,6 +41,156 @@ const RATIOS: { [key: string]: { label: string; divisor: number } } = {
   "1:3": { label: "1:3 (Third rate)", divisor: 3 },
   "1:4": { label: "1:4 (Quarter rate)", divisor: 4 },
 };
+
+const STATES = [
+  { value: "NSW", label: "New South Wales" },
+  { value: "VIC", label: "Victoria" },
+  { value: "QLD", label: "Queensland" },
+  { value: "SA", label: "South Australia" },
+  { value: "WA", label: "Western Australia" },
+  { value: "TAS", label: "Tasmania" },
+  { value: "NT", label: "Northern Territory" },
+  { value: "ACT", label: "Australian Capital Territory" },
+];
+
+function getPublicHolidays(year: number, state: string): { date: string; name: string }[] {
+  const holidays: { date: string; name: string }[] = [];
+
+  holidays.push({ date: year + "-01-01", name: "New Year's Day" });
+  holidays.push({ date: year + "-01-26", name: "Australia Day" });
+
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  const easter = new Date(year, month - 1, day);
+
+  const goodFriday = new Date(easter);
+  goodFriday.setDate(easter.getDate() - 2);
+  holidays.push({ date: formatDate(goodFriday), name: "Good Friday" });
+
+  const easterSat = new Date(easter);
+  easterSat.setDate(easter.getDate() - 1);
+  holidays.push({ date: formatDate(easterSat), name: "Easter Saturday" });
+
+  holidays.push({ date: formatDate(easter), name: "Easter Sunday" });
+
+  const easterMon = new Date(easter);
+  easterMon.setDate(easter.getDate() + 1);
+  holidays.push({ date: formatDate(easterMon), name: "Easter Monday" });
+
+  holidays.push({ date: year + "-04-25", name: "ANZAC Day" });
+
+  if (state === "ACT") {
+    const mar = new Date(year, 2, 1);
+    const dayOfWeek = mar.getDay();
+    const canberraDay = new Date(year, 2, 1 + ((8 - dayOfWeek) % 7) + 7);
+    holidays.push({ date: formatDate(canberraDay), name: "Canberra Day" });
+  }
+
+  if (state === "VIC") {
+    const jun = new Date(year, 5, 1);
+    const dayOfWeek = jun.getDay();
+    const queensBday = new Date(year, 5, 1 + ((8 - dayOfWeek) % 7) + 7);
+    holidays.push({ date: formatDate(queensBday), name: "Queen's Birthday" });
+    const firstTueNov = new Date(year, 10, 1);
+    const dow = firstTueNov.getDay();
+    const melbCup = new Date(year, 10, 1 + ((9 - dow) % 7));
+    holidays.push({ date: formatDate(melbCup), name: "Melbourne Cup" });
+  }
+
+  if (state === "NSW" || state === "SA" || state === "TAS" || state === "ACT") {
+    const jun = new Date(year, 5, 1);
+    const dayOfWeek = jun.getDay();
+    const queensBday = new Date(year, 5, 1 + ((8 - dayOfWeek) % 7) + 7);
+    holidays.push({ date: formatDate(queensBday), name: "Queen's Birthday" });
+  }
+
+  if (state === "QLD") {
+    const oct = new Date(year, 9, 1);
+    const dayOfWeek = oct.getDay();
+    const queensBdayQLD = new Date(year, 9, 1 + ((8 - dayOfWeek) % 7) + 21);
+    holidays.push({ date: formatDate(queensBdayQLD), name: "Queen's Birthday (QLD)" });
+  }
+
+  if (state === "WA") {
+    const sep = new Date(year, 8, 1);
+    const dayOfWeek = sep.getDay();
+    const queensBdayWA = new Date(year, 8, 1 + ((8 - dayOfWeek) % 7) + 21);
+    holidays.push({ date: formatDate(queensBdayWA), name: "Queen's Birthday (WA)" });
+  }
+
+  if (state === "NT") {
+    const may = new Date(year, 4, 1);
+    const dayOfWeek = may.getDay();
+    const mayDay = new Date(year, 4, 1 + ((8 - dayOfWeek) % 7));
+    holidays.push({ date: formatDate(mayDay), name: "May Day" });
+    const jun = new Date(year, 5, 1);
+    const dow2 = jun.getDay();
+    const queensBday = new Date(year, 5, 1 + ((8 - dow2) % 7) + 7);
+    holidays.push({ date: formatDate(queensBday), name: "Queen's Birthday" });
+  }
+
+  if (state === "SA") {
+    const oct = new Date(year, 9, 1);
+    const dayOfWeek = oct.getDay();
+    const labourDay = new Date(year, 9, 1 + ((8 - dayOfWeek) % 7));
+    holidays.push({ date: formatDate(labourDay), name: "Labour Day" });
+  }
+
+  if (state === "TAS") {
+    const nov = new Date(year, 10, 1);
+    const dayOfWeek = nov.getDay();
+    const recDay = new Date(year, 10, 1 + ((8 - dayOfWeek) % 7));
+    holidays.push({ date: formatDate(recDay), name: "Recreation Day" });
+  }
+
+  holidays.push({ date: year + "-12-25", name: "Christmas Day" });
+  holidays.push({ date: year + "-12-26", name: "Boxing Day" });
+
+  return holidays;
+}
+
+function formatDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return y + "-" + m + "-" + day;
+}
+
+function getHolidaysInRange(start: string, end: string, state: string): { date: string; name: string }[] {
+  if (!start || !end) return [];
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  const startYear = startDate.getFullYear();
+  const endYear = endDate.getFullYear();
+  const all: { date: string; name: string }[] = [];
+  for (let y = startYear; y <= endYear; y++) {
+    all.push(...getPublicHolidays(y, state));
+  }
+  return all.filter((h) => {
+    const d = new Date(h.date);
+    return d >= startDate && d <= endDate;
+  }).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function getWeeksInPlan(start: string, end: string): number {
+  if (!start || !end) return 52;
+  const s = new Date(start);
+  const e = new Date(end);
+  const diff = e.getTime() - s.getTime();
+  return Math.max(1, diff / (7 * 24 * 60 * 60 * 1000));
+}
 
 function money(n: number): string {
   const v = Number.isFinite(n) ? n : 0;
@@ -66,9 +222,7 @@ function Field(props: { label: string; value: number; step?: number; onChange: (
   return (
     <label className="block">
       <div className="text-sm mb-1" style={{ color: "#b0a0d0" }}>{props.label}</div>
-      <input
-        type="number"
-        step={props.step ?? 1}
+      <input type="number" step={props.step ?? 1}
         value={Number.isFinite(props.value) ? props.value : 0}
         onChange={(e) => props.onChange(num(e.target.value))}
         className="w-full rounded-lg px-3 py-2 outline-none"
@@ -82,9 +236,19 @@ function TextField(props: { label: string; value: string; onChange: (v: string) 
   return (
     <label className="block">
       <div className="text-sm mb-1" style={{ color: "#b0a0d0" }}>{props.label}</div>
-      <input
-        value={props.value}
-        onChange={(e) => props.onChange(e.target.value)}
+      <input value={props.value} onChange={(e) => props.onChange(e.target.value)}
+        className="w-full rounded-lg px-3 py-2 outline-none"
+        style={{ background: "rgba(26,17,80,0.6)", border: "1px solid rgba(212,168,67,0.2)", color: "white" }}
+      />
+    </label>
+  );
+}
+
+function DateField(props: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <label className="block">
+      <div className="text-sm mb-1" style={{ color: "#b0a0d0" }}>{props.label}</div>
+      <input type="date" value={props.value} onChange={(e) => props.onChange(e.target.value)}
         className="w-full rounded-lg px-3 py-2 outline-none"
         style={{ background: "rgba(26,17,80,0.6)", border: "1px solid rgba(212,168,67,0.2)", color: "white" }}
       />
@@ -96,9 +260,7 @@ function SelectField(props: { label: string; value: string; options: { value: st
   return (
     <label className="block">
       <div className="text-sm mb-1" style={{ color: "#b0a0d0" }}>{props.label}</div>
-      <select
-        value={props.value}
-        onChange={(e) => props.onChange(e.target.value)}
+      <select value={props.value} onChange={(e) => props.onChange(e.target.value)}
         className="w-full rounded-lg px-3 py-2 outline-none"
         style={{ background: "rgba(26,17,80,0.6)", border: "1px solid rgba(212,168,67,0.2)", color: "white" }}
       >
@@ -122,7 +284,6 @@ function getSuggestions(line: any, rates: Rates) {
   const suggestions: string[] = [];
   const overBy = Math.abs(line.remaining);
   const divisor = RATIOS[line.ratio]?.divisor || 1;
-
   if (line.hrsSun > 0) {
     const savingPerHr = (rates.sun - rates.weekdayOrd) / divisor;
     const hrsNeeded = Math.min(line.hrsSun, Math.ceil(overBy / (savingPerHr * 52)));
@@ -149,7 +310,7 @@ function escapeHtml(s: string) {
 }
 
 export default function PageClient() {
-  const STORAGE_KEY = "ndis_budget_calc_pro_v3";
+  const STORAGE_KEY = "ndis_budget_calc_pro_v4";
   const unlocked = true;
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
@@ -158,6 +319,12 @@ export default function PageClient() {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => { setUserEmail(session?.user?.email ?? null); });
     return () => { sub.subscription.unsubscribe(); };
   }, []);
+
+  const [planDates, setPlanDates] = useState<PlanDates>({
+    start: new Date().toISOString().slice(0, 10),
+    end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+    state: "VIC",
+  });
 
   const [rates, setRates] = useState<Rates>({
     weekdayOrd: 70.23, weekdayNight: 77.38, sat: 98.83, sun: 127.43,
@@ -170,20 +337,24 @@ export default function PageClient() {
     activeSleepoverHours: 0, fixedSleepovers: 3,
   }]);
 
+  const planWeeks = useMemo(() => getWeeksInPlan(planDates.start, planDates.end), [planDates.start, planDates.end]);
+  const holidays = useMemo(() => getHolidaysInRange(planDates.start, planDates.end, planDates.state), [planDates]);
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return;
       const parsed = JSON.parse(raw);
       if (parsed?.rates) setRates((r) => ({ ...r, ...parsed.rates }));
+      if (parsed?.planDates) setPlanDates((p) => ({ ...p, ...parsed.planDates }));
       if (Array.isArray(parsed?.lines) && parsed.lines.length > 0)
         setLines(parsed.lines.map((l: any) => ({ ...l, ratio: l.ratio || "1:1" })));
     } catch {}
   }, []);
 
   useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ rates, lines })); } catch {}
-  }, [rates, lines]);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ rates, lines, planDates })); } catch {}
+  }, [rates, lines, planDates]);
 
   const perLine = useMemo(() => {
     return lines.map((l) => {
@@ -198,18 +369,18 @@ export default function PageClient() {
         l.fixedSleepovers * rates.fixedSleepoverUnit;
       const weeklyGST = weeklyBase * (rates.gstRate || 0);
       const weeklyTotal = weeklyBase + weeklyGST;
-      const annualTotal = weeklyTotal * 52;
-      const remaining = l.totalFunding - annualTotal;
-      return { ...l, weeklyBase, weeklyGST, weeklyTotal, annualTotal, remaining };
+      const planTotal = weeklyTotal * planWeeks;
+      const remaining = l.totalFunding - planTotal;
+      return { ...l, weeklyBase, weeklyGST, weeklyTotal, planTotal, remaining };
     });
-  }, [lines, rates]);
+  }, [lines, rates, planWeeks]);
 
   const totals = useMemo(() => {
     const totalFunding = perLine.reduce((a, l) => a + l.totalFunding, 0);
     const weekly = perLine.reduce((a, l) => a + l.weeklyTotal, 0);
-    const annual = perLine.reduce((a, l) => a + l.annualTotal, 0);
-    const remaining = totalFunding - annual;
-    return { totalFunding, weekly, annual, remaining };
+    const planCost = perLine.reduce((a, l) => a + l.planTotal, 0);
+    const remaining = totalFunding - planCost;
+    return { totalFunding, weekly, planCost, remaining };
   }, [perLine]);
 
   function updateLine(id: string, patch: Partial<SupportLine>) {
@@ -229,8 +400,8 @@ export default function PageClient() {
   }
 
   function exportCSV() {
-    const header = ["Code","Description","Ratio","Total Funding","WD Ord hrs","WD Night hrs","Sat hrs","Sun hrs","PH hrs","Active SO hrs","Fixed SO","Weekly Base","Weekly GST","Weekly Total","Annual","Remaining"];
-    const rows = perLine.map((l: any) => [l.code,l.description,l.ratio,l.totalFunding,l.hrsWeekdayOrd,l.hrsWeekdayNight,l.hrsSat,l.hrsSun,l.hrsPublicHoliday,l.activeSleepoverHours,l.fixedSleepovers,l.weeklyBase,l.weeklyGST,l.weeklyTotal,l.annualTotal,l.remaining]);
+    const header = ["Code","Description","Ratio","Total Funding","WD Ord hrs","WD Night hrs","Sat hrs","Sun hrs","PH hrs","Active SO hrs","Fixed SO","Weekly Total","Plan Total","Remaining"];
+    const rows = perLine.map((l: any) => [l.code,l.description,l.ratio,l.totalFunding,l.hrsWeekdayOrd,l.hrsWeekdayNight,l.hrsSat,l.hrsSun,l.hrsPublicHoliday,l.activeSleepoverHours,l.fixedSleepovers,l.weeklyTotal,l.planTotal,l.remaining]);
     const csv = [header, ...rows].map((r) => r.map((cell) => { const s = String(cell ?? ""); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join(",")).join("\n");
     downloadTextFile("ndis-budget-export-" + new Date().toISOString().slice(0, 10) + ".csv", csv);
   }
@@ -239,10 +410,12 @@ export default function PageClient() {
     const dateStr = new Date().toLocaleString("en-AU");
     const rowsHtml = perLine.map((l: any) => {
       const remClass = l.remaining < 0 ? "neg" : "pos";
-      return "<tr><td>" + escapeHtml(l.code) + "</td><td>" + escapeHtml(l.description) + "</td><td>" + escapeHtml(l.ratio) + "</td><td class='num'>" + escapeHtml(money(l.totalFunding)) + "</td><td class='num'>" + escapeHtml(money(l.weeklyTotal)) + "</td><td class='num'>" + escapeHtml(money(l.annualTotal)) + "</td><td class='num " + remClass + "'>" + escapeHtml(money(l.remaining)) + "</td></tr>";
+      return "<tr><td>" + escapeHtml(l.code) + "</td><td>" + escapeHtml(l.description) + "</td><td>" + escapeHtml(l.ratio) + "</td><td class='num'>" + escapeHtml(money(l.totalFunding)) + "</td><td class='num'>" + escapeHtml(money(l.weeklyTotal)) + "</td><td class='num'>" + escapeHtml(money(l.planTotal)) + "</td><td class='num " + remClass + "'>" + escapeHtml(money(l.remaining)) + "</td></tr>";
     }).join("");
 
-    const html = "<!doctype html><html><head><meta charset='utf-8'/><title>NDIS Budget Report</title><style>body{font-family:-apple-system,sans-serif;padding:24px;color:#111}h1{margin:0 0 6px;font-size:20px;color:#1a1150}.meta{color:#444;margin-bottom:16px;font-size:12px}table{width:100%;border-collapse:collapse;font-size:12px;margin-top:12px}th,td{border:1px solid #ddd;padding:8px;vertical-align:top}th{background:#1a1150;color:white;font-weight:600;text-align:left}.num{text-align:right;font-variant-numeric:tabular-nums}.neg{color:#c0392b;font-weight:700}.pos{color:#27ae60;font-weight:700}.kpi{font-size:14px;margin:4px 0}.powered{text-align:center;margin-top:20px;font-size:11px;color:#888}</style></head><body><h1>NDIS Budget Calculator - Report</h1><div class='meta'>Generated: " + escapeHtml(dateStr) + " | Powered by Kevria</div><div class='kpi'><b>Combined funding:</b> " + escapeHtml(money(totals.totalFunding)) + "</div><div class='kpi'><b>Weekly cost:</b> " + escapeHtml(money(totals.weekly)) + "</div><div class='kpi'><b>Annual cost:</b> " + escapeHtml(money(totals.annual)) + "</div><div class='kpi'><b>Remaining:</b> " + escapeHtml(money(totals.remaining)) + "</div><table><tr><th>Code</th><th>Description</th><th>Ratio</th><th>Funding</th><th>Weekly</th><th>Annual</th><th>Remaining</th></tr>" + rowsHtml + "</table><div class='powered'>Powered by Kevria - NDIS Budget Calculator</div><script>window.onload=()=>{window.focus();window.print()}</script></body></html>";
+    const holidayRows = holidays.map((h) => "<tr><td>" + escapeHtml(h.date) + "</td><td>" + escapeHtml(h.name) + "</td></tr>").join("");
+
+    const html = "<!doctype html><html><head><meta charset='utf-8'/><title>NDIS Budget Report</title><style>body{font-family:-apple-system,sans-serif;padding:24px;color:#111}h1{margin:0 0 6px;font-size:20px;color:#1a1150}.meta{color:#444;margin-bottom:16px;font-size:12px}table{width:100%;border-collapse:collapse;font-size:12px;margin-top:12px}th,td{border:1px solid #ddd;padding:8px}th{background:#1a1150;color:white;font-weight:600;text-align:left}.num{text-align:right}.neg{color:#c0392b;font-weight:700}.pos{color:#27ae60;font-weight:700}.kpi{font-size:14px;margin:4px 0}.section{font-size:16px;font-weight:600;margin:20px 0 8px;color:#1a1150}.powered{text-align:center;margin-top:20px;font-size:11px;color:#888}</style></head><body><h1>NDIS Budget Calculator - Report</h1><div class='meta'>Generated: " + escapeHtml(dateStr) + " | Plan: " + escapeHtml(planDates.start) + " to " + escapeHtml(planDates.end) + " | State: " + escapeHtml(planDates.state) + " | " + planWeeks.toFixed(1) + " weeks | Powered by Kevria</div><div class='kpi'><b>Combined funding:</b> " + escapeHtml(money(totals.totalFunding)) + "</div><div class='kpi'><b>Weekly cost:</b> " + escapeHtml(money(totals.weekly)) + "</div><div class='kpi'><b>Plan period cost:</b> " + escapeHtml(money(totals.planCost)) + "</div><div class='kpi'><b>Remaining:</b> " + escapeHtml(money(totals.remaining)) + "</div><div class='section'>Support Lines</div><table><tr><th>Code</th><th>Description</th><th>Ratio</th><th>Funding</th><th>Weekly</th><th>Plan Total</th><th>Remaining</th></tr>" + rowsHtml + "</table><div class='section'>Public Holidays in Plan (" + holidays.length + ")</div><table><tr><th>Date</th><th>Holiday</th></tr>" + holidayRows + "</table><div class='powered'>Powered by Kevria - NDIS Budget Calculator</div><script>window.onload=()=>{window.focus();window.print()}</script></body></html>";
 
     const w = window.open("", "_blank");
     if (!w) { alert("Popup blocked."); return; }
@@ -268,6 +441,52 @@ export default function PageClient() {
           Powered by <span style={{ color: "#d4a843" }}>Kevria</span>
         </div>
 
+        {/* Plan Dates & State */}
+        <div className="rounded-2xl p-6 mb-6" style={{
+          background: "rgba(26,17,80,0.4)", border: "1px solid rgba(212,168,67,0.15)",
+        }}>
+          <h2 className="text-xl font-semibold mb-4" style={{ color: "#d4a843" }}>Plan Details</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <DateField label="Plan Start Date" value={planDates.start} onChange={(v) => setPlanDates((p) => ({ ...p, start: v }))} />
+            <DateField label="Plan End Date" value={planDates.end} onChange={(v) => setPlanDates((p) => ({ ...p, end: v }))} />
+            <SelectField label="State / Territory" value={planDates.state}
+              options={STATES.map((s) => ({ value: s.value, label: s.label }))}
+              onChange={(v) => setPlanDates((p) => ({ ...p, state: v }))} />
+          </div>
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="rounded-xl p-3" style={{ background: "rgba(212,168,67,0.1)", border: "1px solid rgba(212,168,67,0.2)" }}>
+              <div className="text-xs" style={{ color: "#b0a0d0" }}>Plan Duration</div>
+              <div className="text-lg font-bold" style={{ color: "#d4a843" }}>{planWeeks.toFixed(1)} weeks</div>
+            </div>
+            <div className="rounded-xl p-3" style={{ background: "rgba(212,168,67,0.1)", border: "1px solid rgba(212,168,67,0.2)" }}>
+              <div className="text-xs" style={{ color: "#b0a0d0" }}>Public Holidays</div>
+              <div className="text-lg font-bold" style={{ color: "#d4a843" }}>{holidays.length} days</div>
+            </div>
+            <div className="rounded-xl p-3" style={{ background: "rgba(212,168,67,0.1)", border: "1px solid rgba(212,168,67,0.2)" }}>
+              <div className="text-xs" style={{ color: "#b0a0d0" }}>State</div>
+              <div className="text-lg font-bold" style={{ color: "#d4a843" }}>{planDates.state}</div>
+            </div>
+          </div>
+
+          {/* Public Holiday List */}
+          {holidays.length > 0 && (
+            <div className="mt-4">
+              <div className="text-sm font-semibold mb-2" style={{ color: "#b0a0d0" }}>
+                Public Holidays in Plan Period:
+              </div>
+              <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 lg:grid-cols-3">
+                {holidays.map((h, i) => (
+                  <div key={i} className="text-sm py-1 px-2 rounded" style={{ background: "rgba(255,255,255,0.03)" }}>
+                    <span style={{ color: "#d4a843" }}>{h.date}</span>{" "}
+                    <span style={{ color: "#b0a0d0" }}>{h.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Top summary */}
         <div className="rounded-2xl p-6 mb-6" style={{
           background: "linear-gradient(135deg, rgba(26,17,80,0.8), rgba(45,27,105,0.8))",
           border: "2px solid " + totalStatus.border,
@@ -276,7 +495,7 @@ export default function PageClient() {
             <div className="grid gap-2">
               <div>Combined funding: <span className="font-semibold" style={{ color: "#d4a843" }}>{money(totals.totalFunding)}</span></div>
               <div>Weekly cost: <span className="font-semibold">{money(totals.weekly)}</span></div>
-              <div>Projected annual cost: <span className="font-semibold">{money(totals.annual)}</span></div>
+              <div>Plan period cost ({planWeeks.toFixed(1)} wks): <span className="font-semibold">{money(totals.planCost)}</span></div>
             </div>
             <div className="text-right">
               <div className="text-sm font-semibold px-3 py-1 rounded-full" style={{
@@ -300,12 +519,9 @@ export default function PageClient() {
               background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#b0b0d0",
             }}>Export PDF</button>
           </div>
-
-          <div className="text-sm mt-3" style={{ color: "#6060a0" }}>
-            Active sleepover = hourly (hours/week). Fixed sleepover = flat per unit (count/week). GST applies to the whole weekly base.
-          </div>
         </div>
 
+        {/* Rates */}
         <div className="rounded-2xl p-6 mb-6" style={{
           background: "rgba(26,17,80,0.4)", border: "1px solid rgba(212,168,67,0.15)",
         }}>
@@ -322,6 +538,7 @@ export default function PageClient() {
           </div>
         </div>
 
+        {/* Lines */}
         <div className="grid gap-6">
           {perLine.map((l: any) => {
             const status = getBudgetStatus(l.remaining, l.totalFunding);
@@ -379,7 +596,7 @@ export default function PageClient() {
                       <div>Weekly base: <span className="font-semibold" style={{ color: "white" }}>{money(l.weeklyBase)}</span></div>
                       <div>Weekly GST: <span className="font-semibold" style={{ color: "white" }}>{money(l.weeklyGST)}</span></div>
                       <div>Weekly total: <span className="font-semibold" style={{ color: "white" }}>{money(l.weeklyTotal)}</span></div>
-                      <div className="mt-2">Annual total: <span className="font-semibold" style={{ color: "white" }}>{money(l.annualTotal)}</span></div>
+                      <div className="mt-2">Plan total ({planWeeks.toFixed(1)} wks): <span className="font-semibold" style={{ color: "white" }}>{money(l.planTotal)}</span></div>
                       <div className="mt-1">Ratio: <span className="font-semibold" style={{ color: "#d4a843" }}>{RATIOS[l.ratio]?.label || l.ratio}</span></div>
                       <div className="text-lg font-bold mt-2" style={{ color: status.color }}>Remaining: {money(l.remaining)}</div>
                     </div>
