@@ -26,7 +26,7 @@ type SupportLine = {
   description: string;
   totalFunding: number;
   ratio: string;
-  workOnPH: boolean;
+  excludedHolidays: string[];
   hrsWeekdayOrd: number;
   hrsWeekdayNight: number;
   hrsSat: number;
@@ -169,20 +169,6 @@ function SelectField(props: { label: string; value: string; options: { value: st
     </select></label>);
 }
 
-function ToggleField(props: { label: string; value: boolean; onChange: (v: boolean) => void }) {
-  return (<label className="flex items-center gap-3 cursor-pointer">
-    <div onClick={() => props.onChange(!props.value)} style={{
-      width: "48px", height: "26px", borderRadius: "13px", position: "relative",
-      background: props.value ? "rgba(34,197,94,0.4)" : "rgba(239,68,68,0.3)",
-      border: "1px solid " + (props.value ? "rgba(34,197,94,0.6)" : "rgba(239,68,68,0.5)"), transition: "all 0.2s",
-    }}><div style={{
-      width: "20px", height: "20px", borderRadius: "50%", position: "absolute", top: "2px",
-      left: props.value ? "25px" : "3px", background: props.value ? "#22c55e" : "#ef4444", transition: "all 0.2s",
-    }} /></div>
-    <div className="text-sm" style={{ color: "#b0a0d0" }}>{props.label}: <span style={{ color: props.value ? "#22c55e" : "#ef4444", fontWeight: "600" }}>{props.value ? "YES" : "NO"}</span></div>
-  </label>);
-}
-
 function getBudgetStatus(remaining: number, totalFunding: number) {
   const pct = totalFunding > 0 ? (remaining / totalFunding) * 100 : 0;
   if (remaining < 0) return { color: "#ef4444", bg: "rgba(239,68,68,0.1)", label: "OVER BUDGET", border: "rgba(239,68,68,0.3)" };
@@ -206,21 +192,29 @@ function escapeHtml(s: string) { return s.replaceAll("&", "&amp;").replaceAll("<
 function calcPHImpact(line: SupportLine, holidays: { date: string; name: string; dayOfWeek: number }[], rates: Rates) {
   const divisor = RATIOS[line.ratio]?.divisor || 1;
   let extraCost = 0; let savedCost = 0;
-  const details: { name: string; date: string; day: string; impact: number; type: string }[] = [];
+  const details: { name: string; date: string; day: string; impact: number; included: boolean }[] = [];
   for (const h of holidays) {
+    const isExcluded = line.excludedHolidays.includes(h.date);
     let normalRate = 0; let normalHrs = 0;
     if (h.dayOfWeek >= 1 && h.dayOfWeek <= 5) { normalRate = rates.weekdayOrd / divisor; normalHrs = line.hrsWeekdayOrd; }
     else if (h.dayOfWeek === 6) { normalRate = rates.sat / divisor; normalHrs = line.hrsSat; }
     else { normalRate = rates.sun / divisor; normalHrs = line.hrsSun; }
     const phRate = rates.publicHoliday / divisor;
-    if (line.workOnPH) { const extra = (phRate - normalRate) * normalHrs; extraCost += extra; details.push({ name: h.name, date: h.date, day: getDayName(h.dayOfWeek), impact: extra, type: "extra" }); }
-    else { const saved = normalRate * normalHrs; savedCost += saved; details.push({ name: h.name, date: h.date, day: getDayName(h.dayOfWeek), impact: saved, type: "saved" }); }
+    if (!isExcluded) {
+      const extra = (phRate - normalRate) * normalHrs;
+      extraCost += extra;
+      details.push({ name: h.name, date: h.date, day: getDayName(h.dayOfWeek), impact: extra, included: true });
+    } else {
+      const saved = normalRate * normalHrs;
+      savedCost += saved;
+      details.push({ name: h.name, date: h.date, day: getDayName(h.dayOfWeek), impact: saved, included: false });
+    }
   }
   return { extraCost, savedCost, details };
 }
 
 export default function PageClient({ storageKey }: { storageKey?: string }) {
-  const STORAGE_KEY = storageKey || "ndis_budget_calc_pro_v5";
+  const STORAGE_KEY = storageKey || "ndis_budget_calc_pro_v6";
   const unlocked = true;
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
@@ -242,7 +236,7 @@ export default function PageClient({ storageKey }: { storageKey?: string }) {
   });
 
   const [lines, setLines] = useState<SupportLine[]>([{
-    id: uid(), code: "01", description: "Core Supports", totalFunding: 0, ratio: "1:1", workOnPH: true,
+    id: uid(), code: "01", description: "Core Supports", totalFunding: 0, ratio: "1:1", excludedHolidays: [],
     hrsWeekdayOrd: 0, hrsWeekdayNight: 0, hrsSat: 0, hrsSun: 0, hrsPublicHoliday: 0,
     activeSleepoverHours: 0, fixedSleepovers: 0,
   }]);
@@ -258,7 +252,7 @@ export default function PageClient({ storageKey }: { storageKey?: string }) {
       if (parsed?.rates) setRates((r) => ({ ...r, ...parsed.rates }));
       if (parsed?.planDates) setPlanDates((p) => ({ ...p, ...parsed.planDates }));
       if (Array.isArray(parsed?.lines) && parsed.lines.length > 0)
-        setLines(parsed.lines.map((l: any) => ({ ...l, ratio: l.ratio || "1:1", workOnPH: l.workOnPH !== false })));
+        setLines(parsed.lines.map((l: any) => ({ ...l, ratio: l.ratio || "1:1", excludedHolidays: l.excludedHolidays || [] })));
     } catch {}
   }, []);
 
@@ -280,7 +274,7 @@ export default function PageClient({ storageKey }: { storageKey?: string }) {
       const weeklyTotal = weeklyBase + weeklyGST;
       const basePlanCost = weeklyTotal * planWeeks;
       const phImpact = calcPHImpact(l, holidays, rates);
-      const phAdjustment = l.workOnPH ? phImpact.extraCost : -phImpact.savedCost;
+      const phAdjustment = phImpact.extraCost - phImpact.savedCost;
       const planTotal = basePlanCost + phAdjustment;
       const remaining = l.totalFunding - planTotal;
       return { ...l, weeklyBase, weeklyGST, weeklyTotal, basePlanCost, phImpact, phAdjustment, planTotal, remaining };
@@ -297,12 +291,30 @@ export default function PageClient({ storageKey }: { storageKey?: string }) {
   }, [perLine]);
 
   function updateLine(id: string, patch: Partial<SupportLine>) { setLines((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l))); }
-  function addLine() { setLines((prev) => [...prev, { id: uid(), code: "NEW", description: "New line", totalFunding: 0, ratio: "1:1", workOnPH: true, hrsWeekdayOrd: 0, hrsWeekdayNight: 0, hrsSat: 0, hrsSun: 0, hrsPublicHoliday: 0, activeSleepoverHours: 0, fixedSleepovers: 0 }]); }
+
+  function toggleHoliday(lineId: string, holidayDate: string) {
+    setLines((prev) => prev.map((l) => {
+      if (l.id !== lineId) return l;
+      const excluded = l.excludedHolidays.includes(holidayDate)
+        ? l.excludedHolidays.filter((d) => d !== holidayDate)
+        : [...l.excludedHolidays, holidayDate];
+      return { ...l, excludedHolidays: excluded };
+    }));
+  }
+
+  function setAllHolidays(lineId: string, include: boolean) {
+    setLines((prev) => prev.map((l) => {
+      if (l.id !== lineId) return l;
+      return { ...l, excludedHolidays: include ? [] : holidays.map((h) => h.date) };
+    }));
+  }
+
+  function addLine() { setLines((prev) => [...prev, { id: uid(), code: "NEW", description: "New line", totalFunding: 0, ratio: "1:1", excludedHolidays: [], hrsWeekdayOrd: 0, hrsWeekdayNight: 0, hrsSat: 0, hrsSun: 0, hrsPublicHoliday: 0, activeSleepoverHours: 0, fixedSleepovers: 0 }]); }
   function deleteLine(id: string) { setLines((prev) => (prev.length <= 1 ? prev : prev.filter((l) => l.id !== id))); }
 
   function exportCSV() {
-    const header = ["Code","Description","Ratio","Work PH","Funding","Weekly","PH Adj","Plan Total","Remaining"];
-    const rows = perLine.map((l: any) => [l.code,l.description,l.ratio,l.workOnPH?"Yes":"No",l.totalFunding,l.weeklyTotal,l.phAdjustment,l.planTotal,l.remaining]);
+    const header = ["Code","Description","Ratio","Excluded PHs","Funding","Weekly","PH Adj","Plan Total","Remaining"];
+    const rows = perLine.map((l: any) => [l.code,l.description,l.ratio,l.excludedHolidays.length,l.totalFunding,l.weeklyTotal,l.phAdjustment,l.planTotal,l.remaining]);
     const csv = [header, ...rows].map((r) => r.map((cell) => { const s = String(cell ?? ""); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join(",")).join("\n");
     downloadTextFile("ndis-budget-export-" + new Date().toISOString().slice(0, 10) + ".csv", csv);
   }
@@ -311,10 +323,10 @@ export default function PageClient({ storageKey }: { storageKey?: string }) {
     const dateStr = new Date().toLocaleString("en-AU");
     const rowsHtml = perLine.map((l: any) => {
       const remClass = l.remaining < 0 ? "neg" : "pos";
-      return "<tr><td>" + escapeHtml(l.code) + "</td><td>" + escapeHtml(l.description) + "</td><td>" + escapeHtml(l.ratio) + "</td><td>" + (l.workOnPH ? "Yes" : "No") + "</td><td class='num'>" + escapeHtml(money(l.totalFunding)) + "</td><td class='num'>" + escapeHtml(money(l.weeklyTotal)) + "</td><td class='num'>" + escapeHtml(money(l.phAdjustment)) + "</td><td class='num'>" + escapeHtml(money(l.planTotal)) + "</td><td class='num " + remClass + "'>" + escapeHtml(money(l.remaining)) + "</td></tr>";
+      return "<tr><td>" + escapeHtml(l.code) + "</td><td>" + escapeHtml(l.description) + "</td><td>" + escapeHtml(l.ratio) + "</td><td>" + (holidays.length - l.excludedHolidays.length) + "/" + holidays.length + "</td><td class='num'>" + escapeHtml(money(l.totalFunding)) + "</td><td class='num'>" + escapeHtml(money(l.weeklyTotal)) + "</td><td class='num'>" + escapeHtml(money(l.phAdjustment)) + "</td><td class='num'>" + escapeHtml(money(l.planTotal)) + "</td><td class='num " + remClass + "'>" + escapeHtml(money(l.remaining)) + "</td></tr>";
     }).join("");
     const holidayRows = holidays.map((h) => "<tr><td>" + escapeHtml(h.date) + "</td><td>" + getDayName(h.dayOfWeek) + "</td><td>" + escapeHtml(h.name) + "</td></tr>").join("");
-    const html = "<!doctype html><html><head><meta charset='utf-8'/><title>NDIS Budget Report</title><style>body{font-family:-apple-system,sans-serif;padding:24px;color:#111}h1{margin:0 0 6px;font-size:20px;color:#1a1150}.meta{color:#444;margin-bottom:16px;font-size:12px}table{width:100%;border-collapse:collapse;font-size:12px;margin-top:12px}th,td{border:1px solid #ddd;padding:8px}th{background:#1a1150;color:white;text-align:left}.num{text-align:right}.neg{color:#c0392b;font-weight:700}.pos{color:#27ae60;font-weight:700}.kpi{font-size:14px;margin:4px 0}.section{font-size:16px;font-weight:600;margin:20px 0 8px;color:#1a1150}.powered{text-align:center;margin-top:20px;font-size:11px;color:#888}</style></head><body><h1>NDIS Budget Calculator - Report</h1><div class='meta'>Generated: " + escapeHtml(dateStr) + " | Plan: " + escapeHtml(planDates.start) + " to " + escapeHtml(planDates.end) + " | State: " + escapeHtml(planDates.state) + " | " + planWeeks.toFixed(1) + " weeks | Powered by Kevria</div><div class='kpi'><b>Combined funding:</b> " + escapeHtml(money(totals.totalFunding)) + "</div><div class='kpi'><b>Weekly cost:</b> " + escapeHtml(money(totals.weekly)) + "</div><div class='kpi'><b>PH adjustment:</b> " + escapeHtml(money(totals.totalPHAdjust)) + "</div><div class='kpi'><b>Plan cost:</b> " + escapeHtml(money(totals.planCost)) + "</div><div class='kpi'><b>Remaining:</b> " + escapeHtml(money(totals.remaining)) + "</div><div class='section'>Support Lines</div><table><tr><th>Code</th><th>Description</th><th>Ratio</th><th>Work PH</th><th>Funding</th><th>Weekly</th><th>PH Adj</th><th>Plan Total</th><th>Remaining</th></tr>" + rowsHtml + "</table><div class='section'>Public Holidays (" + holidays.length + ")</div><table><tr><th>Date</th><th>Day</th><th>Holiday</th></tr>" + holidayRows + "</table><div class='powered'>Powered by Kevria - NDIS Budget Calculator</div><script>window.onload=()=>{window.focus();window.print()}</script></body></html>";
+    const html = "<!doctype html><html><head><meta charset='utf-8'/><title>NDIS Budget Report</title><style>body{font-family:-apple-system,sans-serif;padding:24px;color:#111}h1{margin:0 0 6px;font-size:20px;color:#1a1150}.meta{color:#444;margin-bottom:16px;font-size:12px}table{width:100%;border-collapse:collapse;font-size:12px;margin-top:12px}th,td{border:1px solid #ddd;padding:8px}th{background:#1a1150;color:white;text-align:left}.num{text-align:right}.neg{color:#c0392b;font-weight:700}.pos{color:#27ae60;font-weight:700}.kpi{font-size:14px;margin:4px 0}.section{font-size:16px;font-weight:600;margin:20px 0 8px;color:#1a1150}.powered{text-align:center;margin-top:20px;font-size:11px;color:#888}</style></head><body><h1>NDIS Budget Calculator - Report</h1><div class='meta'>Generated: " + escapeHtml(dateStr) + " | Plan: " + escapeHtml(planDates.start) + " to " + escapeHtml(planDates.end) + " | State: " + escapeHtml(planDates.state) + " | " + planWeeks.toFixed(1) + " weeks | Powered by Kevria</div><div class='kpi'><b>Combined funding:</b> " + escapeHtml(money(totals.totalFunding)) + "</div><div class='kpi'><b>Weekly cost:</b> " + escapeHtml(money(totals.weekly)) + "</div><div class='kpi'><b>PH adjustment:</b> " + escapeHtml(money(totals.totalPHAdjust)) + "</div><div class='kpi'><b>Plan cost:</b> " + escapeHtml(money(totals.planCost)) + "</div><div class='kpi'><b>Remaining:</b> " + escapeHtml(money(totals.remaining)) + "</div><div class='section'>Support Lines</div><table><tr><th>Code</th><th>Description</th><th>Ratio</th><th>PHs Included</th><th>Funding</th><th>Weekly</th><th>PH Adj</th><th>Plan Total</th><th>Remaining</th></tr>" + rowsHtml + "</table><div class='section'>Public Holidays (" + holidays.length + ")</div><table><tr><th>Date</th><th>Day</th><th>Holiday</th></tr>" + holidayRows + "</table><div class='powered'>Powered by Kevria - NDIS Budget Calculator</div><script>window.onload=()=>{window.focus();window.print()}</script></body></html>";
     const w = window.open("", "_blank");
     if (!w) { alert("Popup blocked."); return; }
     w.document.open(); w.document.write(html); w.document.close();
@@ -376,7 +388,7 @@ export default function PageClient({ storageKey }: { storageKey?: string }) {
             <div className="grid gap-2">
               <div>Combined funding: <span className="font-semibold" style={{ color: "#d4a843" }}>{money(totals.totalFunding)}</span></div>
               <div>Weekly cost: <span className="font-semibold">{money(totals.weekly)}</span></div>
-              <div>PH adjustment: <span className="font-semibold" style={{ color: totals.totalPHAdjust > 0 ? "#ef4444" : "#22c55e" }}>{totals.totalPHAdjust > 0 ? "+" : ""}{money(totals.totalPHAdjust)}</span></div>
+              <div>PH adjustment: <span className="font-semibold" style={{ color: totals.totalPHAdjust > 0 ? "#ef4444" : totals.totalPHAdjust < 0 ? "#22c55e" : "#b0a0d0" }}>{totals.totalPHAdjust > 0 ? "+" : ""}{money(totals.totalPHAdjust)}</span></div>
               <div>Plan period cost ({planWeeks.toFixed(1)} wks): <span className="font-semibold">{money(totals.planCost)}</span></div>
             </div>
             <div className="text-right">
@@ -385,16 +397,9 @@ export default function PageClient({ storageKey }: { storageKey?: string }) {
           </div>
           <div className="text-2xl font-bold" style={{ color: totalStatus.color }}>Remaining: {money(totals.remaining)}</div>
           <div className="mt-4">
-            <div className="flex justify-between text-xs mb-1" style={{ color: "#b0a0d0" }}>
-              <span>Used: {money(totals.planCost)}</span><span>Budget: {money(totals.totalFunding)}</span>
-            </div>
+            <div className="flex justify-between text-xs mb-1" style={{ color: "#b0a0d0" }}><span>Used: {money(totals.planCost)}</span><span>Budget: {money(totals.totalFunding)}</span></div>
             <div style={{ background: "rgba(255,255,255,0.1)", borderRadius: "8px", height: "12px", overflow: "hidden" }}>
-              <div style={{
-                width: Math.min(100, totals.totalFunding > 0 ? (totals.planCost / totals.totalFunding) * 100 : 0) + "%",
-                height: "100%", borderRadius: "8px",
-                background: totals.planCost > totals.totalFunding ? "linear-gradient(90deg, #ef4444, #dc2626)" : totals.planCost > totals.totalFunding * 0.9 ? "linear-gradient(90deg, #f59e0b, #d97706)" : "linear-gradient(90deg, #22c55e, #16a34a)",
-                transition: "width 0.3s",
-              }} />
+              <div style={{ width: Math.min(100, totals.totalFunding > 0 ? (totals.planCost / totals.totalFunding) * 100 : 0) + "%", height: "100%", borderRadius: "8px", background: totals.planCost > totals.totalFunding ? "linear-gradient(90deg, #ef4444, #dc2626)" : totals.planCost > totals.totalFunding * 0.9 ? "linear-gradient(90deg, #f59e0b, #d97706)" : "linear-gradient(90deg, #22c55e, #16a34a)", transition: "width 0.3s" }} />
             </div>
             <div className="text-xs mt-1 text-right" style={{ color: "#b0a0d0" }}>{totals.totalFunding > 0 ? ((totals.planCost / totals.totalFunding) * 100).toFixed(1) : 0}% used</div>
           </div>
@@ -425,6 +430,7 @@ export default function PageClient({ storageKey }: { storageKey?: string }) {
           {perLine.map((l: any) => {
             const status = getBudgetStatus(l.remaining, l.totalFunding);
             const suggestions = getSuggestions(l, rates);
+            const includedCount = holidays.length - l.excludedHolidays.length;
             return (
               <div key={l.id} className="rounded-2xl p-6" style={{ background: "rgba(26,17,80,0.4)", border: "1px solid " + status.border }}>
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
@@ -442,7 +448,6 @@ export default function PageClient({ storageKey }: { storageKey?: string }) {
                       <TextField label="Description" value={l.description} onChange={(v) => updateLine(l.id, { description: v })} />
                       <Field label="Total funding (AUD)" value={l.totalFunding} onChange={(v) => updateLine(l.id, { totalFunding: v })} step={100} />
                       <SelectField label="Support Ratio" value={l.ratio} options={Object.entries(RATIOS).map(([k, v]) => ({ value: k, label: v.label }))} onChange={(v) => updateLine(l.id, { ratio: v })} />
-                      <ToggleField label="Work on Public Holidays" value={l.workOnPH} onChange={(v) => updateLine(l.id, { workOnPH: v })} />
                     </div>
                   </div>
                   <div className="rounded-xl p-4" style={{ background: "rgba(15,10,48,0.6)", border: "1px solid rgba(212,168,67,0.1)" }}>
@@ -463,33 +468,60 @@ export default function PageClient({ storageKey }: { storageKey?: string }) {
                     <div className="mt-4 text-sm" style={{ color: "#b0a0d0" }}>
                       <div>Weekly total: <span className="font-semibold" style={{ color: "white" }}>{money(l.weeklyTotal)}</span></div>
                       <div>Base plan cost: <span className="font-semibold" style={{ color: "white" }}>{money(l.basePlanCost)}</span></div>
-                      <div>PH adjustment: <span className="font-semibold" style={{ color: l.phAdjustment > 0 ? "#ef4444" : "#22c55e" }}>{l.phAdjustment > 0 ? "+" : ""}{money(l.phAdjustment)}</span></div>
+                      <div>PH adjustment: <span className="font-semibold" style={{ color: l.phAdjustment > 0 ? "#ef4444" : l.phAdjustment < 0 ? "#22c55e" : "#b0a0d0" }}>{l.phAdjustment > 0 ? "+" : ""}{money(l.phAdjustment)}</span></div>
                       <div className="mt-1">Plan total: <span className="font-semibold" style={{ color: "white" }}>{money(l.planTotal)}</span></div>
                       <div>Ratio: <span className="font-semibold" style={{ color: "#d4a843" }}>{RATIOS[l.ratio]?.label || l.ratio}</span></div>
                       <div className="text-lg font-bold mt-2" style={{ color: status.color }}>Remaining: {money(l.remaining)}</div>
                     </div>
                   </div>
                 </div>
-                {l.phImpact.details.length > 0 && (
-                  <div className="mt-4 rounded-xl p-4" style={{
-                    background: l.workOnPH ? "rgba(239,68,68,0.05)" : "rgba(34,197,94,0.05)",
-                    border: "1px solid " + (l.workOnPH ? "rgba(239,68,68,0.2)" : "rgba(34,197,94,0.2)"),
-                  }}>
-                    <div className="text-sm font-semibold mb-2" style={{ color: l.workOnPH ? "#ef4444" : "#22c55e" }}>
-                      {l.workOnPH ? "Public Holiday Extra Costs:" : "Savings from Excluding Public Holidays:"}
+
+                {/* Individual PH Toggles */}
+                {holidays.length > 0 && (
+                  <div className="mt-4 rounded-xl p-4" style={{ background: "rgba(15,10,48,0.4)", border: "1px solid rgba(212,168,67,0.1)" }}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="text-sm font-semibold" style={{ color: "#d4a843" }}>
+                        Public Holidays ({includedCount}/{holidays.length} included)
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => setAllHolidays(l.id, true)} className="text-xs px-3 py-1 rounded-lg" style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.3)", color: "#22c55e", cursor: "pointer" }}>Include All</button>
+                        <button onClick={() => setAllHolidays(l.id, false)} className="text-xs px-3 py-1 rounded-lg" style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444", cursor: "pointer" }}>Exclude All</button>
+                      </div>
                     </div>
                     <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
                       {l.phImpact.details.map((d: any, i: number) => (
-                        <div key={i} className="text-sm py-1" style={{ color: "#b0a0d0" }}>
-                          {d.date} ({d.day}) — {d.name}: <span style={{ color: l.workOnPH ? "#ef4444" : "#22c55e", fontWeight: "600" }}>{l.workOnPH ? "+" : "-"}{money(d.impact)}</span>
+                        <div key={i} onClick={() => toggleHoliday(l.id, d.date)}
+                          className="flex items-center gap-2 text-sm py-2 px-3 rounded-lg cursor-pointer"
+                          style={{
+                            background: d.included ? "rgba(34,197,94,0.05)" : "rgba(239,68,68,0.05)",
+                            border: "1px solid " + (d.included ? "rgba(34,197,94,0.15)" : "rgba(239,68,68,0.15)"),
+                          }}>
+                          <div style={{
+                            width: "20px", height: "20px", borderRadius: "4px", flexShrink: 0,
+                            background: d.included ? "#22c55e" : "rgba(239,68,68,0.2)",
+                            border: "1px solid " + (d.included ? "#22c55e" : "rgba(239,68,68,0.4)"),
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            color: "white", fontSize: "12px",
+                          }}>{d.included ? "✓" : ""}</div>
+                          <div style={{ flex: 1 }}>
+                            <span style={{ color: "#b0a0d0" }}>{d.date}</span>{" "}
+                            <span style={{ color: "#8080a0" }}>({d.day})</span>{" "}
+                            <span style={{ color: d.included ? "#c0c0e0" : "#808090" }}>{d.name}</span>
+                          </div>
+                          <div style={{ color: d.included ? "#ef4444" : "#22c55e", fontWeight: "600", fontSize: "0.85rem" }}>
+                            {d.included ? "+" + money(d.impact) : "-" + money(d.impact)}
+                          </div>
                         </div>
                       ))}
                     </div>
-                    <div className="text-sm font-bold mt-2" style={{ color: l.workOnPH ? "#ef4444" : "#22c55e" }}>
-                      Total {l.workOnPH ? "extra cost" : "savings"}: {money(l.workOnPH ? l.phImpact.extraCost : l.phImpact.savedCost)}
+                    <div className="flex justify-between mt-3 text-sm font-bold">
+                      <span style={{ color: "#ef4444" }}>Extra cost: +{money(l.phImpact.extraCost)}</span>
+                      <span style={{ color: "#22c55e" }}>Savings: -{money(l.phImpact.savedCost)}</span>
+                      <span style={{ color: l.phAdjustment > 0 ? "#ef4444" : "#22c55e" }}>Net: {l.phAdjustment > 0 ? "+" : ""}{money(l.phAdjustment)}</span>
                     </div>
                   </div>
                 )}
+
                 {suggestions.length > 0 && (
                   <div className="mt-4 rounded-xl p-4" style={{ background: "rgba(245,158,11,0.05)", border: "1px solid rgba(245,158,11,0.2)" }}>
                     <div className="text-sm font-semibold mb-2" style={{ color: "#f59e0b" }}>Suggestions to get back on track:</div>
