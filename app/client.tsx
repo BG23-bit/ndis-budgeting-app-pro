@@ -72,6 +72,7 @@ const CATEGORY_PRESETS:{[code:string]:{name:string;rates:Rates}}={
   "15":{name:"Improved Relationships",rates:{weekdayOrd:190.54,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
 };
 function getPresetRates(code:string):Rates{return CATEGORY_PRESETS[code]?.rates||NDIS_RATES_2025_26}
+function getLineMode(code:string):"full"|"weekday"|"lump"{if(["02","03","05","06"].includes(code))return"lump";if(["07","10","11","12","13","14","15"].includes(code))return"weekday";return"full"}
 function isBelowGuide(lr:Rates,code:string):boolean{const p=CATEGORY_PRESETS[code]?.rates;if(!p)return false;return(p.weekdayOrd>0&&lr.weekdayOrd<p.weekdayOrd)||(p.weekdayNight>0&&lr.weekdayNight<p.weekdayNight)||(p.sat>0&&lr.sat<p.sat)||(p.sun>0&&lr.sun<p.sun)||(p.publicHoliday>0&&lr.publicHoliday<p.publicHoliday)||(p.activeSleepoverHourly>0&&lr.activeSleepoverHourly<p.activeSleepoverHourly)}
 export default function PageClient({storageKey}:{storageKey?:string}){
 const STORAGE_KEY=storageKey||"ndis_budget_calc_pro_v7";
@@ -281,6 +282,8 @@ return(
 const status=getBudgetStatus(l.remaining,l.totalFunding);
 const suggestions=getSuggestions(l,l.lineRates||rates);
 const belowGuide=isBelowGuide(l.lineRates||rates,l.code);
+const lineMode=getLineMode(l.code);
+const rosterDays=lineMode==="weekday"?["mon","tue","wed","thu","fri"]:DAYS;
 const includedCount=holidays.length-l.excludedHolidays.length;
 return(
 <div key={l.id} className="rounded-2xl p-6" style={{background:"rgba(26,17,80,0.4)",border:"1px solid "+status.border}}>
@@ -302,34 +305,44 @@ return(
 <SelectField label="Support Ratio" value={l.ratio} options={Object.entries(RATIOS).map(([k,v])=>({value:k,label:v.label}))} onChange={v=>updateLine(l.id,{ratio:v})}/>
 </div></div>
 
+{lineMode==="lump"?(
+<div className="rounded-xl p-4 lg:col-span-2" style={{background:"rgba(15,10,48,0.6)",border:"1px solid rgba(212,168,67,0.1)",display:"flex",flexDirection:"column",justifyContent:"center"}}>
+<div className="text-sm font-semibold mb-2" style={{color:"#d4a843"}}>{CATEGORY_PRESETS[l.code]?.name||"Support Category"}</div>
+<div className="text-sm mb-4" style={{color:"#8080a0"}}>This category covers lump sum items (equipment, modifications, transport, consumables). No roster needed — just set the total funding.</div>
+<div className="text-sm" style={{color:"#b0a0d0"}}>Budget: <span className="font-semibold" style={{color:"#d4a843"}}>{money(l.totalFunding)}</span></div>
+<div className="text-lg font-bold mt-2" style={{color:status.color}}>Remaining: {money(l.remaining)}</div>
+</div>
+):(
 <div className="rounded-xl p-4 lg:col-span-2" style={{background:"rgba(15,10,48,0.6)",border:"1px solid rgba(212,168,67,0.1)"}}>
-<div className="text-sm mb-3 font-semibold" style={{color:"#d4a843"}}>Weekly Roster</div>
+<div className="text-sm mb-3 font-semibold" style={{color:"#d4a843"}}>Weekly Roster{lineMode==="weekday"&&<span style={{color:"#6060a0",fontWeight:"normal",fontSize:"0.8rem",marginLeft:"8px"}}>Weekdays only</span>}</div>
 <div className="grid gap-2">
-{DAYS.map(d=>{const r=l.roster[d];return(
+{rosterDays.map(d=>{const r=l.roster[d];return(
 <div key={d} className="flex items-center gap-2 py-1" style={{borderBottom:"1px solid rgba(255,255,255,0.03)"}}>
 <div onClick={()=>updateRosterDay(l.id,d,{enabled:!r.enabled})} style={{width:"22px",height:"22px",borderRadius:"4px",flexShrink:0,background:r.enabled?"#22c55e":"rgba(239,68,68,0.2)",border:"1px solid "+(r.enabled?"#22c55e":"rgba(239,68,68,0.4)"),display:"flex",alignItems:"center",justifyContent:"center",color:"white",fontSize:"12px",cursor:"pointer"}}>{r.enabled?"✓":""}</div>
 <div style={{width:"80px",color:r.enabled?"#d4a843":"#505060",fontWeight:"600",fontSize:"0.85rem"}}>{DL[d]}</div>
-<div className="flex items-center gap-1"><span className="text-xs" style={{color:"#8080a0"}}>Day:</span><SmallField value={r.hours} onChange={v=>updateRosterDay(l.id,d,{hours:v})} disabled={!r.enabled}/></div>
-<div className="flex items-center gap-1"><span className="text-xs" style={{color:"#8080a0"}}>Night:</span><SmallField value={r.nightHours} onChange={v=>updateRosterDay(l.id,d,{nightHours:v})} disabled={!r.enabled}/></div>
+<div className="flex items-center gap-1"><span className="text-xs" style={{color:"#8080a0"}}>Hrs:</span><SmallField value={r.hours} onChange={v=>updateRosterDay(l.id,d,{hours:v})} disabled={!r.enabled}/></div>
+{lineMode==="full"&&<div className="flex items-center gap-1"><span className="text-xs" style={{color:"#8080a0"}}>Night:</span><SmallField value={r.nightHours} onChange={v=>updateRosterDay(l.id,d,{nightHours:v})} disabled={!r.enabled}/></div>}
 <SmallSelect value={r.frequency} options={Object.entries(FREQ).map(([k,v])=>({value:k,label:v.label}))} onChange={v=>updateRosterDay(l.id,d,{frequency:v})} disabled={!r.enabled}/>
 </div>)})}
 </div>
 <div className="mt-3 grid grid-cols-1 gap-2">
-<div className="flex items-center gap-2 flex-wrap"><span className="text-xs" style={{color:"#8080a0"}}>Active sleepover hrs/wk:</span><SmallField value={l.activeSleepoverHours} onChange={v=>updateLine(l.id,{activeSleepoverHours:v})}/><SmallSelect value={l.activeSleepoverFreq} options={Object.entries(FREQ).map(([k,v])=>({value:k,label:v.label}))} onChange={v=>updateLine(l.id,{activeSleepoverFreq:v})}/></div>
-<div className="flex items-center gap-2 flex-wrap"><span className="text-xs" style={{color:"#8080a0"}}>Fixed sleepovers/wk:</span><SmallField value={l.fixedSleepovers} step={1} onChange={v=>updateLine(l.id,{fixedSleepovers:v})}/><SmallSelect value={l.fixedSleepoverFreq} options={Object.entries(FREQ).map(([k,v])=>({value:k,label:v.label}))} onChange={v=>updateLine(l.id,{fixedSleepoverFreq:v})}/></div>
+{lineMode==="full"&&<div className="flex items-center gap-2 flex-wrap"><span className="text-xs" style={{color:"#8080a0"}}>Active sleepover hrs/wk:</span><SmallField value={l.activeSleepoverHours} onChange={v=>updateLine(l.id,{activeSleepoverHours:v})}/><SmallSelect value={l.activeSleepoverFreq} options={Object.entries(FREQ).map(([k,v])=>({value:k,label:v.label}))} onChange={v=>updateLine(l.id,{activeSleepoverFreq:v})}/></div>}
+{lineMode==="full"&&<div className="flex items-center gap-2 flex-wrap"><span className="text-xs" style={{color:"#8080a0"}}>Fixed sleepovers/wk:</span><SmallField value={l.fixedSleepovers} step={1} onChange={v=>updateLine(l.id,{fixedSleepovers:v})}/><SmallSelect value={l.fixedSleepoverFreq} options={Object.entries(FREQ).map(([k,v])=>({value:k,label:v.label}))} onChange={v=>updateLine(l.id,{fixedSleepoverFreq:v})}/></div>}
 <div className="flex items-center gap-2 flex-wrap"><span className="text-xs" style={{color:"#8080a0"}}>KMs per week:</span><SmallField value={l.kmsPerWeek} step={1} onChange={v=>updateLine(l.id,{kmsPerWeek:v})}/><span className="text-xs" style={{color:"#8080a0"}}>@ $</span><SmallField value={l.kmRate} step={0.01} onChange={v=>updateLine(l.id,{kmRate:v})}/><span className="text-xs" style={{color:"#8080a0"}}>/km</span><SmallSelect value={l.kmFreq} options={Object.entries(FREQ).map(([k,v])=>({value:k,label:v.label}))} onChange={v=>updateLine(l.id,{kmFreq:v})}/></div>
 </div>
 <div className="mt-4 text-sm" style={{color:"#b0a0d0"}}>
 <div>Weekly total: <span className="font-semibold" style={{color:"white"}}>{money(l.weeklyWithGST)}</span></div>
-<div>KM cost/wk: <span className="font-semibold" style={{color:"white"}}>{money(l.kmsPerWeek*l.kmRate*(FREQ[l.kmFreq]?.multiplier||1))}</span></div>
+{lineMode==="full"&&<div>KM cost/wk: <span className="font-semibold" style={{color:"white"}}>{money(l.kmsPerWeek*l.kmRate*(FREQ[l.kmFreq]?.multiplier||1))}</span></div>}
 <div>Base plan cost: <span className="font-semibold" style={{color:"white"}}>{money(l.basePlanCost)}</span></div>
-<div>PH adjustment: <span className="font-semibold" style={{color:l.phAdjustment>0?"#ef4444":l.phAdjustment<0?"#22c55e":"#b0a0d0"}}>{l.phAdjustment>0?"+":""}{money(l.phAdjustment)}</span></div>
+{lineMode==="full"&&<div>PH adjustment: <span className="font-semibold" style={{color:l.phAdjustment>0?"#ef4444":l.phAdjustment<0?"#22c55e":"#b0a0d0"}}>{l.phAdjustment>0?"+":""}{money(l.phAdjustment)}</span></div>}
 <div className="mt-1">Plan total: <span className="font-semibold" style={{color:"white"}}>{money(l.planTotal)}</span></div>
 <div>Ratio: <span className="font-semibold" style={{color:"#d4a843"}}>{RATIOS[l.ratio]?.label||l.ratio}</span></div>
 <div className="text-lg font-bold mt-2" style={{color:status.color}}>Remaining: {money(l.remaining)}</div>
-</div></div></div>
+</div></div>
+)}
+</div>
 
-<div className="mt-4 rounded-xl overflow-hidden" style={{border:"1px solid "+(belowGuide?"rgba(245,158,11,0.4)":"rgba(212,168,67,0.15)")}}>
+{lineMode!=="lump"&&<div className="mt-4 rounded-xl overflow-hidden" style={{border:"1px solid "+(belowGuide?"rgba(245,158,11,0.4)":"rgba(212,168,67,0.15)")}}>
 <button onClick={()=>toggleRates(l.id)} className="w-full flex items-center justify-between px-4 py-3" style={{background:belowGuide?"rgba(245,158,11,0.06)":"rgba(212,168,67,0.04)",cursor:"pointer",border:"none",color:"white",textAlign:"left"}}>
   <span className="text-sm font-semibold" style={{color:belowGuide?"#f59e0b":"#d4a843"}}>
     Hourly Rates{belowGuide&&<span style={{marginLeft:"8px",fontSize:"0.78rem"}}>⚠ Some rates below price guide</span>}
@@ -373,9 +386,9 @@ return(
   </button>
 </div>
 )}
-</div>
+</div>}
 
-{holidays.length>0&&(
+{lineMode!=="lump"&&holidays.length>0&&(
 <div className="mt-4 rounded-xl p-4" style={{background:"rgba(15,10,48,0.4)",border:"1px solid rgba(212,168,67,0.1)"}}>
 <div className="flex items-center justify-between mb-3">
 <div className="text-sm font-semibold" style={{color:"#d4a843"}}>Public Holidays ({includedCount}/{holidays.length} included)</div>
