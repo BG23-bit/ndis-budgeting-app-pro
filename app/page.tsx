@@ -146,7 +146,7 @@ export default function LandingPage() {
         borderBottom: "1px solid rgba(255,255,255,0.05)",
       }}>
         <p style={{ color: "#8080a0", fontSize: "0.95rem" }}>
-          Trusted by NDIS providers across Australia 🇦🇺
+          Built for NDIS support coordinators and plan managers across Australia 🇦🇺
         </p>
       </section>
 
@@ -172,32 +172,47 @@ export default function LandingPage() {
               {
                 icon: "📊",
                 title: "Budget Tracking",
-                desc: "Track combined funding, weekly costs, and projected annual spend across all support lines.",
+                desc: "Track combined funding, weekly costs, and projected plan spend across all support lines — with a live remaining balance.",
               },
               {
                 icon: "⏰",
                 title: "Shift Rate Calculator",
-                desc: "Automatically calculate costs for weekday, night, weekend, public holiday, and sleepover shifts.",
+                desc: "Automatically calculate costs for weekday, night, Saturday, Sunday, public holiday, active sleepover, and fixed sleepover shifts.",
               },
               {
-                icon: "📋",
-                title: "Multiple Support Lines",
-                desc: "Add unlimited support lines. Manage Core Supports, Capacity Building, and more — all in one place.",
+                icon: "🗓️",
+                title: "Public Holiday Auto-Calc",
+                desc: "Public holidays are detected automatically for your state. Toggle each holiday per support line and see the exact cost impact.",
+              },
+              {
+                icon: "📈",
+                title: "Plan Pace Tracking",
+                desc: "See if spending is on pace, ahead, or behind based on today's date — so you can act before the budget runs out.",
+              },
+              {
+                icon: "🧾",
+                title: "Claims Tracker",
+                desc: "Log actual invoices and claims against each support line. Track projected vs actual spend side by side.",
+              },
+              {
+                icon: "👥",
+                title: "Multiple Participants",
+                desc: "Manage budgets for as many participants as you need from a single dashboard — each with their own calculator.",
+              },
+              {
+                icon: "🚗",
+                title: "KM Tracking",
+                desc: "Add transport kilometre costs per support line with configurable rates and frequency.",
               },
               {
                 icon: "📤",
                 title: "Export CSV & PDF",
-                desc: "Export professional reports in CSV or PDF format. Perfect for audits and plan reviews.",
-              },
-              {
-                icon: "💾",
-                title: "Auto-Save",
-                desc: "Your data saves automatically in your browser. Come back anytime and pick up where you left off.",
+                desc: "Export professional reports in CSV or PDF format. Perfect for plan reviews, audits, and sharing with participants.",
               },
               {
                 icon: "🔒",
                 title: "Secure & Private",
-                desc: "Your data stays in your browser. No tracking, no data collection, no third-party access.",
+                desc: "Your data is stored securely in your account. Your email is used only for login — never sold or shared with third parties.",
               },
             ].map((f, i) => (
               <div
@@ -308,11 +323,13 @@ export default function LandingPage() {
 
             <div style={{ textAlign: "left", marginBottom: "30px" }}>
               {[
-                "Unlimited support lines",
-                "All shift rate calculations",
+                "Unlimited support lines & participants",
+                "All shift rate calculations (incl. public holidays)",
                 "Sleepover calculations (active & fixed)",
+                "KM tracking",
+                "Plan pace tracking",
+                "Claims & actual spend tracker",
                 "CSV & PDF exports",
-                "Auto-save in browser",
                 "Lifetime access — no expiry",
                 "Future updates included",
               ].map((item, i) => (
@@ -368,11 +385,11 @@ export default function LandingPage() {
             },
             {
               q: "Can I manage multiple participants?",
-              a: "Yes! You can add unlimited support lines to manage budgets for different participants or support categories.",
+              a: "Yes! The dashboard lets you manage unlimited participants, each with their own full budget calculator, support lines, and claims tracker.",
             },
             {
               q: "Is my data secure?",
-              a: "Your budget data is saved locally in your browser. We don't store or access your calculation data on our servers.",
+              a: "Your data is stored securely in your Kevria account. We use your email address only for account access and never sell or share your personal information. See our Privacy Policy for full details.",
             },
             {
               q: "Can I export reports?",
@@ -415,7 +432,15 @@ export default function LandingPage() {
         <p style={{ color: "#6060a0", fontSize: "0.9rem", marginBottom: "8px" }}>
           Powered by <a href="https://kevria.com.au" target="_blank" style={{ color: "#d4a843", textDecoration: "none" }}>Kevria</a> — A YOU Focused NDIS Disability Service Provider
         </p>
-        <p style={{ color: "#4040700", fontSize: "0.8rem" }}>
+        <div style={{ display: "flex", justifyContent: "center", gap: "20px", marginBottom: "12px" }}>
+          <a href="/privacy" style={{ color: "#6060a0", fontSize: "0.85rem", textDecoration: "none" }}>Privacy Policy</a>
+          <span style={{ color: "#3a3a60" }}>|</span>
+          <a href="mailto:support@kevria.com" style={{ color: "#6060a0", fontSize: "0.85rem", textDecoration: "none" }}>support@kevria.com</a>
+        </div>
+        <p style={{ color: "#404070", fontSize: "0.75rem", maxWidth: "600px", margin: "0 auto 8px auto", lineHeight: "1.5" }}>
+          This tool is provided for budgeting guidance only. It is not affiliated with the NDIA and does not constitute financial or planning advice. Always verify rates against the official NDIS Pricing Arrangements.
+        </p>
+        <p style={{ color: "#404070", fontSize: "0.8rem" }}>
           © {new Date().getFullYear()} Kevria. All rights reserved.
         </p>
       </footer>
