@@ -27,6 +27,7 @@ export default function LandingPage() {
           <a href="#how" style={{ color: "#ccc", textDecoration: "none", fontSize: "0.95rem" }}>How It Works</a>
           <a href="#pricing" style={{ color: "#ccc", textDecoration: "none", fontSize: "0.95rem" }}>Pricing</a>
           <a href="#faq" style={{ color: "#ccc", textDecoration: "none", fontSize: "0.95rem" }}>FAQ</a>
+          <a href="https://kevria.com" target="_blank" rel="noopener noreferrer" style={{ color: "#d4a843", textDecoration: "none", fontSize: "0.95rem", fontWeight: "600" }}>kevria.com</a>
           <button
             onClick={() => router.push("/login")}
             style={{
@@ -53,34 +54,23 @@ export default function LandingPage() {
         position: "relative",
         overflow: "hidden",
       }}>
-        {/* Decorative circles */}
-        <div style={{
-          position: "absolute", top: "50px", right: "10%",
-          width: "200px", height: "200px", borderRadius: "50%",
-          background: "#d4a843", opacity: 0.15,
-        }} />
-        <div style={{
-          position: "absolute", bottom: "30px", left: "5%",
-          width: "150px", height: "150px", borderRadius: "50%",
-          background: "#5b6abf", opacity: 0.2,
-        }} />
-        <div style={{
-          position: "absolute", top: "40%", left: "15%",
-          width: "60px", height: "60px", borderRadius: "50%",
-          background: "white", opacity: 0.1,
-        }} />
+        <div style={{ position: "absolute", top: "50px", right: "10%", width: "200px", height: "200px", borderRadius: "50%", background: "#d4a843", opacity: 0.15 }} />
+        <div style={{ position: "absolute", bottom: "30px", left: "5%", width: "150px", height: "150px", borderRadius: "50%", background: "#5b6abf", opacity: 0.2 }} />
+        <div style={{ position: "absolute", top: "40%", left: "15%", width: "60px", height: "60px", borderRadius: "50%", background: "white", opacity: 0.1 }} />
 
         <div style={{ position: "relative", zIndex: 1 }}>
-          <p style={{
-            fontSize: "1rem",
-            color: "#d4a843",
-            fontWeight: "600",
-            letterSpacing: "2px",
-            textTransform: "uppercase",
-            marginBottom: "15px",
+          <div style={{
+            display: "inline-block",
+            background: "rgba(212,168,67,0.12)",
+            border: "1px solid rgba(212,168,67,0.3)",
+            borderRadius: "20px",
+            padding: "6px 18px",
+            marginBottom: "20px",
           }}>
-            Powered by Kevria
-          </p>
+            <p style={{ fontSize: "0.85rem", color: "#d4a843", fontWeight: "600", letterSpacing: "1px", textTransform: "uppercase", margin: 0 }}>
+              Built by providers · For providers
+            </p>
+          </div>
           <h1 style={{
             fontSize: "3.5rem",
             fontWeight: "800",
@@ -94,14 +84,21 @@ export default function LandingPage() {
             <span style={{ color: "#d4a843" }}>NDIS Budgets</span>
           </h1>
           <p style={{
-            fontSize: "1.25rem",
+            fontSize: "1.2rem",
             color: "#b0b0d0",
-            maxWidth: "600px",
-            margin: "0 auto 40px auto",
+            maxWidth: "650px",
+            margin: "0 auto 16px auto",
             lineHeight: "1.6",
           }}>
-            Track funding, calculate costs, forecast spending — all in one
-            powerful tool built for NDIS providers.
+            Track funding, calculate rosters, forecast spending — built by an NDIS provider for every provider type across Australia.
+          </p>
+          <p style={{
+            fontSize: "0.95rem",
+            color: "#7070a0",
+            maxWidth: "600px",
+            margin: "0 auto 40px auto",
+          }}>
+            SIL · Support Coordination · Community Access · Therapy · Plan Management · Respite · Employment Support
           </p>
           <button
             onClick={() => router.push("/login")}
@@ -117,12 +114,10 @@ export default function LandingPage() {
               marginRight: "15px",
             }}
           >
-            Get Started — $9.99
+            Get Started — $9.99/mo
           </button>
           <button
-            onClick={() => {
-              document.getElementById("features")?.scrollIntoView({ behavior: "smooth" });
-            }}
+            onClick={() => { document.getElementById("features")?.scrollIntoView({ behavior: "smooth" }); }}
             style={{
               padding: "16px 36px",
               fontSize: "1.2rem",
@@ -134,7 +129,7 @@ export default function LandingPage() {
               fontWeight: "600",
             }}
           >
-            Learn More ↓
+            See Features ↓
           </button>
         </div>
       </section>
@@ -148,43 +143,42 @@ export default function LandingPage() {
         borderBottom: "1px solid rgba(255,255,255,0.05)",
       }}>
         <p style={{ color: "#8080a0", fontSize: "0.95rem" }}>
-          Built for NDIS support coordinators and plan managers across Australia 🇦🇺
+          Built by an NDIS provider, used by providers across Australia 🇦🇺 — originally created internally to manage rosters of care
         </p>
       </section>
 
       {/* FEATURES */}
-      <section id="features" style={{
-        background: "#1a1150",
-        padding: "80px 40px",
-      }}>
-        <div style={{ maxWidth: "1000px", margin: "0 auto", textAlign: "center" }}>
-          <h2 style={{ fontSize: "2.2rem", fontWeight: "700", marginBottom: "10px" }}>
-            Everything You Need
-          </h2>
+      <section id="features" style={{ background: "#1a1150", padding: "80px 40px" }}>
+        <div style={{ maxWidth: "1100px", margin: "0 auto", textAlign: "center" }}>
+          <h2 style={{ fontSize: "2.2rem", fontWeight: "700", marginBottom: "10px" }}>Everything You Need</h2>
           <p style={{ color: "#8080a0", marginBottom: "50px", fontSize: "1.1rem" }}>
-            One tool to manage all your NDIS budget calculations
+            One tool to manage all your NDIS budget calculations — whatever type of support you deliver
           </p>
 
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-            gap: "30px",
-          }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "30px" }}>
             {[
               {
-                icon: "📊",
-                title: "Budget Tracking",
-                desc: "Track combined funding, weekly costs, and projected plan spend across all support lines — with a live remaining balance.",
+                icon: "📄",
+                title: "Upload NDIS Plan PDF",
+                desc: "Upload a participant's NDIS plan and we automatically extract plan dates, support categories, and funding amounts — pre-filling the calculator instantly.",
+                highlight: true,
               },
               {
-                icon: "⏰",
-                title: "Shift Rate Calculator",
-                desc: "Automatically calculate costs for weekday, night, Saturday, Sunday, public holiday, active sleepover, and fixed sleepover shifts.",
+                icon: "💰",
+                title: "Per-Category Hourly Rates",
+                desc: "Every support line uses the correct 2025–26 rates for its category. 07 Support Coordination, 14 Daily Living, 01 Core Supports — each pre-loaded with the right rates. Fully editable.",
+                highlight: true,
               },
               {
-                icon: "🗓️",
-                title: "Public Holiday Auto-Calc",
-                desc: "Public holidays are detected automatically for your state. Toggle each holiday per support line and see the exact cost impact.",
+                icon: "🗂️",
+                title: "Smart Roster Modes",
+                desc: "Roster view adapts to the support type. Full shift roster for SIL and community access. Weekday-only for coordination and therapy. Lump sum view for AT and home modifications.",
+                highlight: true,
+              },
+              {
+                icon: "⚠️",
+                title: "Rate Monitoring",
+                desc: "Yellow warnings flag any rate set below the 2025–26 price guide — helping your team catch errors while still allowing lower negotiated rates.",
               },
               {
                 icon: "📈",
@@ -192,14 +186,19 @@ export default function LandingPage() {
                 desc: "See if spending is on pace, ahead, or behind based on today's date — so you can act before the budget runs out.",
               },
               {
+                icon: "🗓️",
+                title: "Public Holiday Auto-Calc",
+                desc: "Public holidays detected automatically per state. Toggle each holiday per support line and see the exact cost impact in real time.",
+              },
+              {
                 icon: "🧾",
-                title: "Claims Tracker",
+                title: "Claims & Actual Spend",
                 desc: "Log actual invoices and claims against each support line. Track projected vs actual spend side by side.",
               },
               {
                 icon: "👥",
                 title: "Multiple Participants",
-                desc: "Manage budgets for as many participants as you need from a single dashboard — each with their own calculator.",
+                desc: "Manage budgets for as many participants as you need from a single dashboard — each with their own full calculator, support lines, and claims tracker.",
               },
               {
                 icon: "🚗",
@@ -209,31 +208,34 @@ export default function LandingPage() {
               {
                 icon: "📤",
                 title: "Export CSV & PDF",
-                desc: "Export professional reports in CSV or PDF format. Perfect for plan reviews, audits, and sharing with participants.",
+                desc: "Export professional reports in CSV or PDF format. Perfect for plan reviews, handovers, audits, and sharing with participants and families.",
+              },
+              {
+                icon: "☁️",
+                title: "Cloud Sync",
+                desc: "Your data saves automatically and syncs across all your devices. Access your participant budgets from anywhere.",
               },
               {
                 icon: "🔒",
                 title: "Secure & Private",
-                desc: "Your data is stored securely in your account. Your email is used only for login — never sold or shared with third parties.",
+                desc: "Stored securely in your account. Your email is used only for login — never sold or shared.",
               },
             ].map((f, i) => (
               <div
                 key={i}
                 style={{
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.08)",
+                  background: f.highlight ? "rgba(212,168,67,0.06)" : "rgba(255,255,255,0.04)",
+                  border: f.highlight ? "1px solid rgba(212,168,67,0.25)" : "1px solid rgba(255,255,255,0.08)",
                   borderRadius: "16px",
                   padding: "30px",
                   textAlign: "left",
                 }}
               >
-                <div style={{ fontSize: "2.5rem", marginBottom: "15px" }}>{f.icon}</div>
-                <h3 style={{ fontSize: "1.2rem", fontWeight: "600", marginBottom: "10px" }}>
+                <div style={{ fontSize: "2.2rem", marginBottom: "15px" }}>{f.icon}</div>
+                <h3 style={{ fontSize: "1.15rem", fontWeight: "600", marginBottom: "10px", color: f.highlight ? "#d4a843" : "white" }}>
                   {f.title}
                 </h3>
-                <p style={{ color: "#9090b0", lineHeight: "1.6", fontSize: "0.95rem" }}>
-                  {f.desc}
-                </p>
+                <p style={{ color: "#9090b0", lineHeight: "1.6", fontSize: "0.93rem" }}>{f.desc}</p>
               </div>
             ))}
           </div>
@@ -241,47 +243,28 @@ export default function LandingPage() {
       </section>
 
       {/* HOW IT WORKS */}
-      <section id="how" style={{
-        background: "#150e40",
-        padding: "80px 40px",
-      }}>
+      <section id="how" style={{ background: "#150e40", padding: "80px 40px" }}>
         <div style={{ maxWidth: "800px", margin: "0 auto", textAlign: "center" }}>
-          <h2 style={{ fontSize: "2.2rem", fontWeight: "700", marginBottom: "10px" }}>
-            How It Works
-          </h2>
-          <p style={{ color: "#8080a0", marginBottom: "50px", fontSize: "1.1rem" }}>
-            Up and running in under 2 minutes
-          </p>
+          <h2 style={{ fontSize: "2.2rem", fontWeight: "700", marginBottom: "10px" }}>How It Works</h2>
+          <p style={{ color: "#8080a0", marginBottom: "50px", fontSize: "1.1rem" }}>Up and running in under 2 minutes</p>
 
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-            gap: "30px",
-          }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "30px" }}>
             {[
               { step: "1", title: "Create Account", desc: "Sign up with your email in seconds" },
-              { step: "2", title: "Unlock Access", desc: "One-time payment of $9.99 AUD" },
-              { step: "3", title: "Start Calculating", desc: "Enter your rates and funding — done!" },
+              { step: "2", title: "Choose a Plan", desc: "Monthly ($9.99/mo) or Annual ($79/yr). Cancel anytime." },
+              { step: "3", title: "Add Participants", desc: "Add participants, upload their NDIS plan PDF to auto-fill funding" },
+              { step: "4", title: "Build Rosters", desc: "Set up support lines, shifts, and rates — the calculator does the rest" },
             ].map((s, i) => (
               <div key={i} style={{ textAlign: "center" }}>
                 <div style={{
-                  width: "60px",
-                  height: "60px",
-                  borderRadius: "50%",
-                  background: "#d4a843",
-                  color: "#1a1150",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "1.5rem",
-                  fontWeight: "bold",
-                  margin: "0 auto 15px auto",
+                  width: "60px", height: "60px", borderRadius: "50%",
+                  background: "#d4a843", color: "#1a1150",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: "1.5rem", fontWeight: "bold", margin: "0 auto 15px auto",
                 }}>
                   {s.step}
                 </div>
-                <h3 style={{ fontSize: "1.1rem", fontWeight: "600", marginBottom: "8px" }}>
-                  {s.title}
-                </h3>
+                <h3 style={{ fontSize: "1.1rem", fontWeight: "600", marginBottom: "8px" }}>{s.title}</h3>
                 <p style={{ color: "#9090b0", fontSize: "0.95rem" }}>{s.desc}</p>
               </div>
             ))}
@@ -290,33 +273,24 @@ export default function LandingPage() {
       </section>
 
       {/* PRICING */}
-      <section id="pricing" style={{
-        background: "#1a1150",
-        padding: "80px 40px",
-      }}>
+      <section id="pricing" style={{ background: "#1a1150", padding: "80px 40px" }}>
         <div style={{ maxWidth: "780px", margin: "0 auto", textAlign: "center" }}>
-          <h2 style={{ fontSize: "2.2rem", fontWeight: "700", marginBottom: "10px" }}>
-            Simple Pricing
-          </h2>
-          <p style={{ color: "#8080a0", marginBottom: "40px", fontSize: "1.1rem" }}>
-            No lock-in. Cancel anytime.
-          </p>
+          <h2 style={{ fontSize: "2.2rem", fontWeight: "700", marginBottom: "10px" }}>Simple Pricing</h2>
+          <p style={{ color: "#8080a0", marginBottom: "40px", fontSize: "1.1rem" }}>No lock-in. Cancel anytime.</p>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "24px", textAlign: "left" }}>
-            {/* Monthly */}
             <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "20px", padding: "36px" }}>
               <p style={{ fontSize: "0.85rem", color: "#8080a0", fontWeight: "600", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "8px" }}>Monthly</p>
               <div style={{ fontSize: "3rem", fontWeight: "800", marginBottom: "2px" }}>$9.99</div>
               <p style={{ color: "#8080a0", marginBottom: "24px", fontSize: "0.9rem" }}>AUD / month</p>
-              {["Unlimited participants & support lines", "All shift rate calculations", "Public holiday auto-calc", "Plan pace tracking", "Claims tracker", "CSV & PDF exports", "Cancel anytime"].map((item, i) => (
-                <div key={i} style={{ padding: "7px 0", borderBottom: i < 6 ? "1px solid rgba(255,255,255,0.05)" : "none", color: "#c0c0e0", fontSize: "0.9rem" }}>✅ {item}</div>
+              {["Unlimited participants & support lines", "PDF plan upload & auto-fill", "Per-category rate presets (01–15)", "Public holiday auto-calc by state", "Plan pace tracking", "Claims & actual spend tracker", "CSV & PDF exports", "Cancel anytime"].map((item, i) => (
+                <div key={i} style={{ padding: "7px 0", borderBottom: i < 7 ? "1px solid rgba(255,255,255,0.05)" : "none", color: "#c0c0e0", fontSize: "0.9rem" }}>✅ {item}</div>
               ))}
               <button onClick={() => router.push("/login")} style={{ marginTop: "24px", width: "100%", padding: "14px", fontSize: "1rem", backgroundColor: "transparent", color: "#d4a843", border: "2px solid #d4a843", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}>
                 Get Started →
               </button>
             </div>
 
-            {/* Annual */}
             <div style={{ background: "rgba(212,168,67,0.06)", border: "2px solid #d4a843", borderRadius: "20px", padding: "36px", position: "relative" }}>
               <div style={{ position: "absolute", top: "-14px", left: "50%", transform: "translateX(-50%)", background: "#d4a843", color: "#1a1150", fontSize: "0.75rem", fontWeight: "800", padding: "4px 16px", borderRadius: "20px", whiteSpace: "nowrap" }}>
                 BEST VALUE — SAVE 34%
@@ -336,54 +310,48 @@ export default function LandingPage() {
       </section>
 
       {/* FAQ */}
-      <section id="faq" style={{
-        background: "#150e40",
-        padding: "80px 40px",
-      }}>
+      <section id="faq" style={{ background: "#150e40", padding: "80px 40px" }}>
         <div style={{ maxWidth: "700px", margin: "0 auto" }}>
           <h2 style={{ fontSize: "2.2rem", fontWeight: "700", marginBottom: "40px", textAlign: "center" }}>
             Frequently Asked Questions
           </h2>
-
           {[
             {
               q: "Who is this for?",
-              a: "This tool is built for NDIS service providers, support coordinators, and plan managers who need to track and forecast NDIS budgets.",
+              a: "Any NDIS provider who manages participant budgets. Built originally as an internal tool for a provider's finance team — it works for SIL providers, support coordinators, specialist support coordinators, plan managers, community access providers, allied health providers, employment support providers, and respite services. If you deliver NDIS supports and need to track budgets, this is for you.",
+            },
+            {
+              q: "How does the PDF upload work?",
+              a: "Upload a participant's NDIS plan PDF and the tool reads it using AI — extracting the plan period, state, and each support category's funding amount. You review and confirm before anything is applied, so you stay in full control.",
+            },
+            {
+              q: "How are hourly rates handled?",
+              a: "Each support line has its own rates, pre-loaded from the 2025–26 NDIS Price Guide for that category. Support Coordination (07) loads at $100.14/hr. Core Supports (01/04) load at the standard DSW rates. Therapy categories (14) load at $193.99/hr. All rates are editable — providers who charge less than the price guide can adjust freely, with a yellow indicator to flag anything below guide.",
             },
             {
               q: "How does pricing work?",
-              a: "Choose monthly ($9.99/mo) or annual ($79/yr — save 34%). Both plans include all features. No lock-in — cancel anytime from your account.",
+              a: "Choose monthly ($9.99/mo) or annual ($79/yr — save 34%). Both plans include all features with no limits. No lock-in — cancel anytime from your account.",
             },
             {
               q: "Can I manage multiple participants?",
-              a: "Yes! The dashboard lets you manage unlimited participants, each with their own full budget calculator, support lines, and claims tracker.",
+              a: "Yes — unlimited participants, each with their own full budget calculator, support lines, roster, claims tracker, and export. Manage your whole caseload from one dashboard.",
             },
             {
               q: "Is my data secure?",
-              a: "Your data is stored securely in your Kevria account. We use your email address only for account access and never sell or share your personal information. See our Privacy Policy for full details.",
+              a: "Your data is stored securely in your Kevria account and syncs across devices. We use your email only for account access — never sold or shared. See our Privacy Policy for full details.",
             },
             {
               q: "Can I export reports?",
-              a: "Yes! Export your budget calculations as CSV files or professional PDF reports — perfect for plan reviews and audits.",
+              a: "Yes — export CSV or professional PDF reports for plan reviews, audits, handovers, and sharing with participants or families.",
             },
             {
               q: "What if I need help?",
-              a: "Contact us at support@kevria.com and we'll help you out.",
+              a: "Contact us at support@kevria.com or visit kevria.com and we'll help you out.",
             },
           ].map((faq, i) => (
-            <div
-              key={i}
-              style={{
-                borderBottom: "1px solid rgba(255,255,255,0.08)",
-                padding: "20px 0",
-              }}
-            >
-              <h3 style={{ fontSize: "1.1rem", fontWeight: "600", marginBottom: "8px", color: "#d4a843" }}>
-                {faq.q}
-              </h3>
-              <p style={{ color: "#9090b0", lineHeight: "1.6", fontSize: "0.95rem" }}>
-                {faq.a}
-              </p>
+            <div key={i} style={{ borderBottom: "1px solid rgba(255,255,255,0.08)", padding: "20px 0" }}>
+              <h3 style={{ fontSize: "1.1rem", fontWeight: "600", marginBottom: "8px", color: "#d4a843" }}>{faq.q}</h3>
+              <p style={{ color: "#9090b0", lineHeight: "1.6", fontSize: "0.95rem" }}>{faq.a}</p>
             </div>
           ))}
         </div>
@@ -414,10 +382,7 @@ export default function LandingPage() {
                     I manage <span style={{ color: "#d4a843", fontWeight: "800", fontSize: "1.4rem" }}>{participants}</span> participants
                   </div>
                   <input
-                    type="range"
-                    min={1}
-                    max={50}
-                    value={participants}
+                    type="range" min={1} max={50} value={participants}
                     onChange={(e) => setParticipants(Number(e.target.value))}
                     style={{ width: "100%", accentColor: "#d4a843", height: "6px", cursor: "pointer" }}
                   />
@@ -467,9 +432,11 @@ export default function LandingPage() {
           <span style={{ fontSize: "1.1rem", fontWeight: "600" }}>NDIS Budget Calculator</span>
         </div>
         <p style={{ color: "#6060a0", fontSize: "0.9rem", marginBottom: "8px" }}>
-          Powered by <a href="https://kevria.com.au" target="_blank" style={{ color: "#d4a843", textDecoration: "none" }}>Kevria</a> — A YOU Focused NDIS Disability Service Provider
+          Powered by <a href="https://kevria.com" target="_blank" rel="noopener noreferrer" style={{ color: "#d4a843", textDecoration: "none" }}>Kevria</a> — Built by providers, for providers
         </p>
-        <div style={{ display: "flex", justifyContent: "center", gap: "20px", marginBottom: "12px" }}>
+        <div style={{ display: "flex", justifyContent: "center", gap: "20px", marginBottom: "12px", flexWrap: "wrap" }}>
+          <a href="https://kevria.com" target="_blank" rel="noopener noreferrer" style={{ color: "#6060a0", fontSize: "0.85rem", textDecoration: "none" }}>kevria.com</a>
+          <span style={{ color: "#3a3a60" }}>|</span>
           <a href="/privacy" style={{ color: "#6060a0", fontSize: "0.85rem", textDecoration: "none" }}>Privacy Policy</a>
           <span style={{ color: "#3a3a60" }}>|</span>
           <a href="mailto:support@kevria.com" style={{ color: "#6060a0", fontSize: "0.85rem", textDecoration: "none" }}>support@kevria.com</a>
@@ -484,4 +451,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
