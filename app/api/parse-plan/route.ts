@@ -1,8 +1,28 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
 export async function POST(req: NextRequest) {
   try {
+    // Verify the user is authenticated and has an active subscription
+    const authHeader = req.headers.get("Authorization");
+    const token = authHeader?.replace("Bearer ", "");
+    if (!token) {
+      return Response.json({ error: "Please log in to upload plans." }, { status: 401 });
+    }
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return Response.json({ error: "Please log in to upload plans." }, { status: 401 });
+    }
+    const { data: profile } = await supabase.from("profiles").select("paid").eq("id", user.id).single();
+    if (!profile?.paid) {
+      return Response.json({ error: "An active subscription is required to upload plans." }, { status: 403 });
+    }
+
     const formData = await req.formData();
     const file = formData.get("pdf") as File;
     if (!file) return Response.json({ error: "No file provided" }, { status: 400 });

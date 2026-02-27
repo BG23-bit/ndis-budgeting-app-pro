@@ -40,7 +40,7 @@ function money(n:number):string{const v=Number.isFinite(n)?n:0;return v.toLocale
 function num(x:any):number{const v=Number(x);return Number.isFinite(v)?v:0}
 function uid():string{return Math.random().toString(16).slice(2)+Date.now().toString(16)}
 function escapeHtml(s:string){return s.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}
-function downloadTextFile(fn:string,text:string){const blob=new Blob([text],{type:"text/plain;charset=utf-8"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=fn;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url)}
+function downloadTextFile(fn:string,text:string){const type=fn.endsWith(".csv")?"text/csv;charset=utf-8":"text/plain;charset=utf-8";const blob=new Blob([text],{type});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=fn;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url)}
 function Field(p:{label:string;value:number;step?:number;onChange:(v:number)=>void}){return(<label className="block"><div className="text-sm mb-1" style={{color:"#b0a0d0"}}>{p.label}</div><input type="number" step={p.step??1} value={Number.isFinite(p.value)?p.value:0} onChange={e=>p.onChange(num(e.target.value))} onFocus={e=>e.target.select()} className="w-full rounded-lg px-3 py-2 outline-none" style={{background:"rgba(26,17,80,0.6)",border:"1px solid rgba(212,168,67,0.2)",color:"white"}}/></label>)}
 function SmallField(p:{value:number;step?:number;onChange:(v:number)=>void;disabled?:boolean}){return(<input type="number" step={p.step??0.25} value={Number.isFinite(p.value)?p.value:0} onChange={e=>p.onChange(num(e.target.value))} onFocus={e=>e.target.select()} disabled={p.disabled} className="rounded-lg px-2 py-1 outline-none w-16 text-center" style={{background:p.disabled?"rgba(26,17,80,0.3)":"rgba(26,17,80,0.6)",border:"1px solid rgba(212,168,67,0.2)",color:p.disabled?"#505060":"white",fontSize:"0.85rem"}}/>)}
 function TextField(p:{label:string;value:string;onChange:(v:string)=>void}){return(<label className="block"><div className="text-sm mb-1" style={{color:"#b0a0d0"}}>{p.label}</div><input value={p.value} onChange={e=>p.onChange(e.target.value)} className="w-full rounded-lg px-3 py-2 outline-none" style={{background:"rgba(26,17,80,0.6)",border:"1px solid rgba(212,168,67,0.2)",color:"white"}}/></label>)}
@@ -108,8 +108,10 @@ const planFileRef=React.useRef<HTMLInputElement>(null);
 async function handlePlanUpload(file:File){
   setUploadingPlan(true);setPlanUploadError(null);
   try{
+    const {data:{session}}=await supabase.auth.getSession();
     const fd=new FormData();fd.append("pdf",file);
-    const res=await fetch("/api/parse-plan",{method:"POST",body:fd});
+    const headers:HeadersInit=session?.access_token?{Authorization:"Bearer "+session.access_token}:{};
+    const res=await fetch("/api/parse-plan",{method:"POST",body:fd,headers});
     const data=await res.json();
     if(data.error)throw new Error(data.error);
     setPlanExtract(data);
@@ -320,6 +322,7 @@ return(
 <div className="rounded-xl p-3" style={{background:"rgba(212,168,67,0.1)",border:"1px solid rgba(212,168,67,0.2)"}}><div className="text-xs" style={{color:"#b0a0d0"}}>Public Holidays</div><div className="text-lg font-bold" style={{color:"#d4a843"}}>{holidays.length} days</div></div>
 <div className="rounded-xl p-3" style={{background:"rgba(212,168,67,0.1)",border:"1px solid rgba(212,168,67,0.2)"}}><div className="text-xs" style={{color:"#b0a0d0"}}>State</div><div className="text-lg font-bold" style={{color:"#d4a843"}}>{planDates.state}</div></div>
 </div>
+{planDates.end&&planDates.start&&new Date(planDates.end)<=new Date(planDates.start)&&(<div className="mt-3 rounded-lg px-4 py-2 text-sm" style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",color:"#f87171"}}>⚠ Plan end date must be after the start date</div>)}
 <div className="mt-4 flex items-center gap-3 flex-wrap">
 <input ref={planFileRef} type="file" accept=".pdf,application/pdf" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f)handlePlanUpload(f);e.target.value="";}}/>
 <button onClick={()=>planFileRef.current?.click()} disabled={uploadingPlan} style={{background:"rgba(212,168,67,0.12)",border:"1px solid rgba(212,168,67,0.35)",color:"#d4a843",padding:"10px 18px",borderRadius:"8px",cursor:"pointer",fontWeight:"600",fontSize:"0.9rem",opacity:uploadingPlan?0.7:1}}>
