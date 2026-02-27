@@ -4,7 +4,8 @@ import { supabase } from "@/lib/supabase";
 type Rates = { weekdayOrd: number; weekdayNight: number; sat: number; sun: number; publicHoliday: number; activeSleepoverHourly: number; fixedSleepoverUnit: number; gstRate: number };
 type PlanDates = { start: string; end: string; state: string };
 type DayRoster = { enabled: boolean; hours: number; nightHours: number; frequency: string };
-type SupportLine = { id: string; code: string; description: string; totalFunding: number; ratio: string; excludedHolidays: string[]; roster: { [key: string]: DayRoster }; activeSleepoverHours: number; activeSleepoverFreq: string; fixedSleepovers: number; fixedSleepoverFreq: string; kmsPerWeek: number; kmRate: number; kmFreq: string };
+type Claim = { id: string; date: string; amount: number; note: string };
+type SupportLine = { id: string; code: string; description: string; totalFunding: number; ratio: string; excludedHolidays: string[]; roster: { [key: string]: DayRoster }; activeSleepoverHours: number; activeSleepoverFreq: string; fixedSleepovers: number; fixedSleepoverFreq: string; kmsPerWeek: number; kmRate: number; kmFreq: string; claims: Claim[] };
 const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
 const DL: {[k:string]:string} = {mon:"Monday",tue:"Tuesday",wed:"Wednesday",thu:"Thursday",fri:"Friday",sat:"Saturday",sun:"Sunday"};
 const FREQ: {[k:string]:{label:string;multiplier:number}} = {"every":{label:"Every week",multiplier:1},"2nd":{label:"Every 2nd week",multiplier:0.5},"3rd":{label:"Every 3rd week",multiplier:0.333},"4th":{label:"Every 4th week",multiplier:0.25},"monthly":{label:"Monthly",multiplier:0.2308}};
@@ -59,19 +60,24 @@ const[userEmail,setUserEmail]=useState<string|null>(null);
 useEffect(()=>{supabase.auth.getUser().then(({data})=>{setUserEmail(data.user?.email??null)});const{data:sub}=supabase.auth.onAuthStateChange((_ev,session)=>{setUserEmail(session?.user?.email??null)});return()=>{sub.subscription.unsubscribe()}},[]);
 const[planDates,setPlanDates]=useState<PlanDates>({start:new Date().toISOString().slice(0,10),end:new Date(Date.now()+365*24*60*60*1000).toISOString().slice(0,10),state:"VIC"});
 const[rates,setRates]=useState<Rates>({weekdayOrd:70.23,weekdayNight:77.38,sat:98.83,sun:127.43,publicHoliday:156.03,activeSleepoverHourly:78.81,fixedSleepoverUnit:297.6,gstRate:0});
-const[lines,setLines]=useState<SupportLine[]>([{id:uid(),code:"01",description:"Core Supports",totalFunding:0,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:0.99,kmFreq:"every"}]);
+const[lines,setLines]=useState<SupportLine[]>([{id:uid(),code:"01",description:"Core Supports",totalFunding:0,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:0.99,kmFreq:"every",claims:[]}]);
 const planWeeks=useMemo(()=>getWeeksInPlan(planDates.start,planDates.end),[planDates.start,planDates.end]);
 const holidays=useMemo(()=>getHolidaysInRange(planDates.start,planDates.end,planDates.state),[planDates]);
-useEffect(()=>{async function load(){const cloud=await loadFromCloud(STORAGE_KEY);const raw=cloud||(()=>{try{const r=localStorage.getItem(STORAGE_KEY);return r?JSON.parse(r):null}catch{return null}})();if(!raw)return;if(raw?.rates)setRates((r:any)=>({...r,...raw.rates}));if(raw?.planDates)setPlanDates((p:any)=>({...p,...raw.planDates}));if(Array.isArray(raw?.lines)&&raw.lines.length>0)setLines(raw.lines.map((l:any)=>({...l,ratio:l.ratio||"1:1",excludedHolidays:l.excludedHolidays||[],roster:l.roster||defaultRoster(),activeSleepoverFreq:l.activeSleepoverFreq||"every",fixedSleepoverFreq:l.fixedSleepoverFreq||"every",kmsPerWeek:l.kmsPerWeek||0,kmRate:l.kmRate||0.99,kmFreq:l.kmFreq||"every"})))}load()},[]);
+useEffect(()=>{async function load(){const cloud=await loadFromCloud(STORAGE_KEY);const raw=cloud||(()=>{try{const r=localStorage.getItem(STORAGE_KEY);return r?JSON.parse(r):null}catch{return null}})();if(!raw)return;if(raw?.rates)setRates((r:any)=>({...r,...raw.rates}));if(raw?.planDates)setPlanDates((p:any)=>({...p,...raw.planDates}));if(Array.isArray(raw?.lines)&&raw.lines.length>0)setLines(raw.lines.map((l:any)=>({...l,ratio:l.ratio||"1:1",excludedHolidays:l.excludedHolidays||[],roster:l.roster||defaultRoster(),activeSleepoverFreq:l.activeSleepoverFreq||"every",fixedSleepoverFreq:l.fixedSleepoverFreq||"every",kmsPerWeek:l.kmsPerWeek||0,kmRate:l.kmRate||0.99,kmFreq:l.kmFreq||"every",claims:l.claims||[]})))}load()},[]);
 const saveData={rates,lines,planDates};useEffect(()=>{try{localStorage.setItem(STORAGE_KEY,JSON.stringify(saveData))}catch{}},[rates,lines,planDates]);useCloudSync(STORAGE_KEY,saveData);
-const perLine=useMemo(()=>{return lines.map(l=>{const wt=calcWeeklyCost(l,rates);const weeklyGST=wt*(rates.gstRate||0);const weeklyWithGST=wt+weeklyGST;const basePlanCost=weeklyWithGST*planWeeks;const phImpact=calcPHImpact(l,holidays,rates);const phAdjustment=phImpact.extraCost-phImpact.savedCost;const planTotal=basePlanCost+phAdjustment;const remaining=l.totalFunding-planTotal;return{...l,weeklyTotal:wt,weeklyGST,weeklyWithGST,basePlanCost,phImpact,phAdjustment,planTotal,remaining}})},[lines,rates,planWeeks,holidays]);
-const totals=useMemo(()=>{const totalFunding=perLine.reduce((a,l)=>a+l.totalFunding,0);const weekly=perLine.reduce((a,l)=>a+l.weeklyWithGST,0);const planCost=perLine.reduce((a,l)=>a+l.planTotal,0);const totalPH=perLine.reduce((a,l)=>a+l.phAdjustment,0);const remaining=totalFunding-planCost;return{totalFunding,weekly,planCost,totalPH,remaining}},[perLine]);
+const perLine=useMemo(()=>{return lines.map(l=>{const wt=calcWeeklyCost(l,rates);const weeklyGST=wt*(rates.gstRate||0);const weeklyWithGST=wt+weeklyGST;const basePlanCost=weeklyWithGST*planWeeks;const phImpact=calcPHImpact(l,holidays,rates);const phAdjustment=phImpact.extraCost-phImpact.savedCost;const planTotal=basePlanCost+phAdjustment;const remaining=l.totalFunding-planTotal;const totalClaimed=(l.claims||[]).reduce((a:number,c:Claim)=>a+c.amount,0);const actualRemaining=l.totalFunding-totalClaimed;return{...l,weeklyTotal:wt,weeklyGST,weeklyWithGST,basePlanCost,phImpact,phAdjustment,planTotal,remaining,totalClaimed,actualRemaining}})},[lines,rates,planWeeks,holidays]);
+const totals=useMemo(()=>{const totalFunding=perLine.reduce((a,l)=>a+l.totalFunding,0);const weekly=perLine.reduce((a,l)=>a+l.weeklyWithGST,0);const planCost=perLine.reduce((a,l)=>a+l.planTotal,0);const totalPH=perLine.reduce((a,l)=>a+l.phAdjustment,0);const remaining=totalFunding-planCost;const totalClaimed=perLine.reduce((a,l)=>a+(l as any).totalClaimed,0);const actualRemaining=totalFunding-totalClaimed;return{totalFunding,weekly,planCost,totalPH,remaining,totalClaimed,actualRemaining}},[perLine]);
 function updateLine(id:string,patch:Partial<SupportLine>){setLines(prev=>prev.map(l=>(l.id===id?{...l,...patch}:l)))}
 function updateRosterDay(lineId:string,day:string,patch:Partial<DayRoster>){setLines(prev=>prev.map(l=>{if(l.id!==lineId)return l;return{...l,roster:{...l.roster,[day]:{...l.roster[day],...patch}}}}))}
 function toggleHoliday(lineId:string,date:string){setLines(prev=>prev.map(l=>{if(l.id!==lineId)return l;const exc=l.excludedHolidays.includes(date)?l.excludedHolidays.filter(d=>d!==date):[...l.excludedHolidays,date];return{...l,excludedHolidays:exc}}))}
 function setAllHolidays(lineId:string,include:boolean){setLines(prev=>prev.map(l=>l.id!==lineId?l:{...l,excludedHolidays:include?[]:holidays.map(h=>h.date)}))}
-function addLine(){setLines(prev=>[...prev,{id:uid(),code:"NEW",description:"New line",totalFunding:0,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:0.99,kmFreq:"every"}])}
+function addLine(){setLines(prev=>[...prev,{id:uid(),code:"NEW",description:"New line",totalFunding:0,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:0.99,kmFreq:"every",claims:[]}])}
 function deleteLine(id:string){setLines(prev=>(prev.length<=1?prev:prev.filter(l=>l.id!==id)))}
+const[openClaimsLines,setOpenClaimsLines]=useState<Set<string>>(new Set());
+const[addClaimForm,setAddClaimForm]=useState<{lineId:string;date:string;amount:string;note:string}|null>(null);
+function toggleClaims(id:string){setOpenClaimsLines(prev=>{const n=new Set(prev);n.has(id)?n.delete(id):n.add(id);return n})}
+function addClaim(lineId:string,date:string,amount:number,note:string){setLines(prev=>prev.map(l=>l.id!==lineId?l:{...l,claims:[...(l.claims||[]),{id:uid(),date,amount,note}]}))}
+function deleteClaim(lineId:string,claimId:string){setLines(prev=>prev.map(l=>l.id!==lineId?l:{...l,claims:(l.claims||[]).filter((c:Claim)=>c.id!==claimId)}))}
 function exportCSV(){const header=["Code","Description","Ratio","Funding","Weekly","KMs/wk","KM Cost/wk","PH Adj","Plan Total","Remaining"];const rows=perLine.map((l:any)=>[l.code,l.description,l.ratio,l.totalFunding,l.weeklyWithGST,l.kmsPerWeek,l.kmsPerWeek*l.kmRate,l.phAdjustment,l.planTotal,l.remaining]);const csv=[header,...rows].map(r=>r.map(cell=>{const s=String(cell??"");return/[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}).join(",")).join("\n");downloadTextFile("ndis-budget-"+new Date().toISOString().slice(0,10)+".csv",csv)}
 function exportPDF(){const dt=new Date().toLocaleString("en-AU");const rh=perLine.map((l:any)=>"<tr><td>"+escapeHtml(l.code)+"</td><td>"+escapeHtml(l.description)+"</td><td>"+l.ratio+"</td><td class='num'>"+escapeHtml(money(l.totalFunding))+"</td><td class='num'>"+escapeHtml(money(l.weeklyWithGST))+"</td><td class='num'>"+l.kmsPerWeek+"km</td><td class='num'>"+escapeHtml(money(l.phAdjustment))+"</td><td class='num'>"+escapeHtml(money(l.planTotal))+"</td><td class='num "+(l.remaining<0?"neg":"pos")+"'>"+escapeHtml(money(l.remaining))+"</td></tr>").join("");const hh=holidays.map(h=>"<tr><td>"+h.date+"</td><td>"+getDayName(h.dayOfWeek)+"</td><td>"+h.name+"</td></tr>").join("");const html="<!doctype html><html><head><meta charset='utf-8'/><title>NDIS Budget Report</title><style>body{font-family:-apple-system,sans-serif;padding:24px;color:#111}h1{margin:0 0 6px;font-size:20px;color:#1a1150}.meta{color:#444;margin-bottom:16px;font-size:12px}table{width:100%;border-collapse:collapse;font-size:12px;margin-top:12px}th,td{border:1px solid #ddd;padding:8px}th{background:#1a1150;color:white;text-align:left}.num{text-align:right}.neg{color:#c0392b;font-weight:700}.pos{color:#27ae60;font-weight:700}.kpi{font-size:14px;margin:4px 0}.section{font-size:16px;font-weight:600;margin:20px 0 8px;color:#1a1150}.powered{text-align:center;margin-top:20px;font-size:11px;color:#888}</style></head><body><h1>NDIS Budget Report</h1><div class='meta'>"+escapeHtml(dt)+" | "+escapeHtml(planDates.start)+" to "+escapeHtml(planDates.end)+" | "+planDates.state+" | "+planWeeks.toFixed(1)+" wks | Powered by Kevria</div><div class='kpi'><b>Funding:</b> "+escapeHtml(money(totals.totalFunding))+"</div><div class='kpi'><b>Weekly:</b> "+escapeHtml(money(totals.weekly))+"</div><div class='kpi'><b>PH adj:</b> "+escapeHtml(money(totals.totalPH))+"</div><div class='kpi'><b>Plan cost:</b> "+escapeHtml(money(totals.planCost))+"</div><div class='kpi'><b>Remaining:</b> "+escapeHtml(money(totals.remaining))+"</div><div class='section'>Support Lines</div><table><tr><th>Code</th><th>Description</th><th>Ratio</th><th>Funding</th><th>Weekly</th><th>KMs</th><th>PH Adj</th><th>Plan Total</th><th>Remaining</th></tr>"+rh+"</table><div class='section'>Public Holidays ("+holidays.length+")</div><table><tr><th>Date</th><th>Day</th><th>Holiday</th></tr>"+hh+"</table><div class='powered'>Powered by Kevria - NDIS Budget Calculator</div><script>window.onload=()=>{window.focus();window.print()}</script></body></html>";const w=window.open("","_blank");if(!w){alert("Popup blocked.");return}w.document.open();w.document.write(html);w.document.close()}
 const totalStatus=getBudgetStatus(totals.remaining,totals.totalFunding);
@@ -122,6 +128,7 @@ return(
 <div>Weekly cost: <span className="font-semibold">{money(totals.weekly)}</span></div>
 <div>PH adjustment: <span className="font-semibold" style={{color:totals.totalPH>0?"#ef4444":totals.totalPH<0?"#22c55e":"#b0a0d0"}}>{totals.totalPH>0?"+":""}{money(totals.totalPH)}</span></div>
 <div>Plan cost ({planWeeks.toFixed(1)} wks): <span className="font-semibold">{money(totals.planCost)}</span></div>
+{totals.totalClaimed>0&&<div>Actual claimed: <span className="font-semibold" style={{color:"#22c55e"}}>{money(totals.totalClaimed)}</span> <span style={{color:"#6060a0",fontSize:"0.85em"}}>({money(totals.actualRemaining)} remaining)</span></div>}
 </div>
 <div className="text-right"><div className="text-sm font-semibold px-3 py-1 rounded-full" style={{background:totalStatus.bg,color:totalStatus.color,border:"1px solid "+totalStatus.border}}>{totalStatus.label}</div></div>
 </div>
@@ -277,6 +284,49 @@ return(
 <span style={{color:"#22c55e"}}>Savings: -{money(l.phImpact.savedCost)}</span>
 <span style={{color:l.phAdjustment>0?"#ef4444":"#22c55e"}}>Net: {l.phAdjustment>0?"+":""}{money(l.phAdjustment)}</span>
 </div></div>)}
+
+<div className="mt-4 rounded-xl overflow-hidden" style={{border:"1px solid rgba(34,197,94,0.2)"}}>
+<button onClick={()=>toggleClaims(l.id)} className="w-full flex items-center justify-between px-4 py-3" style={{background:"rgba(34,197,94,0.05)",cursor:"pointer",border:"none",color:"white",textAlign:"left"}}>
+  <span className="text-sm font-semibold" style={{color:"#22c55e"}}>Claims / Actual Spend ({(l.claims||[]).length}){(l as any).totalClaimed>0&&<span style={{color:"#b0a0d0",fontWeight:"normal"}}> — {money((l as any).totalClaimed)} claimed, {money((l as any).actualRemaining)} remaining</span>}</span>
+  <span style={{color:"#22c55e",fontSize:"0.8rem"}}>{openClaimsLines.has(l.id)?"▲":"▼"}</span>
+</button>
+{openClaimsLines.has(l.id)&&(
+<div className="p-4" style={{background:"rgba(15,10,48,0.4)"}}>
+  {(l.claims||[]).length===0&&<div className="text-sm mb-3" style={{color:"#6060a0"}}>No claims logged yet.</div>}
+  {(l.claims||[]).length>0&&(
+    <div className="mb-3">
+      <div className="grid text-xs mb-1 px-2" style={{gridTemplateColumns:"110px 1fr 100px 32px",color:"#8080a0",gap:"8px"}}>
+        <span>Date</span><span>Note</span><span className="text-right">Amount</span><span></span>
+      </div>
+      {(l.claims||[]).map((c:Claim)=>(
+        <div key={c.id} className="grid items-center text-sm py-2 px-2 rounded mb-1" style={{gridTemplateColumns:"110px 1fr 100px 32px",gap:"8px",background:"rgba(34,197,94,0.04)",border:"1px solid rgba(34,197,94,0.1)"}}>
+          <span style={{color:"#b0a0d0"}}>{c.date}</span>
+          <span style={{color:"#c0c0e0"}}>{c.note||"—"}</span>
+          <span className="text-right font-semibold" style={{color:"#22c55e"}}>{money(c.amount)}</span>
+          <button onClick={()=>deleteClaim(l.id,c.id)} style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",color:"#ef4444",borderRadius:"4px",cursor:"pointer",fontSize:"0.75rem",padding:"2px 6px"}}>✕</button>
+        </div>
+      ))}
+      <div className="text-right text-sm font-bold mt-2" style={{color:"#22c55e"}}>Total claimed: {money((l as any).totalClaimed)}</div>
+    </div>
+  )}
+  {addClaimForm?.lineId===l.id?(
+    <div className="rounded-xl p-3 mt-2" style={{background:"rgba(34,197,94,0.05)",border:"1px solid rgba(34,197,94,0.2)"}}>
+      <div className="grid gap-2 sm:grid-cols-3 mb-2">
+        <div><div className="text-xs mb-1" style={{color:"#b0a0d0"}}>Date</div><input type="date" value={addClaimForm!.date} onChange={e=>setAddClaimForm(f=>f?{...f,date:e.target.value}:f)} className="w-full rounded-lg px-2 py-1 outline-none text-sm" style={{background:"rgba(15,10,48,0.6)",border:"1px solid rgba(34,197,94,0.2)",color:"white"}}/></div>
+        <div><div className="text-xs mb-1" style={{color:"#b0a0d0"}}>Amount ($)</div><input type="number" step="0.01" value={addClaimForm!.amount} onChange={e=>setAddClaimForm(f=>f?{...f,amount:e.target.value}:f)} placeholder="0.00" className="w-full rounded-lg px-2 py-1 outline-none text-sm" style={{background:"rgba(15,10,48,0.6)",border:"1px solid rgba(34,197,94,0.2)",color:"white"}}/></div>
+        <div><div className="text-xs mb-1" style={{color:"#b0a0d0"}}>Note (optional)</div><input value={addClaimForm!.note} onChange={e=>setAddClaimForm(f=>f?{...f,note:e.target.value}:f)} placeholder="e.g. Invoice #123" className="w-full rounded-lg px-2 py-1 outline-none text-sm" style={{background:"rgba(15,10,48,0.6)",border:"1px solid rgba(34,197,94,0.2)",color:"white"}}/></div>
+      </div>
+      <div className="flex gap-2">
+        <button onClick={()=>{const a=parseFloat(addClaimForm!.amount);if(!a||a<=0)return;addClaim(l.id,addClaimForm!.date,a,addClaimForm!.note);setAddClaimForm(null)}} style={{padding:"6px 16px",background:"rgba(34,197,94,0.2)",border:"1px solid rgba(34,197,94,0.4)",color:"#22c55e",borderRadius:"6px",cursor:"pointer",fontSize:"0.85rem",fontWeight:"600"}}>Save</button>
+        <button onClick={()=>setAddClaimForm(null)} style={{padding:"6px 16px",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#b0b0d0",borderRadius:"6px",cursor:"pointer",fontSize:"0.85rem"}}>Cancel</button>
+      </div>
+    </div>
+  ):(
+    <button onClick={()=>setAddClaimForm({lineId:l.id,date:new Date().toISOString().slice(0,10),amount:"",note:""})} style={{marginTop:"4px",padding:"6px 16px",background:"rgba(34,197,94,0.1)",border:"1px solid rgba(34,197,94,0.3)",color:"#22c55e",borderRadius:"6px",cursor:"pointer",fontSize:"0.85rem",fontWeight:"600"}}>+ Log claim</button>
+  )}
+</div>
+)}
+</div>
 
 {suggestions.length>0&&(
 <div className="mt-4 rounded-xl p-4" style={{background:"rgba(245,158,11,0.05)",border:"1px solid rgba(245,158,11,0.2)"}}>
