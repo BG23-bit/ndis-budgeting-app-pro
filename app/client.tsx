@@ -78,6 +78,41 @@ const[addClaimForm,setAddClaimForm]=useState<{lineId:string;date:string;amount:s
 function toggleClaims(id:string){setOpenClaimsLines(prev=>{const n=new Set(prev);n.has(id)?n.delete(id):n.add(id);return n})}
 function addClaim(lineId:string,date:string,amount:number,note:string){setLines(prev=>prev.map(l=>l.id!==lineId?l:{...l,claims:[...(l.claims||[]),{id:uid(),date,amount,note}]}))}
 function deleteClaim(lineId:string,claimId:string){setLines(prev=>prev.map(l=>l.id!==lineId?l:{...l,claims:(l.claims||[]).filter((c:Claim)=>c.id!==claimId)}))}
+const[uploadingPlan,setUploadingPlan]=useState(false);
+const[planExtract,setPlanExtract]=useState<any>(null);
+const[planUploadError,setPlanUploadError]=useState<string|null>(null);
+const planFileRef=React.useRef<HTMLInputElement>(null);
+async function handlePlanUpload(file:File){
+  setUploadingPlan(true);setPlanUploadError(null);
+  try{
+    const fd=new FormData();fd.append("pdf",file);
+    const res=await fetch("/api/parse-plan",{method:"POST",body:fd});
+    const data=await res.json();
+    if(data.error)throw new Error(data.error);
+    setPlanExtract(data);
+  }catch(e:any){
+    setPlanUploadError(e.message||"Failed to read plan. Please try again.");
+  }finally{setUploadingPlan(false);}
+}
+function applyPlanExtract(){
+  if(!planExtract)return;
+  if(planExtract.planStart)setPlanDates(p=>({...p,start:planExtract.planStart}));
+  if(planExtract.planEnd)setPlanDates(p=>({...p,end:planExtract.planEnd}));
+  if(planExtract.state)setPlanDates(p=>({...p,state:planExtract.state}));
+  if(Array.isArray(planExtract.supportLines)&&planExtract.supportLines.length>0){
+    setLines(prev=>{
+      const updated=[...prev];
+      const used=new Set<number>();
+      for(const sl of planExtract.supportLines){
+        const idx=updated.findIndex((_l:SupportLine,i:number)=>!used.has(i)&&_l.code===sl.code);
+        if(idx>=0){updated[idx]={...updated[idx],totalFunding:sl.totalFunding,description:sl.description};used.add(idx);}
+        else{updated.push({id:uid(),code:sl.code,description:sl.description,totalFunding:sl.totalFunding,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:0.99,kmFreq:"every",claims:[]});}
+      }
+      return updated;
+    });
+  }
+  setPlanExtract(null);
+}
 function exportCSV(){const header=["Code","Description","Ratio","Funding","Weekly","KMs/wk","KM Cost/wk","PH Adj","Plan Total","Remaining"];const rows=perLine.map((l:any)=>[l.code,l.description,l.ratio,l.totalFunding,l.weeklyWithGST,l.kmsPerWeek,l.kmsPerWeek*l.kmRate,l.phAdjustment,l.planTotal,l.remaining]);const csv=[header,...rows].map(r=>r.map(cell=>{const s=String(cell??"");return/[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}).join(",")).join("\n");downloadTextFile("ndis-budget-"+new Date().toISOString().slice(0,10)+".csv",csv)}
 function exportPDF(){const dt=new Date().toLocaleString("en-AU");const rh=perLine.map((l:any)=>"<tr><td>"+escapeHtml(l.code)+"</td><td>"+escapeHtml(l.description)+"</td><td>"+l.ratio+"</td><td class='num'>"+escapeHtml(money(l.totalFunding))+"</td><td class='num'>"+escapeHtml(money(l.weeklyWithGST))+"</td><td class='num'>"+l.kmsPerWeek+"km</td><td class='num'>"+escapeHtml(money(l.phAdjustment))+"</td><td class='num'>"+escapeHtml(money(l.planTotal))+"</td><td class='num "+(l.remaining<0?"neg":"pos")+"'>"+escapeHtml(money(l.remaining))+"</td></tr>").join("");const hh=holidays.map(h=>"<tr><td>"+h.date+"</td><td>"+getDayName(h.dayOfWeek)+"</td><td>"+h.name+"</td></tr>").join("");const html="<!doctype html><html><head><meta charset='utf-8'/><title>NDIS Budget Report</title><style>body{font-family:-apple-system,sans-serif;padding:24px;color:#111}h1{margin:0 0 6px;font-size:20px;color:#1a1150}.meta{color:#444;margin-bottom:16px;font-size:12px}table{width:100%;border-collapse:collapse;font-size:12px;margin-top:12px}th,td{border:1px solid #ddd;padding:8px}th{background:#1a1150;color:white;text-align:left}.num{text-align:right}.neg{color:#c0392b;font-weight:700}.pos{color:#27ae60;font-weight:700}.kpi{font-size:14px;margin:4px 0}.section{font-size:16px;font-weight:600;margin:20px 0 8px;color:#1a1150}.powered{text-align:center;margin-top:20px;font-size:11px;color:#888}</style></head><body><h1>NDIS Budget Report</h1><div class='meta'>"+escapeHtml(dt)+" | "+escapeHtml(planDates.start)+" to "+escapeHtml(planDates.end)+" | "+planDates.state+" | "+planWeeks.toFixed(1)+" wks | Powered by Kevria</div><div class='kpi'><b>Funding:</b> "+escapeHtml(money(totals.totalFunding))+"</div><div class='kpi'><b>Weekly:</b> "+escapeHtml(money(totals.weekly))+"</div><div class='kpi'><b>PH adj:</b> "+escapeHtml(money(totals.totalPH))+"</div><div class='kpi'><b>Plan cost:</b> "+escapeHtml(money(totals.planCost))+"</div><div class='kpi'><b>Remaining:</b> "+escapeHtml(money(totals.remaining))+"</div><div class='section'>Support Lines</div><table><tr><th>Code</th><th>Description</th><th>Ratio</th><th>Funding</th><th>Weekly</th><th>KMs</th><th>PH Adj</th><th>Plan Total</th><th>Remaining</th></tr>"+rh+"</table><div class='section'>Public Holidays ("+holidays.length+")</div><table><tr><th>Date</th><th>Day</th><th>Holiday</th></tr>"+hh+"</table><div class='powered'>Powered by Kevria - NDIS Budget Calculator</div><script>window.onload=()=>{window.focus();window.print()}</script></body></html>";const w=window.open("","_blank");if(!w){alert("Popup blocked.");return}w.document.open();w.document.write(html);w.document.close()}
 const totalStatus=getBudgetStatus(totals.remaining,totals.totalFunding);
@@ -116,6 +151,14 @@ return(
 <div className="rounded-xl p-3" style={{background:"rgba(212,168,67,0.1)",border:"1px solid rgba(212,168,67,0.2)"}}><div className="text-xs" style={{color:"#b0a0d0"}}>Plan Duration</div><div className="text-lg font-bold" style={{color:"#d4a843"}}>{planWeeks.toFixed(1)} weeks</div></div>
 <div className="rounded-xl p-3" style={{background:"rgba(212,168,67,0.1)",border:"1px solid rgba(212,168,67,0.2)"}}><div className="text-xs" style={{color:"#b0a0d0"}}>Public Holidays</div><div className="text-lg font-bold" style={{color:"#d4a843"}}>{holidays.length} days</div></div>
 <div className="rounded-xl p-3" style={{background:"rgba(212,168,67,0.1)",border:"1px solid rgba(212,168,67,0.2)"}}><div className="text-xs" style={{color:"#b0a0d0"}}>State</div><div className="text-lg font-bold" style={{color:"#d4a843"}}>{planDates.state}</div></div>
+</div>
+<div className="mt-4 flex items-center gap-3 flex-wrap">
+<input ref={planFileRef} type="file" accept=".pdf,application/pdf" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f)handlePlanUpload(f);e.target.value="";}}/>
+<button onClick={()=>planFileRef.current?.click()} disabled={uploadingPlan} style={{background:"rgba(212,168,67,0.12)",border:"1px solid rgba(212,168,67,0.35)",color:"#d4a843",padding:"10px 18px",borderRadius:"8px",cursor:"pointer",fontWeight:"600",fontSize:"0.9rem",opacity:uploadingPlan?0.7:1}}>
+{uploadingPlan?"⏳ Reading plan...":"📄 Upload NDIS Plan PDF"}
+</button>
+<span style={{color:"#6060a0",fontSize:"0.82rem"}}>Auto-fills funding from your plan document</span>
+{planUploadError&&<span style={{color:"#ef4444",fontSize:"0.85rem"}}>{planUploadError}</span>}
 </div>
 {holidays.length>0&&(<div className="mt-4"><div className="text-sm font-semibold mb-2" style={{color:"#b0a0d0"}}>Public Holidays in Plan Period:</div>
 <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 lg:grid-cols-3">{holidays.map((h,i)=>(<div key={i} className="text-sm py-1 px-2 rounded" style={{background:"rgba(255,255,255,0.03)"}}><span style={{color:"#d4a843"}}>{h.date}</span> <span style={{color:"#8080a0"}}>({getDayName(h.dayOfWeek)})</span> <span style={{color:"#b0a0d0"}}>{h.name}</span></div>))}</div></div>)}
@@ -336,6 +379,32 @@ return(
 </div>)})}
 </div>
 
+{planExtract&&(
+<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.82)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200}}>
+<div style={{background:"#1a1150",border:"1px solid rgba(212,168,67,0.4)",borderRadius:"16px",padding:"32px",maxWidth:"560px",width:"90%",maxHeight:"80vh",overflowY:"auto"}}>
+<h3 style={{fontSize:"1.3rem",fontWeight:"700",color:"#d4a843",marginBottom:"16px"}}>Plan extracted — confirm to apply</h3>
+{planExtract.planStart&&<div style={{color:"#b0a0d0",marginBottom:"6px",fontSize:"0.9rem"}}>Plan period: <span style={{color:"white",fontWeight:"600"}}>{planExtract.planStart} → {planExtract.planEnd||"?"}</span></div>}
+{planExtract.state&&<div style={{color:"#b0a0d0",marginBottom:"6px",fontSize:"0.9rem"}}>State: <span style={{color:"white",fontWeight:"600"}}>{planExtract.state}</span></div>}
+{planExtract.participantName&&<div style={{color:"#b0a0d0",marginBottom:"6px",fontSize:"0.9rem"}}>Participant: <span style={{color:"white",fontWeight:"600"}}>{planExtract.participantName}</span></div>}
+{Array.isArray(planExtract.supportLines)&&planExtract.supportLines.length>0&&(
+<div style={{marginTop:"16px"}}>
+<div style={{color:"#d4a843",fontWeight:"600",marginBottom:"8px",fontSize:"0.95rem"}}>Support line funding:</div>
+{planExtract.supportLines.map((sl:any,i:number)=>(
+<div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",marginBottom:"6px",background:"rgba(212,168,67,0.05)",border:"1px solid rgba(212,168,67,0.15)",borderRadius:"8px"}}>
+<div><span style={{color:"#d4a843",fontWeight:"600",marginRight:"8px"}}>{sl.code}</span><span style={{color:"#c0c0e0",fontSize:"0.9rem"}}>{sl.description}</span></div>
+<div style={{color:"white",fontWeight:"700",flexShrink:0,marginLeft:"12px"}}>{money(sl.totalFunding)}</div>
+</div>
+))}
+</div>
+)}
+<p style={{color:"#6060a0",fontSize:"0.82rem",marginTop:"16px"}}>Existing roster and claims data will be preserved. Funding amounts will be updated.</p>
+<div style={{display:"flex",gap:"12px",marginTop:"20px"}}>
+<button onClick={applyPlanExtract} style={{flex:1,padding:"12px",backgroundColor:"#d4a843",color:"#1a1150",border:"none",borderRadius:"8px",cursor:"pointer",fontWeight:"700",fontSize:"1rem"}}>Apply to Calculator</button>
+<button onClick={()=>setPlanExtract(null)} style={{flex:1,padding:"12px",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#b0b0d0",borderRadius:"8px",cursor:"pointer"}}>Cancel</button>
+</div>
+</div>
+</div>
+)}
 <div className="text-xs mt-8" style={{color:"#505080"}}>Auto-saves in your browser.</div>
 <div className="text-xs mt-2 mb-8" style={{color:"#6060a0"}}>Powered by <span style={{color:"#d4a843"}}>Kevria</span></div>
 </div></main>)}
