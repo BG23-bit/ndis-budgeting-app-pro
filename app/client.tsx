@@ -74,7 +74,7 @@ const CATEGORY_PRESETS:{[code:string]:{name:string;rates:Rates}}={
 function getPresetRates(code:string):Rates{return CATEGORY_PRESETS[code]?.rates||NDIS_RATES_2025_26}
 function getLineMode(code:string):"full"|"weekday"|"lump"{if(["02","03","05","06"].includes(code))return"lump";if(["07","10","11","12","13","14","15"].includes(code))return"weekday";return"full"}
 function isBelowGuide(lr:Rates,code:string):boolean{const p=CATEGORY_PRESETS[code]?.rates;if(!p)return false;return(p.weekdayOrd>0&&lr.weekdayOrd<p.weekdayOrd)||(p.weekdayNight>0&&lr.weekdayNight<p.weekdayNight)||(p.sat>0&&lr.sat<p.sat)||(p.sun>0&&lr.sun<p.sun)||(p.publicHoliday>0&&lr.publicHoliday<p.publicHoliday)||(p.activeSleepoverHourly>0&&lr.activeSleepoverHourly<p.activeSleepoverHourly)}
-export default function PageClient({storageKey}:{storageKey?:string}){
+export default function PageClient({storageKey,participantName,ndisNumber}:{storageKey?:string;participantName?:string;ndisNumber?:string}){
 const STORAGE_KEY=storageKey||"ndis_budget_calc_pro_v7";
 const[userEmail,setUserEmail]=useState<string|null>(null);
 useEffect(()=>{supabase.auth.getUser().then(({data})=>{setUserEmail(data.user?.email??null)});const{data:sub}=supabase.auth.onAuthStateChange((_ev,session)=>{setUserEmail(session?.user?.email??null)});return()=>{sub.subscription.unsubscribe()}},[]);
@@ -136,8 +136,153 @@ function applyPlanExtract(){
   }
   setPlanExtract(null);
 }
-function exportCSV(){const header=["Code","Description","Ratio","Funding","Weekly","KMs/wk","KM Cost/wk","PH Adj","Plan Total","Remaining"];const rows=perLine.map((l:any)=>[l.code,l.description,l.ratio,l.totalFunding,l.weeklyWithGST,l.kmsPerWeek,l.kmsPerWeek*l.kmRate,l.phAdjustment,l.planTotal,l.remaining]);const csv=[header,...rows].map(r=>r.map(cell=>{const s=String(cell??"");return/[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}).join(",")).join("\n");downloadTextFile("ndis-budget-"+new Date().toISOString().slice(0,10)+".csv",csv)}
-function exportPDF(){const dt=new Date().toLocaleString("en-AU");const rh=perLine.map((l:any)=>"<tr><td>"+escapeHtml(l.code)+"</td><td>"+escapeHtml(l.description)+"</td><td>"+l.ratio+"</td><td class='num'>"+escapeHtml(money(l.totalFunding))+"</td><td class='num'>"+escapeHtml(money(l.weeklyWithGST))+"</td><td class='num'>"+l.kmsPerWeek+"km</td><td class='num'>"+escapeHtml(money(l.phAdjustment))+"</td><td class='num'>"+escapeHtml(money(l.planTotal))+"</td><td class='num "+(l.remaining<0?"neg":"pos")+"'>"+escapeHtml(money(l.remaining))+"</td></tr>").join("");const hh=holidays.map(h=>"<tr><td>"+h.date+"</td><td>"+getDayName(h.dayOfWeek)+"</td><td>"+h.name+"</td></tr>").join("");const html="<!doctype html><html><head><meta charset='utf-8'/><title>NDIS Budget Report</title><style>body{font-family:-apple-system,sans-serif;padding:24px;color:#111}h1{margin:0 0 6px;font-size:20px;color:#1a1150}.meta{color:#444;margin-bottom:16px;font-size:12px}table{width:100%;border-collapse:collapse;font-size:12px;margin-top:12px}th,td{border:1px solid #ddd;padding:8px}th{background:#1a1150;color:white;text-align:left}.num{text-align:right}.neg{color:#c0392b;font-weight:700}.pos{color:#27ae60;font-weight:700}.kpi{font-size:14px;margin:4px 0}.section{font-size:16px;font-weight:600;margin:20px 0 8px;color:#1a1150}.powered{text-align:center;margin-top:20px;font-size:11px;color:#888}</style></head><body><h1>NDIS Budget Report</h1><div class='meta'>"+escapeHtml(dt)+" | "+escapeHtml(planDates.start)+" to "+escapeHtml(planDates.end)+" | "+planDates.state+" | "+planWeeks.toFixed(1)+" wks | Powered by Kevria</div><div class='kpi'><b>Funding:</b> "+escapeHtml(money(totals.totalFunding))+"</div><div class='kpi'><b>Weekly:</b> "+escapeHtml(money(totals.weekly))+"</div><div class='kpi'><b>PH adj:</b> "+escapeHtml(money(totals.totalPH))+"</div><div class='kpi'><b>Plan cost:</b> "+escapeHtml(money(totals.planCost))+"</div><div class='kpi'><b>Remaining:</b> "+escapeHtml(money(totals.remaining))+"</div><div class='section'>Support Lines</div><table><tr><th>Code</th><th>Description</th><th>Ratio</th><th>Funding</th><th>Weekly</th><th>KMs</th><th>PH Adj</th><th>Plan Total</th><th>Remaining</th></tr>"+rh+"</table><div class='section'>Public Holidays ("+holidays.length+")</div><table><tr><th>Date</th><th>Day</th><th>Holiday</th></tr>"+hh+"</table><div class='powered'>Powered by Kevria - NDIS Budget Calculator</div><script>window.onload=()=>{window.focus();window.print()}</script></body></html>";const w=window.open("","_blank");if(!w){alert("Popup blocked.");return}w.document.open();w.document.write(html);w.document.close()}
+function exportCSV(){
+  const p=participantName||"Unknown";
+  const n=ndisNumber||"-";
+  const dt=new Date().toLocaleString("en-AU");
+  const pct=totals.totalFunding>0?((totals.planCost/totals.totalFunding)*100).toFixed(1):"0.0";
+  function csvCell(v:any):string{const s=String(v??"");return/[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}
+  function row(...cells:any[]){return cells.map(csvCell).join(",")}
+  const out:string[]=[];
+  out.push("=== NDIS BUDGET REPORT ===");
+  out.push(row("Generated",dt));
+  out.push(row("Participant",p));
+  out.push(row("NDIS Number",n));
+  out.push(row("Plan Period",planDates.start+" to "+planDates.end+" ("+planWeeks.toFixed(1)+" weeks)"));
+  out.push(row("State / Territory",planDates.state));
+  out.push(row("Generated by","Kevria NDIS Budget Calculator | kevria.com"));
+  out.push("");
+  out.push("=== PLAN SUMMARY ===");
+  out.push(row("Total Funding",money(totals.totalFunding)));
+  out.push(row("Weekly Cost",money(totals.weekly)));
+  out.push(row("PH Adjustment",money(totals.totalPH)));
+  out.push(row("Plan Cost",money(totals.planCost)));
+  out.push(row("Remaining",money(totals.remaining)));
+  out.push(row("Budget Used",pct+"%"));
+  if(totals.totalClaimed>0){out.push(row("Total Claimed",money(totals.totalClaimed)));out.push(row("Actual Remaining",money(totals.actualRemaining)))}
+  out.push("");
+  out.push("=== SUPPORT LINES ===");
+  out.push(row("Code","Description","Ratio","Budget","Weekly Cost","KMs/wk","KM Cost/wk","PH Adjustment","Plan Total","Used %","Remaining","Status"));
+  for(const l of perLine){
+    const usedPct=l.totalFunding>0?((l.planTotal/l.totalFunding)*100).toFixed(1)+"%":"0.0%";
+    const status=l.remaining<0?"OVER BUDGET":l.totalFunding>0&&(l.remaining/l.totalFunding)<0.1?"LOW BUDGET":"ON TRACK";
+    out.push(row(l.code,l.description,l.ratio,money(l.totalFunding),money(l.weeklyWithGST),l.kmsPerWeek>0?l.kmsPerWeek+" km":"0 km",money(l.kmsPerWeek*l.kmRate*(FREQ[l.kmFreq]?.multiplier||1)),money(l.phAdjustment),money(l.planTotal),usedPct,money(l.remaining),status));
+  }
+  out.push("");
+  const withClaims=perLine.filter((l:any)=>l.claims&&l.claims.length>0);
+  if(withClaims.length>0){
+    out.push("=== CLAIMS ===");
+    for(const l of withClaims){
+      out.push(row("Support Line",l.description+" ("+l.code+")"));
+      out.push(row("Date","Amount","Notes"));
+      for(const c of l.claims){out.push(row(c.date,money(c.amount),c.note||""))}
+      out.push(row("Total Claimed",money((l as any).totalClaimed)));
+      out.push(row("Actual Remaining",money((l as any).actualRemaining)));
+      out.push("");
+    }
+  }
+  if(holidays.length>0){
+    out.push("=== PUBLIC HOLIDAYS ("+holidays.length+") ===");
+    out.push(row("Date","Day","Holiday"));
+    for(const h of holidays){out.push(row(h.date,getDayName(h.dayOfWeek),h.name))}
+    out.push("");
+  }
+  out.push("Generated by Kevria NDIS Budget Calculator | kevria.com");
+  const fname="ndis-budget-"+(p!=="Unknown"?p.replace(/[^a-z0-9]/gi,"-").toLowerCase()+"-":"")+new Date().toISOString().slice(0,10)+".csv";
+  downloadTextFile(fname,out.join("\n"));
+}
+function exportPDF(){
+  const dt=new Date().toLocaleString("en-AU");
+  const p=participantName||"";
+  const n=ndisNumber||"";
+  const pct=totals.totalFunding>0?Math.min(100,(totals.planCost/totals.totalFunding)*100):0;
+  const rc=totals.remaining<0?"#dc2626":totals.totalFunding>0&&(totals.remaining/totals.totalFunding)<0.1?"#d97706":"#16a34a";
+  const sl=totals.remaining<0?"OVER BUDGET":totals.totalFunding>0&&(totals.remaining/totals.totalFunding)<0.1?"LOW BUDGET":"ON TRACK";
+  const bc=totals.remaining<0?"#dc2626":totals.planCost>totals.totalFunding*0.9?"#d97706":"#16a34a";
+  const slBg=totals.remaining<0?"#fef2f2":totals.totalFunding>0&&(totals.remaining/totals.totalFunding)<0.1?"#fffbeb":"#f0fdf4";
+  const supportRows=perLine.map((l:any)=>{
+    const usedPct=l.totalFunding>0?((l.planTotal/l.totalFunding)*100).toFixed(0):"0";
+    const lc=l.remaining<0?"#dc2626":l.totalFunding>0&&(l.remaining/l.totalFunding)<0.1?"#d97706":"#16a34a";
+    const lb=l.remaining<0?"#fef2f2":l.totalFunding>0&&(l.remaining/l.totalFunding)<0.1?"#fffbeb":"#f0fdf4";
+    const ls=l.remaining<0?"OVER":l.totalFunding>0&&(l.remaining/l.totalFunding)<0.1?"LOW":"OK";
+    return "<tr>"
+      +"<td><span style=\"font-family:monospace;background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:11px\">"+escapeHtml(l.code)+"</span></td>"
+      +"<td><strong>"+escapeHtml(l.description)+"</strong><div style=\"font-size:10px;color:#94a3b8\">"+l.ratio+" | "+usedPct+"% used</div></td>"
+      +"<td style=\"text-align:right\">"+escapeHtml(money(l.totalFunding))+"</td>"
+      +"<td style=\"text-align:right\">"+escapeHtml(money(l.weeklyWithGST))+"</td>"
+      +"<td style=\"text-align:right;color:"+(l.phAdjustment>0?"#dc2626":l.phAdjustment<0?"#16a34a":"#94a3b8")+"\">"+(l.phAdjustment!==0?(l.phAdjustment>0?"+":"")+escapeHtml(money(l.phAdjustment)):"&mdash;")+"</td>"
+      +"<td style=\"text-align:right\"><strong>"+escapeHtml(money(l.planTotal))+"</strong></td>"
+      +"<td style=\"text-align:right;color:"+lc+"\"><strong>"+escapeHtml(money(l.remaining))+"</strong></td>"
+      +"<td style=\"text-align:center\"><span style=\"background:"+lb+";color:"+lc+";border:1px solid "+lc+";padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700\">"+ls+"</span></td></tr>";
+  }).join("");
+  const claimLines=perLine.filter((l:any)=>l.claims&&l.claims.length>0);
+  const claimsHtml=claimLines.length>0
+    ?"<div class=\"section-title\">Claims &amp; Actual Spend</div>"
+      +claimLines.map((l:any)=>"<div style=\"margin-bottom:20px\">"
+        +"<div style=\"font-weight:600;font-size:13px;margin-bottom:8px;color:#1a1150\">"+escapeHtml(l.description)
+        +" <span style=\"color:#94a3b8;font-weight:400;font-size:12px\">("+escapeHtml(l.code)+")</span>"
+        +"<span style=\"float:right;font-size:12px;color:#475569\">Claimed: <strong>"+escapeHtml(money((l as any).totalClaimed))+"</strong>"
+        +" &nbsp;|&nbsp; Remaining: <strong style=\"color:"+((l as any).actualRemaining<0?"#dc2626":"#16a34a")+"\">"+escapeHtml(money((l as any).actualRemaining))+"</strong></span></div>"
+        +"<table><tr><th>Date</th><th>Amount</th><th>Notes</th></tr>"
+        +l.claims.map((c:Claim)=>"<tr><td>"+escapeHtml(c.date)+"</td><td style=\"text-align:right\">"+escapeHtml(money(c.amount))+"</td><td>"+escapeHtml(c.note||"")+"</td></tr>").join("")
+        +"</table></div>").join("")
+    :"";
+  const holidayHtml=holidays.length>0
+    ?"<div class=\"section-title\">Public Holidays ("+holidays.length+")</div>"
+      +"<table><tr><th>Date</th><th>Day</th><th>Holiday Name</th></tr>"
+      +holidays.map(h=>"<tr><td>"+escapeHtml(h.date)+"</td><td>"+getDayName(h.dayOfWeek)+"</td><td>"+escapeHtml(h.name)+"</td></tr>").join("")
+      +"</table>"
+    :"";
+  const infoExtra=(p?"<div class=\"info-item\"><div class=\"lbl\">Participant</div><div class=\"val\">"+escapeHtml(p)+"</div></div>":"")
+    +(n?"<div class=\"info-item\"><div class=\"lbl\">NDIS Number</div><div class=\"val\">"+escapeHtml(n)+"</div></div>":"");
+  const phAdj=totals.totalPH!==0?"<span>PH Adj: "+(totals.totalPH>0?"+":"")+escapeHtml(money(totals.totalPH))+"</span>":"";
+  const claimedBar=totals.totalClaimed>0?"<span>Claimed: "+escapeHtml(money(totals.totalClaimed))+"</span>":"";
+  const html=`<!doctype html><html><head><meta charset="utf-8"/><title>NDIS Budget Report${p?" - "+escapeHtml(p):""}</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;background:#f8fafc;color:#1e293b;font-size:13px}.header{background:linear-gradient(135deg,#1a1150 0%,#2d1b69 100%);color:white;padding:28px 40px;display:flex;justify-content:space-between;align-items:flex-start}.brand{display:flex;align-items:center;gap:8px;margin-bottom:6px}.brand-mark{font-size:20px;color:#d4a843}.brand-name{font-size:13px;color:#d4a843;font-weight:700;letter-spacing:.08em}.report-title{font-size:22px;font-weight:800;color:white}.header-right{text-align:right;font-size:11px;color:rgba(255,255,255,.55);line-height:1.6}.info-bar{background:white;border-bottom:3px solid #d4a843;padding:14px 40px;display:flex;flex-wrap:wrap;gap:32px}.info-item .lbl{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:#94a3b8;margin-bottom:2px}.info-item .val{font-size:13px;font-weight:700;color:#1e293b}.content{padding:28px 40px}.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}.kpi-card{background:white;border-radius:10px;padding:16px;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,.06)}.kpi-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:#94a3b8;margin-bottom:5px}.kpi-val{font-size:19px;font-weight:800}.progress-card{background:white;border-radius:10px;padding:18px;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,.06);margin-bottom:20px}.progress-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.progress-lbl{font-size:12px;font-weight:600;color:#475569}.badge{padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700}.bar-bg{background:#f1f5f9;border-radius:6px;height:12px;overflow:hidden}.bar-fill{height:100%;border-radius:6px}.bar-meta{display:flex;justify-content:space-between;margin-top:5px;font-size:10px;color:#94a3b8}.section-title{font-size:14px;font-weight:700;color:#1a1150;margin:22px 0 10px;padding-bottom:6px;border-bottom:2px solid #e2e8f0}table{width:100%;border-collapse:collapse;font-size:12px;background:white;border-radius:10px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,.06);margin-bottom:4px}th{background:#1a1150;color:white;padding:9px 12px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}td{padding:9px 12px;border-bottom:1px solid #f1f5f9;vertical-align:middle}tr:last-child td{border-bottom:none}tr:nth-child(even) td{background:#fafafa}.footer{margin-top:32px;background:#1a1150;color:rgba(255,255,255,.45);font-size:10px;padding:18px 40px;display:flex;justify-content:space-between;align-items:center;gap:20px}.footer a{color:#d4a843;text-decoration:none}@media print{body{background:white}.content{padding:16px}}</style>
+</head><body>
+<div class="header">
+  <div><div class="brand"><span class="brand-mark">&#10022;</span><span class="brand-name">KEVRIA</span></div><div class="report-title">NDIS Budget Report</div></div>
+  <div class="header-right"><div>Generated: ${escapeHtml(dt)}</div><div style="margin-top:4px;color:rgba(255,255,255,.3)">Rates: 2025&#8211;26 NDIS Price Guide</div></div>
+</div>
+<div class="info-bar">
+  ${infoExtra}<div class="info-item"><div class="lbl">Plan Start</div><div class="val">${escapeHtml(planDates.start)}</div></div>
+  <div class="info-item"><div class="lbl">Plan End</div><div class="val">${escapeHtml(planDates.end)}</div></div>
+  <div class="info-item"><div class="lbl">Duration</div><div class="val">${planWeeks.toFixed(1)} weeks</div></div>
+  <div class="info-item"><div class="lbl">State</div><div class="val">${escapeHtml(planDates.state)}</div></div>
+  <div class="info-item"><div class="lbl">Public Holidays</div><div class="val">${holidays.length} days</div></div>
+</div>
+<div class="content">
+  <div class="kpi-grid">
+    <div class="kpi-card"><div class="kpi-lbl">Total Funding</div><div class="kpi-val" style="color:#d4a843">${escapeHtml(money(totals.totalFunding))}</div></div>
+    <div class="kpi-card"><div class="kpi-lbl">Plan Cost</div><div class="kpi-val" style="color:#1a1150">${escapeHtml(money(totals.planCost))}</div></div>
+    <div class="kpi-card"><div class="kpi-lbl">Remaining</div><div class="kpi-val" style="color:${rc}">${escapeHtml(money(totals.remaining))}</div></div>
+    <div class="kpi-card"><div class="kpi-lbl">Weekly Cost</div><div class="kpi-val" style="color:#475569">${escapeHtml(money(totals.weekly))}</div></div>
+  </div>
+  <div class="progress-card">
+    <div class="progress-hdr">
+      <div class="progress-lbl">Budget Usage &mdash; ${pct.toFixed(1)}% used</div>
+      <span class="badge" style="background:${slBg};color:${rc};border:1px solid ${rc}">${sl}</span>
+    </div>
+    <div class="bar-bg"><div class="bar-fill" style="width:${pct.toFixed(1)}%;background:${bc}"></div></div>
+    <div class="bar-meta"><span>Used: ${escapeHtml(money(totals.planCost))}</span>${phAdj}${claimedBar}<span>Budget: ${escapeHtml(money(totals.totalFunding))}</span></div>
+  </div>
+  <div class="section-title">Support Lines</div>
+  <table><tr><th>Code</th><th>Description</th><th style="text-align:right">Budget</th><th style="text-align:right">Weekly</th><th style="text-align:right">PH Adj</th><th style="text-align:right">Plan Total</th><th style="text-align:right">Remaining</th><th style="text-align:center">Status</th></tr>${supportRows}</table>
+  ${claimsHtml}
+  ${holidayHtml}
+</div>
+<div class="footer">
+  <div>Powered by <a href="https://kevria.com"><strong>Kevria</strong></a> NDIS Budget Calculator</div>
+  <div>Rates based on 2025&#8211;26 NDIS Price Guide. Verify with your plan manager before quoting. Not financial advice.</div>
+</div>
+<script>window.onload=function(){window.focus();window.print()}</script>
+</body></html>`;
+  const w=window.open("","_blank");
+  if(!w){alert("Popup blocked. Please allow popups for this site.");return}
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+}
 const totalStatus=getBudgetStatus(totals.remaining,totals.totalFunding);
 const pace=useMemo(()=>{
   if(!planDates.start||!planDates.end||totals.totalFunding<=0)return null;
