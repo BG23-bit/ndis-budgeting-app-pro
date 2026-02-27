@@ -252,8 +252,10 @@ export default function LandingPage() {
             {[
               { step: "1", title: "Create Account", desc: "Sign up with your email in seconds" },
               { step: "2", title: "Choose a Plan", desc: "Monthly ($9.99/mo) or Annual ($79/yr). Cancel anytime." },
-              { step: "3", title: "Add Participants", desc: "Add participants, upload their NDIS plan PDF to auto-fill funding" },
+              { step: "3", title: "Add Participants", desc: "Add participants and upload their NDIS plan PDF to auto-fill support categories and funding amounts" },
               { step: "4", title: "Build Rosters", desc: "Set up support lines, shifts, and rates — the calculator does the rest" },
+              { step: "5", title: "Export & Share", desc: "Export professional PDF or CSV quotes to share with participants, families, or other providers" },
+              { step: "6", title: "Track & Monitor", desc: "Log actual claims as invoices come in and monitor budget health — pace tracking shows you when a plan is at risk before it runs out" },
             ].map((s, i) => (
               <div key={i} style={{ textAlign: "center" }}>
                 <div style={{
