@@ -73,6 +73,7 @@ export default function DashboardPage() {
   const [portalLoading, setPortalLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "annual">("monthly");
   const [stripeCustomerId, setStripeCustomerId] = useState<string | null>(null);
+  const [showWelcome, setShowWelcome] = useState(false);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [activeParticipant, setActiveParticipant] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -82,6 +83,14 @@ export default function DashboardPage() {
   const [editName, setEditName] = useState("");
   const [editNdis, setEditNdis] = useState("");
   const router = useRouter();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("success") === "true") {
+      setShowWelcome(true);
+      window.history.replaceState({}, "", "/dashboard");
+    }
+  }, []);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -530,6 +539,53 @@ export default function DashboardPage() {
                   border: "1px solid rgba(255,255,255,0.1)", color: "#b0b0d0", borderRadius: "8px", cursor: "pointer",
                 }}>Cancel</button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Welcome modal */}
+        {showWelcome && (
+          <div style={{
+            position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 200,
+            background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <div style={{
+              background: "linear-gradient(135deg, #1a1150, #2d1b69)",
+              border: "1px solid rgba(212,168,67,0.4)", borderRadius: "24px",
+              padding: "48px 40px", maxWidth: "480px", width: "90%", textAlign: "center",
+            }}>
+              <div style={{ fontSize: "3rem", marginBottom: "16px" }}>🎉</div>
+              <h2 style={{ fontSize: "1.9rem", fontWeight: "800", color: "white", marginBottom: "10px" }}>
+                You&apos;re all set!
+              </h2>
+              <p style={{ color: "#b0a0d0", fontSize: "1rem", lineHeight: "1.6", marginBottom: "8px" }}>
+                Welcome to <span style={{ color: "#d4a843", fontWeight: "700" }}>Kevria NDIS Budget Calculator</span>.
+              </p>
+              <p style={{ color: "#8080a0", fontSize: "0.9rem", lineHeight: "1.6", marginBottom: "32px" }}>
+                Add your first participant to get started. Your data saves automatically and syncs across all your devices.
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {["Unlimited participants & support lines", "Auto public holiday calculations", "Plan pace tracking", "Claims & actual spend tracker"].map((f) => (
+                  <div key={f} style={{ display: "flex", alignItems: "center", gap: "10px", textAlign: "left" }}>
+                    <span style={{ color: "#22c55e", fontSize: "1.1rem" }}>✓</span>
+                    <span style={{ color: "#c0c0e0", fontSize: "0.9rem" }}>{f}</span>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => { setShowWelcome(false); setShowAddForm(true); }}
+                style={{
+                  marginTop: "32px", width: "100%", padding: "14px",
+                  backgroundColor: "#d4a843", color: "#1a1150",
+                  border: "none", borderRadius: "10px", cursor: "pointer",
+                  fontWeight: "bold", fontSize: "1.05rem",
+                }}
+              >
+                Add First Participant →
+              </button>
+              <p onClick={() => setShowWelcome(false)} style={{ marginTop: "14px", color: "#505070", cursor: "pointer", fontSize: "0.85rem" }}>
+                I&apos;ll do it later
+              </p>
             </div>
           </div>
         )}

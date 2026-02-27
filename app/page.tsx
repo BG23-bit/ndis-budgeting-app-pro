@@ -1,9 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function LandingPage() {
   const router = useRouter();
+  const [participants, setParticipants] = useState(10);
 
   return (
     <div style={{ fontFamily: "'Segoe UI', sans-serif", color: "white" }}>
@@ -386,6 +388,72 @@ export default function LandingPage() {
           ))}
         </div>
       </section>
+
+      {/* SAVINGS CALCULATOR */}
+      {(() => {
+        const hoursPerYear = participants * 18;
+        const valuePerYear = hoursPerYear * 100;
+        const annualCost = 79;
+        const roi = Math.round(valuePerYear / annualCost);
+        return (
+          <section style={{ background: "#1a1150", padding: "80px 40px" }}>
+            <div style={{ maxWidth: "700px", margin: "0 auto", textAlign: "center" }}>
+              <p style={{ fontSize: "0.9rem", color: "#d4a843", fontWeight: "600", letterSpacing: "2px", textTransform: "uppercase", marginBottom: "12px" }}>
+                See your ROI
+              </p>
+              <h2 style={{ fontSize: "2.2rem", fontWeight: "700", marginBottom: "10px" }}>
+                How much time will you save?
+              </h2>
+              <p style={{ color: "#8080a0", marginBottom: "50px", fontSize: "1.1rem" }}>
+                Move the slider to see your estimated savings
+              </p>
+
+              <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(212,168,67,0.2)", borderRadius: "24px", padding: "40px" }}>
+                <div style={{ marginBottom: "40px" }}>
+                  <div style={{ fontSize: "1rem", color: "#b0a0d0", marginBottom: "12px" }}>
+                    I manage <span style={{ color: "#d4a843", fontWeight: "800", fontSize: "1.4rem" }}>{participants}</span> participants
+                  </div>
+                  <input
+                    type="range"
+                    min={1}
+                    max={50}
+                    value={participants}
+                    onChange={(e) => setParticipants(Number(e.target.value))}
+                    style={{ width: "100%", accentColor: "#d4a843", height: "6px", cursor: "pointer" }}
+                  />
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", color: "#505070", marginTop: "6px" }}>
+                    <span>1</span><span>25</span><span>50</span>
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "20px", marginBottom: "32px" }}>
+                  {[
+                    { label: "Hours saved per year", value: hoursPerYear + " hrs", color: "#d4a843" },
+                    { label: "Value of time saved", value: "$" + valuePerYear.toLocaleString(), color: "#22c55e" },
+                    { label: "Your ROI", value: roi + "x", color: "#a78bfa" },
+                  ].map((stat) => (
+                    <div key={stat.label} style={{ background: "rgba(255,255,255,0.04)", borderRadius: "16px", padding: "20px" }}>
+                      <div style={{ fontSize: "2rem", fontWeight: "800", color: stat.color, marginBottom: "6px" }}>{stat.value}</div>
+                      <div style={{ fontSize: "0.85rem", color: "#8080a0" }}>{stat.label}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <p style={{ color: "#6060a0", fontSize: "0.8rem", marginBottom: "24px" }}>
+                  Based on ~1.5 hrs saved per participant per month at $100/hr coordinator rate
+                </p>
+
+                <button
+                  onClick={() => router.push("/login")}
+                  style={{ padding: "14px 48px", fontSize: "1.1rem", backgroundColor: "#d4a843", color: "#1a1150", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}
+                >
+                  Start Saving Time →
+                </button>
+              </div>
+            </div>
+          </section>
+        );
+      })()}
 
       {/* FOOTER */}
       <footer style={{
