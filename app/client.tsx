@@ -75,6 +75,21 @@ function deleteLine(id:string){setLines(prev=>(prev.length<=1?prev:prev.filter(l
 function exportCSV(){const header=["Code","Description","Ratio","Funding","Weekly","KMs/wk","KM Cost/wk","PH Adj","Plan Total","Remaining"];const rows=perLine.map((l:any)=>[l.code,l.description,l.ratio,l.totalFunding,l.weeklyWithGST,l.kmsPerWeek,l.kmsPerWeek*l.kmRate,l.phAdjustment,l.planTotal,l.remaining]);const csv=[header,...rows].map(r=>r.map(cell=>{const s=String(cell??"");return/[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}).join(",")).join("\n");downloadTextFile("ndis-budget-"+new Date().toISOString().slice(0,10)+".csv",csv)}
 function exportPDF(){const dt=new Date().toLocaleString("en-AU");const rh=perLine.map((l:any)=>"<tr><td>"+escapeHtml(l.code)+"</td><td>"+escapeHtml(l.description)+"</td><td>"+l.ratio+"</td><td class='num'>"+escapeHtml(money(l.totalFunding))+"</td><td class='num'>"+escapeHtml(money(l.weeklyWithGST))+"</td><td class='num'>"+l.kmsPerWeek+"km</td><td class='num'>"+escapeHtml(money(l.phAdjustment))+"</td><td class='num'>"+escapeHtml(money(l.planTotal))+"</td><td class='num "+(l.remaining<0?"neg":"pos")+"'>"+escapeHtml(money(l.remaining))+"</td></tr>").join("");const hh=holidays.map(h=>"<tr><td>"+h.date+"</td><td>"+getDayName(h.dayOfWeek)+"</td><td>"+h.name+"</td></tr>").join("");const html="<!doctype html><html><head><meta charset='utf-8'/><title>NDIS Budget Report</title><style>body{font-family:-apple-system,sans-serif;padding:24px;color:#111}h1{margin:0 0 6px;font-size:20px;color:#1a1150}.meta{color:#444;margin-bottom:16px;font-size:12px}table{width:100%;border-collapse:collapse;font-size:12px;margin-top:12px}th,td{border:1px solid #ddd;padding:8px}th{background:#1a1150;color:white;text-align:left}.num{text-align:right}.neg{color:#c0392b;font-weight:700}.pos{color:#27ae60;font-weight:700}.kpi{font-size:14px;margin:4px 0}.section{font-size:16px;font-weight:600;margin:20px 0 8px;color:#1a1150}.powered{text-align:center;margin-top:20px;font-size:11px;color:#888}</style></head><body><h1>NDIS Budget Report</h1><div class='meta'>"+escapeHtml(dt)+" | "+escapeHtml(planDates.start)+" to "+escapeHtml(planDates.end)+" | "+planDates.state+" | "+planWeeks.toFixed(1)+" wks | Powered by Kevria</div><div class='kpi'><b>Funding:</b> "+escapeHtml(money(totals.totalFunding))+"</div><div class='kpi'><b>Weekly:</b> "+escapeHtml(money(totals.weekly))+"</div><div class='kpi'><b>PH adj:</b> "+escapeHtml(money(totals.totalPH))+"</div><div class='kpi'><b>Plan cost:</b> "+escapeHtml(money(totals.planCost))+"</div><div class='kpi'><b>Remaining:</b> "+escapeHtml(money(totals.remaining))+"</div><div class='section'>Support Lines</div><table><tr><th>Code</th><th>Description</th><th>Ratio</th><th>Funding</th><th>Weekly</th><th>KMs</th><th>PH Adj</th><th>Plan Total</th><th>Remaining</th></tr>"+rh+"</table><div class='section'>Public Holidays ("+holidays.length+")</div><table><tr><th>Date</th><th>Day</th><th>Holiday</th></tr>"+hh+"</table><div class='powered'>Powered by Kevria - NDIS Budget Calculator</div><script>window.onload=()=>{window.focus();window.print()}</script></body></html>";const w=window.open("","_blank");if(!w){alert("Popup blocked.");return}w.document.open();w.document.write(html);w.document.close()}
 const totalStatus=getBudgetStatus(totals.remaining,totals.totalFunding);
+const pace=useMemo(()=>{
+  if(!planDates.start||!planDates.end||totals.totalFunding<=0)return null;
+  const today=new Date();const start=new Date(planDates.start);const end=new Date(planDates.end);
+  if(today<start)return{status:"not_started",pctElapsed:0,weeksElapsed:0,expectedSpend:0,projectedSpendToDate:0,variance:0};
+  const effective=today>end?end:today;
+  const weeksElapsed=(effective.getTime()-start.getTime())/(7*24*60*60*1000);
+  const pctElapsed=Math.min(100,planWeeks>0?(weeksElapsed/planWeeks)*100:0);
+  const expectedSpend=totals.totalFunding*(pctElapsed/100);
+  const projectedSpendToDate=totals.weekly*weeksElapsed;
+  const variance=projectedSpendToDate-expectedSpend;
+  const pctDiff=expectedSpend>0?(variance/expectedSpend)*100:0;
+  const ended=today>end;
+  const status=ended?"ended":pctDiff>5?"over_pace":pctDiff<-5?"under_pace":"on_pace";
+  return{status,pctElapsed,weeksElapsed,expectedSpend,projectedSpendToDate,variance,ended};
+},[planDates,planWeeks,totals.totalFunding,totals.weekly]);
 return(
 <main className="min-h-screen" style={{background:"#0f0a30",color:"white"}}>
 <div className="mx-auto max-w-6xl p-6">
@@ -119,6 +134,53 @@ return(
 <button onClick={exportCSV} className="rounded-xl px-4 py-2" style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#b0b0d0"}}>Export CSV</button>
 <button onClick={exportPDF} className="rounded-xl px-4 py-2" style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#b0b0d0"}}>Export PDF</button>
 </div></div>
+
+{pace&&pace.status!=="not_started"&&(()=>{
+  const paceColors:{[k:string]:{color:string;bg:string;border:string;label:string}}={
+    on_pace:{color:"#22c55e",bg:"rgba(34,197,94,0.1)",border:"rgba(34,197,94,0.3)",label:"On Pace"},
+    over_pace:{color:"#ef4444",bg:"rgba(239,68,68,0.1)",border:"rgba(239,68,68,0.3)",label:"Spending Ahead of Pace"},
+    under_pace:{color:"#f59e0b",bg:"rgba(245,158,11,0.1)",border:"rgba(245,158,11,0.3)",label:"Spending Behind Pace"},
+    ended:{color:"#8080a0",bg:"rgba(128,128,160,0.1)",border:"rgba(128,128,160,0.3)",label:"Plan Ended"},
+  };
+  const pc=paceColors[pace.status];
+  return(
+    <div className="rounded-2xl p-6 mb-6" style={{background:"rgba(26,17,80,0.4)",border:"1px solid "+pc.border}}>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <h2 className="text-xl font-semibold" style={{color:"#d4a843"}}>Plan Progress</h2>
+        <span className="text-sm font-semibold px-3 py-1 rounded-full" style={{background:pc.bg,color:pc.color,border:"1px solid "+pc.border}}>{pc.label}</span>
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 mb-5">
+        <div className="rounded-xl p-3" style={{background:"rgba(15,10,48,0.5)",border:"1px solid rgba(212,168,67,0.1)"}}>
+          <div className="text-xs mb-1" style={{color:"#b0a0d0"}}>Time elapsed</div>
+          <div className="text-lg font-bold" style={{color:"#d4a843"}}>{pace.pctElapsed.toFixed(1)}%</div>
+          <div className="text-xs" style={{color:"#6060a0"}}>{pace.weeksElapsed.toFixed(1)} of {planWeeks.toFixed(1)} weeks</div>
+        </div>
+        <div className="rounded-xl p-3" style={{background:"rgba(15,10,48,0.5)",border:"1px solid rgba(212,168,67,0.1)"}}>
+          <div className="text-xs mb-1" style={{color:"#b0a0d0"}}>Expected spend by now</div>
+          <div className="text-lg font-bold" style={{color:"white"}}>{money(pace.expectedSpend)}</div>
+          <div className="text-xs" style={{color:"#6060a0"}}>based on time elapsed</div>
+        </div>
+        <div className="rounded-xl p-3" style={{background:"rgba(15,10,48,0.5)",border:"1px solid rgba(212,168,67,0.1)"}}>
+          <div className="text-xs mb-1" style={{color:"#b0a0d0"}}>Projected spend to date</div>
+          <div className="text-lg font-bold" style={{color:pc.color}}>{money(pace.projectedSpendToDate)}</div>
+          <div className="text-xs" style={{color:"#6060a0"}}>
+            {pace.variance>0?"+":""}{money(pace.variance)} vs expected
+          </div>
+        </div>
+      </div>
+      <div className="mb-1 text-xs" style={{color:"#b0a0d0"}}>Time through plan</div>
+      <div style={{background:"rgba(255,255,255,0.08)",borderRadius:"6px",height:"10px",overflow:"hidden",marginBottom:"8px"}}>
+        <div style={{width:pace.pctElapsed+"%",height:"100%",borderRadius:"6px",background:"linear-gradient(90deg,#d4a843,#f0c060)",transition:"width 0.3s"}}/>
+      </div>
+      <div className="mb-1 text-xs" style={{color:"#b0a0d0"}}>Budget consumed at this pace</div>
+      <div style={{background:"rgba(255,255,255,0.08)",borderRadius:"6px",height:"10px",overflow:"hidden"}}>
+        <div style={{width:Math.min(100,totals.totalFunding>0?(pace.projectedSpendToDate/totals.totalFunding)*100:0)+"%",height:"100%",borderRadius:"6px",background:"linear-gradient(90deg,"+pc.color+","+pc.color+"99)",transition:"width 0.3s"}}/>
+      </div>
+      {pace.status==="over_pace"&&<div className="mt-3 text-sm" style={{color:"#ef4444"}}>Your roster is costing more than expected for this point in the plan. At this rate the budget will run out before the plan ends.</div>}
+      {pace.status==="under_pace"&&<div className="mt-3 text-sm" style={{color:"#f59e0b"}}>Spend is tracking below pace. This may indicate supports aren't being fully delivered — check if hours are being utilised.</div>}
+    </div>
+  );
+})()}
 
 <div className="rounded-2xl p-6 mb-6" style={{background:"rgba(26,17,80,0.4)",border:"1px solid rgba(212,168,67,0.15)"}}>
 <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
