@@ -139,6 +139,29 @@ export default function LoginPage() {
         >
           {isSignUp ? "Already have an account? Log in" : "Need an account? Sign up"}
         </p>
+        {!isSignUp && (
+          <p
+            onClick={async () => {
+              if (!email) { setError("Enter your email first"); return; }
+              setLoading(true);
+              const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: "https://ndis-budgeting-app-pro.vercel.app/login",
+              });
+              if (error) setError(error.message);
+              else setError("Password reset link sent! Check your email.");
+              setLoading(false);
+            }}
+            style={{
+              marginTop: "10px",
+              textAlign: "center",
+              color: "#8080a0",
+              cursor: "pointer",
+              fontSize: "0.9rem",
+            }}
+          >
+            Forgot your password?
+          </p>
+        )}
       </form>
     </div>
   );

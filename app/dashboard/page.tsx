@@ -90,17 +90,50 @@ export default function DashboardPage() {
   }, [router]);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("ndis_participants_list");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) setParticipants(parsed);
+    async function load() {
+      try {
+        const { data: d } = await supabase.auth.getUser();
+        if (d.user) {
+          const { data: row } = await supabase.from("participant_lists").select("participants").eq("user_id", d.user.id).single();
+          if (row?.participants && Array.isArray(row.participants) && row.participants.length > 0) {
+            setParticipants(row.participants);
+            return;
+          }
+        }
+        const raw = localStorage.getItem("ndis_participants_list");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) setParticipants(parsed);
+        }
+      } catch {
+        const raw = localStorage.getItem("ndis_participants_list");
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length > 0) setParticipants(parsed);
+          } catch {}
+        }
       }
-    } catch {}
+    }
+    load();
   }, []);
 
   useEffect(() => {
     try { localStorage.setItem("ndis_participants_list", JSON.stringify(participants)); } catch {}
+    async function save() {
+      try {
+        const { data: d } = await supabase.auth.getUser();
+        if (d.user) {
+          await supabase.from("participant_lists").upsert(
+            { user_id: d.user.id, participants: participants, updated_at: new Date().toISOString() },
+            { onConflict: "user_id" }
+          );
+        }
+      } catch (e) {
+        console.error("Cloud save error:", e);
+      }
+    }
+    save();
   }, [participants]);
 
   const handleCheckout = async () => {
