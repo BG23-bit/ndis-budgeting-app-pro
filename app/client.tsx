@@ -5,7 +5,7 @@ type Rates = { weekdayOrd: number; weekdayNight: number; sat: number; sun: numbe
 type PlanDates = { start: string; end: string; state: string };
 type DayRoster = { enabled: boolean; hours: number; nightHours: number; frequency: string };
 type Claim = { id: string; date: string; amount: number; note: string };
-type SupportLine = { id: string; code: string; description: string; totalFunding: number; ratio: string; excludedHolidays: string[]; roster: { [key: string]: DayRoster }; activeSleepoverHours: number; activeSleepoverFreq: string; fixedSleepovers: number; fixedSleepoverFreq: string; kmsPerWeek: number; kmRate: number; kmFreq: string; claims: Claim[] };
+type SupportLine = { id: string; code: string; description: string; totalFunding: number; ratio: string; excludedHolidays: string[]; roster: { [key: string]: DayRoster }; activeSleepoverHours: number; activeSleepoverFreq: string; fixedSleepovers: number; fixedSleepoverFreq: string; kmsPerWeek: number; kmRate: number; kmFreq: string; claims: Claim[]; lineRates: Rates };
 const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
 const DL: {[k:string]:string} = {mon:"Monday",tue:"Tuesday",wed:"Wednesday",thu:"Thursday",fri:"Friday",sat:"Saturday",sun:"Sunday"};
 const FREQ: {[k:string]:{label:string;multiplier:number}} = {"every":{label:"Every week",multiplier:1},"2nd":{label:"Every 2nd week",multiplier:0.5},"3rd":{label:"Every 3rd week",multiplier:0.333},"4th":{label:"Every 4th week",multiplier:0.25},"monthly":{label:"Monthly",multiplier:0.2308}};
@@ -54,26 +54,48 @@ function getSuggestions(line:any,rates:Rates){if(line.remaining>=0)return[];cons
 function useCloudSync(key:string,data:any){const[userId,setUserId]=useState<string|null>(null);const timerRef=React.useRef<any>(null);useEffect(()=>{supabase.auth.getUser().then(({data:d})=>{setUserId(d.user?.id??null)})},[]);useEffect(()=>{if(!userId||!key)return;if(timerRef.current)clearTimeout(timerRef.current);timerRef.current=setTimeout(async()=>{try{await supabase.from("calculator_data").upsert({user_id:userId,participant_id:key,data:data,updated_at:new Date().toISOString()},{onConflict:"user_id,participant_id"})}catch(e){console.error("Cloud save error:",e)}},2000);return()=>{if(timerRef.current)clearTimeout(timerRef.current)}},[userId,key,data])}
 async function loadFromCloud(key:string):Promise<any>{try{const{data:d}=await supabase.auth.getUser();if(!d.user)return null;const{data:row}=await supabase.from("calculator_data").select("data").eq("user_id",d.user.id).eq("participant_id",key).single();return row?.data||null}catch{return null}}
 const NDIS_RATES_2025_26:Rates={weekdayOrd:70.23,weekdayNight:77.38,sat:98.83,sun:127.43,publicHoliday:156.03,activeSleepoverHourly:78.81,fixedSleepoverUnit:297.6,gstRate:0};
+const CATEGORY_PRESETS:{[code:string]:{name:string;rates:Rates}}={
+  "01":{name:"Daily Activities",rates:{weekdayOrd:70.23,weekdayNight:77.38,sat:98.83,sun:127.43,publicHoliday:156.03,activeSleepoverHourly:78.81,fixedSleepoverUnit:297.6,gstRate:0}},
+  "02":{name:"Transport",rates:{weekdayOrd:0,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
+  "03":{name:"Consumables",rates:{weekdayOrd:0,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
+  "04":{name:"Social & Community",rates:{weekdayOrd:70.23,weekdayNight:77.38,sat:98.83,sun:127.43,publicHoliday:156.03,activeSleepoverHourly:78.81,fixedSleepoverUnit:297.6,gstRate:0}},
+  "05":{name:"Assistive Technology",rates:{weekdayOrd:0,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
+  "06":{name:"Home Modifications",rates:{weekdayOrd:0,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
+  "07":{name:"Support Coordination",rates:{weekdayOrd:100.14,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
+  "08":{name:"Improved Living Arrangements",rates:{weekdayOrd:70.23,weekdayNight:77.38,sat:98.83,sun:127.43,publicHoliday:156.03,activeSleepoverHourly:78.81,fixedSleepoverUnit:297.6,gstRate:0}},
+  "09":{name:"Increased Social & Community",rates:{weekdayOrd:70.23,weekdayNight:77.38,sat:98.83,sun:127.43,publicHoliday:156.03,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
+  "10":{name:"Finding & Keeping a Job",rates:{weekdayOrd:70.23,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
+  "11":{name:"Improved Health & Wellbeing",rates:{weekdayOrd:193.99,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
+  "12":{name:"Improved Learning",rates:{weekdayOrd:100.14,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
+  "13":{name:"Improved Life Choices",rates:{weekdayOrd:100.14,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
+  "14":{name:"Improved Daily Living",rates:{weekdayOrd:193.99,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
+  "15":{name:"Improved Relationships",rates:{weekdayOrd:190.54,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
+};
+function getPresetRates(code:string):Rates{return CATEGORY_PRESETS[code]?.rates||NDIS_RATES_2025_26}
+function isBelowGuide(lr:Rates,code:string):boolean{const p=CATEGORY_PRESETS[code]?.rates;if(!p)return false;return(p.weekdayOrd>0&&lr.weekdayOrd<p.weekdayOrd)||(p.weekdayNight>0&&lr.weekdayNight<p.weekdayNight)||(p.sat>0&&lr.sat<p.sat)||(p.sun>0&&lr.sun<p.sun)||(p.publicHoliday>0&&lr.publicHoliday<p.publicHoliday)||(p.activeSleepoverHourly>0&&lr.activeSleepoverHourly<p.activeSleepoverHourly)}
 export default function PageClient({storageKey}:{storageKey?:string}){
 const STORAGE_KEY=storageKey||"ndis_budget_calc_pro_v7";
 const[userEmail,setUserEmail]=useState<string|null>(null);
 useEffect(()=>{supabase.auth.getUser().then(({data})=>{setUserEmail(data.user?.email??null)});const{data:sub}=supabase.auth.onAuthStateChange((_ev,session)=>{setUserEmail(session?.user?.email??null)});return()=>{sub.subscription.unsubscribe()}},[]);
 const[planDates,setPlanDates]=useState<PlanDates>({start:new Date().toISOString().slice(0,10),end:new Date(Date.now()+365*24*60*60*1000).toISOString().slice(0,10),state:"VIC"});
 const[rates,setRates]=useState<Rates>({weekdayOrd:70.23,weekdayNight:77.38,sat:98.83,sun:127.43,publicHoliday:156.03,activeSleepoverHourly:78.81,fixedSleepoverUnit:297.6,gstRate:0});
-const[lines,setLines]=useState<SupportLine[]>([{id:uid(),code:"01",description:"Core Supports",totalFunding:0,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:0.99,kmFreq:"every",claims:[]}]);
+const[lines,setLines]=useState<SupportLine[]>([{id:uid(),code:"01",description:"Core Supports",totalFunding:0,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:0.99,kmFreq:"every",claims:[],lineRates:NDIS_RATES_2025_26}]);
 const planWeeks=useMemo(()=>getWeeksInPlan(planDates.start,planDates.end),[planDates.start,planDates.end]);
 const holidays=useMemo(()=>getHolidaysInRange(planDates.start,planDates.end,planDates.state),[planDates]);
-useEffect(()=>{async function load(){const cloud=await loadFromCloud(STORAGE_KEY);const raw=cloud||(()=>{try{const r=localStorage.getItem(STORAGE_KEY);return r?JSON.parse(r):null}catch{return null}})();if(!raw)return;if(raw?.rates)setRates((r:any)=>({...r,...raw.rates}));if(raw?.planDates)setPlanDates((p:any)=>({...p,...raw.planDates}));if(Array.isArray(raw?.lines)&&raw.lines.length>0)setLines(raw.lines.map((l:any)=>({...l,ratio:l.ratio||"1:1",excludedHolidays:l.excludedHolidays||[],roster:l.roster||defaultRoster(),activeSleepoverFreq:l.activeSleepoverFreq||"every",fixedSleepoverFreq:l.fixedSleepoverFreq||"every",kmsPerWeek:l.kmsPerWeek||0,kmRate:l.kmRate||0.99,kmFreq:l.kmFreq||"every",claims:l.claims||[]})))}load()},[]);
+useEffect(()=>{async function load(){const cloud=await loadFromCloud(STORAGE_KEY);const raw=cloud||(()=>{try{const r=localStorage.getItem(STORAGE_KEY);return r?JSON.parse(r):null}catch{return null}})();if(!raw)return;if(raw?.rates)setRates((r:any)=>({...r,...raw.rates}));if(raw?.planDates)setPlanDates((p:any)=>({...p,...raw.planDates}));if(Array.isArray(raw?.lines)&&raw.lines.length>0)setLines(raw.lines.map((l:any)=>({...l,ratio:l.ratio||"1:1",excludedHolidays:l.excludedHolidays||[],roster:l.roster||defaultRoster(),activeSleepoverFreq:l.activeSleepoverFreq||"every",fixedSleepoverFreq:l.fixedSleepoverFreq||"every",kmsPerWeek:l.kmsPerWeek||0,kmRate:l.kmRate||0.99,kmFreq:l.kmFreq||"every",claims:l.claims||[],lineRates:l.lineRates||getPresetRates(l.code)})))}load()},[]);
 const saveData={rates,lines,planDates};useEffect(()=>{try{localStorage.setItem(STORAGE_KEY,JSON.stringify(saveData))}catch{}},[rates,lines,planDates]);useCloudSync(STORAGE_KEY,saveData);
-const perLine=useMemo(()=>{return lines.map(l=>{const wt=calcWeeklyCost(l,rates);const weeklyGST=wt*(rates.gstRate||0);const weeklyWithGST=wt+weeklyGST;const basePlanCost=weeklyWithGST*planWeeks;const phImpact=calcPHImpact(l,holidays,rates);const phAdjustment=phImpact.extraCost-phImpact.savedCost;const planTotal=basePlanCost+phAdjustment;const remaining=l.totalFunding-planTotal;const totalClaimed=(l.claims||[]).reduce((a:number,c:Claim)=>a+c.amount,0);const actualRemaining=l.totalFunding-totalClaimed;return{...l,weeklyTotal:wt,weeklyGST,weeklyWithGST,basePlanCost,phImpact,phAdjustment,planTotal,remaining,totalClaimed,actualRemaining}})},[lines,rates,planWeeks,holidays]);
+const perLine=useMemo(()=>{return lines.map(l=>{const lr=l.lineRates||rates;const wt=calcWeeklyCost(l,lr);const weeklyGST=wt*(lr.gstRate||0);const weeklyWithGST=wt+weeklyGST;const basePlanCost=weeklyWithGST*planWeeks;const phImpact=calcPHImpact(l,holidays,lr);const phAdjustment=phImpact.extraCost-phImpact.savedCost;const planTotal=basePlanCost+phAdjustment;const remaining=l.totalFunding-planTotal;const totalClaimed=(l.claims||[]).reduce((a:number,c:Claim)=>a+c.amount,0);const actualRemaining=l.totalFunding-totalClaimed;return{...l,weeklyTotal:wt,weeklyGST,weeklyWithGST,basePlanCost,phImpact,phAdjustment,planTotal,remaining,totalClaimed,actualRemaining}})},[lines,rates,planWeeks,holidays]);
 const totals=useMemo(()=>{const totalFunding=perLine.reduce((a,l)=>a+l.totalFunding,0);const weekly=perLine.reduce((a,l)=>a+l.weeklyWithGST,0);const planCost=perLine.reduce((a,l)=>a+l.planTotal,0);const totalPH=perLine.reduce((a,l)=>a+l.phAdjustment,0);const remaining=totalFunding-planCost;const totalClaimed=perLine.reduce((a,l)=>a+(l as any).totalClaimed,0);const actualRemaining=totalFunding-totalClaimed;return{totalFunding,weekly,planCost,totalPH,remaining,totalClaimed,actualRemaining}},[perLine]);
 function updateLine(id:string,patch:Partial<SupportLine>){setLines(prev=>prev.map(l=>(l.id===id?{...l,...patch}:l)))}
 function updateRosterDay(lineId:string,day:string,patch:Partial<DayRoster>){setLines(prev=>prev.map(l=>{if(l.id!==lineId)return l;return{...l,roster:{...l.roster,[day]:{...l.roster[day],...patch}}}}))}
 function toggleHoliday(lineId:string,date:string){setLines(prev=>prev.map(l=>{if(l.id!==lineId)return l;const exc=l.excludedHolidays.includes(date)?l.excludedHolidays.filter(d=>d!==date):[...l.excludedHolidays,date];return{...l,excludedHolidays:exc}}))}
 function setAllHolidays(lineId:string,include:boolean){setLines(prev=>prev.map(l=>l.id!==lineId?l:{...l,excludedHolidays:include?[]:holidays.map(h=>h.date)}))}
-function addLine(){setLines(prev=>[...prev,{id:uid(),code:"NEW",description:"New line",totalFunding:0,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:0.99,kmFreq:"every",claims:[]}])}
+function addLine(){setLines(prev=>[...prev,{id:uid(),code:"01",description:"New Support Line",totalFunding:0,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:0.99,kmFreq:"every",claims:[],lineRates:NDIS_RATES_2025_26}])}
+function updateLineCode(id:string,code:string){setLines(prev=>prev.map(l=>l.id!==id?l:{...l,code,lineRates:getPresetRates(code)}))}
 function deleteLine(id:string){setLines(prev=>(prev.length<=1?prev:prev.filter(l=>l.id!==id)))}
 const[openClaimsLines,setOpenClaimsLines]=useState<Set<string>>(new Set());
+const[openRatesLines,setOpenRatesLines]=useState<Set<string>>(new Set());
+function toggleRates(id:string){setOpenRatesLines(prev=>{const n=new Set(prev);n.has(id)?n.delete(id):n.add(id);return n})}
 const[addClaimForm,setAddClaimForm]=useState<{lineId:string;date:string;amount:string;note:string}|null>(null);
 function toggleClaims(id:string){setOpenClaimsLines(prev=>{const n=new Set(prev);n.has(id)?n.delete(id):n.add(id);return n})}
 function addClaim(lineId:string,date:string,amount:number,note:string){setLines(prev=>prev.map(l=>l.id!==lineId?l:{...l,claims:[...(l.claims||[]),{id:uid(),date,amount,note}]}))}
@@ -105,8 +127,8 @@ function applyPlanExtract(){
       const used=new Set<number>();
       for(const sl of planExtract.supportLines){
         const idx=updated.findIndex((_l:SupportLine,i:number)=>!used.has(i)&&_l.code===sl.code);
-        if(idx>=0){updated[idx]={...updated[idx],totalFunding:sl.totalFunding,description:sl.description};used.add(idx);}
-        else{updated.push({id:uid(),code:sl.code,description:sl.description,totalFunding:sl.totalFunding,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:0.99,kmFreq:"every",claims:[]});}
+        if(idx>=0){updated[idx]={...updated[idx],totalFunding:sl.totalFunding,description:sl.description,lineRates:updated[idx].lineRates||getPresetRates(sl.code)};used.add(idx);}
+        else{updated.push({id:uid(),code:sl.code,description:sl.description,totalFunding:sl.totalFunding,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:0.99,kmFreq:"every",claims:[],lineRates:getPresetRates(sl.code)});}
       }
       return updated;
     });
@@ -257,7 +279,8 @@ return(
 <div className="grid gap-6">
 {perLine.map((l:any)=>{
 const status=getBudgetStatus(l.remaining,l.totalFunding);
-const suggestions=getSuggestions(l,rates);
+const suggestions=getSuggestions(l,l.lineRates||rates);
+const belowGuide=isBelowGuide(l.lineRates||rates,l.code);
 const includedCount=holidays.length-l.excludedHolidays.length;
 return(
 <div key={l.id} className="rounded-2xl p-6" style={{background:"rgba(26,17,80,0.4)",border:"1px solid "+status.border}}>
@@ -273,7 +296,7 @@ return(
 <div className="rounded-xl p-4" style={{background:"rgba(15,10,48,0.6)",border:"1px solid rgba(212,168,67,0.1)"}}>
 <div className="text-sm mb-3 font-semibold" style={{color:"#d4a843"}}>Line details</div>
 <div className="grid grid-cols-1 gap-3">
-<TextField label="Code" value={l.code} onChange={v=>updateLine(l.id,{code:v})}/>
+<TextField label="Code" value={l.code} onChange={v=>updateLineCode(l.id,v)}/>
 <TextField label="Description" value={l.description} onChange={v=>updateLine(l.id,{description:v})}/>
 <Field label="Total funding (AUD)" value={l.totalFunding} onChange={v=>updateLine(l.id,{totalFunding:v})} step={100}/>
 <SelectField label="Support Ratio" value={l.ratio} options={Object.entries(RATIOS).map(([k,v])=>({value:k,label:v.label}))} onChange={v=>updateLine(l.id,{ratio:v})}/>
@@ -305,6 +328,52 @@ return(
 <div>Ratio: <span className="font-semibold" style={{color:"#d4a843"}}>{RATIOS[l.ratio]?.label||l.ratio}</span></div>
 <div className="text-lg font-bold mt-2" style={{color:status.color}}>Remaining: {money(l.remaining)}</div>
 </div></div></div>
+
+<div className="mt-4 rounded-xl overflow-hidden" style={{border:"1px solid "+(belowGuide?"rgba(245,158,11,0.4)":"rgba(212,168,67,0.15)")}}>
+<button onClick={()=>toggleRates(l.id)} className="w-full flex items-center justify-between px-4 py-3" style={{background:belowGuide?"rgba(245,158,11,0.06)":"rgba(212,168,67,0.04)",cursor:"pointer",border:"none",color:"white",textAlign:"left"}}>
+  <span className="text-sm font-semibold" style={{color:belowGuide?"#f59e0b":"#d4a843"}}>
+    Hourly Rates{belowGuide&&<span style={{marginLeft:"8px",fontSize:"0.78rem"}}>⚠ Some rates below price guide</span>}
+    <span style={{color:"#6060a0",fontWeight:"normal",marginLeft:"8px",fontSize:"0.8rem"}}>Weekday: {money(l.lineRates?.weekdayOrd||0)}/hr{(l.lineRates?.sat||0)>0?" · Sat: "+money(l.lineRates.sat)+"/hr":""}</span>
+  </span>
+  <span style={{color:"#d4a843",fontSize:"0.8rem"}}>{openRatesLines.has(l.id)?"▲":"▼"}</span>
+</button>
+{openRatesLines.has(l.id)&&(
+<div className="p-4" style={{background:"rgba(15,10,48,0.4)"}}>
+  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 mb-3">
+    {([
+      {key:"weekdayOrd",label:"Weekday (Ord) $/hr"},
+      {key:"weekdayNight",label:"Weekday (Night) $/hr"},
+      {key:"sat",label:"Saturday $/hr"},
+      {key:"sun",label:"Sunday $/hr"},
+      {key:"publicHoliday",label:"Public Holiday $/hr"},
+      {key:"activeSleepoverHourly",label:"Active Sleepover $/hr"},
+      {key:"fixedSleepoverUnit",label:"Fixed Sleepover $ (flat)"},
+    ] as {key:keyof Rates;label:string}[]).map(({key,label})=>{
+      const guideVal=(CATEGORY_PRESETS[l.code]?.rates as any)?.[key]||0;
+      const curVal=(l.lineRates as any)?.[key]||0;
+      const warn=guideVal>0&&curVal<guideVal;
+      return(
+        <label key={key} className="block">
+          <div className="text-xs mb-1 flex items-center gap-2" style={{color:warn?"#f59e0b":"#b0a0d0"}}>
+            {label}
+            {guideVal>0&&<span style={{color:warn?"#f59e0b":"#505070",fontSize:"0.75rem"}}>guide: ${guideVal}</span>}
+            {warn&&<span style={{color:"#f59e0b",fontSize:"0.75rem"}}>⚠ below</span>}
+          </div>
+          <input type="number" step={0.01} value={Number.isFinite(curVal)?curVal:0}
+            onChange={e=>updateLine(l.id,{lineRates:{...l.lineRates,[key]:num(e.target.value)}})}
+            className="w-full rounded-lg px-3 py-2 outline-none"
+            style={{background:"rgba(26,17,80,0.6)",border:"1px solid "+(warn?"rgba(245,158,11,0.4)":"rgba(212,168,67,0.2)"),color:warn?"#f59e0b":"white"}}
+          />
+        </label>
+      );
+    })}
+  </div>
+  <button onClick={()=>updateLine(l.id,{lineRates:getPresetRates(l.code)})} style={{padding:"6px 14px",background:"rgba(212,168,67,0.1)",border:"1px solid rgba(212,168,67,0.3)",color:"#d4a843",borderRadius:"6px",cursor:"pointer",fontSize:"0.82rem",fontWeight:"600"}}>
+    Reset to {CATEGORY_PRESETS[l.code]?.name||"category"} preset
+  </button>
+</div>
+)}
+</div>
 
 {holidays.length>0&&(
 <div className="mt-4 rounded-xl p-4" style={{background:"rgba(15,10,48,0.4)",border:"1px solid rgba(212,168,67,0.1)"}}>
