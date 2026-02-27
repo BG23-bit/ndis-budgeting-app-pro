@@ -70,6 +70,9 @@ export default function DashboardPage() {
   const [paid, setPaid] = useState(false);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<"monthly" | "annual">("monthly");
+  const [stripeCustomerId, setStripeCustomerId] = useState<string | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [activeParticipant, setActiveParticipant] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -85,8 +88,9 @@ export default function DashboardPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { router.push("/login"); return; }
       setUser(session.user);
-      const { data: profile } = await supabase.from("profiles").select("paid").eq("id", session.user.id).single();
+      const { data: profile } = await supabase.from("profiles").select("paid, stripe_customer_id").eq("id", session.user.id).single();
       if (profile?.paid) setPaid(true);
+      if (profile?.stripe_customer_id) setStripeCustomerId(profile.stripe_customer_id);
       setLoading(false);
     };
     checkUser();
@@ -144,12 +148,25 @@ export default function DashboardPage() {
     const res = await fetch("/api/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: user.id, email: user.email }),
+      body: JSON.stringify({ userId: user.id, email: user.email, plan: selectedPlan }),
     });
     const data = await res.json();
     if (data.url) window.location.href = data.url;
     else alert("Error starting checkout.");
     setCheckoutLoading(false);
+  };
+
+  const handlePortal = async () => {
+    setPortalLoading(true);
+    const res = await fetch("/api/portal", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: user.id }),
+    });
+    const data = await res.json();
+    if (data.url) window.location.href = data.url;
+    else alert("Could not open billing portal. Contact support@kevria.com");
+    setPortalLoading(false);
   };
 
   const handleLogout = async () => {
@@ -207,19 +224,51 @@ export default function DashboardPage() {
         }}>
           <div style={{
             background: "#1e293b", padding: "40px", borderRadius: "16px",
-            textAlign: "center", maxWidth: "450px", width: "90%", border: "1px solid #334155",
+            textAlign: "center", maxWidth: "480px", width: "90%", border: "1px solid #334155",
           }}>
-            <h2 style={{ fontSize: "1.8rem", color: "white", marginBottom: "10px" }}>Unlock NDIS Budget Calculator</h2>
-            <p style={{ color: "#94a3b8", marginBottom: "8px" }}>Get lifetime access to the full NDIS Budget Calculator.</p>
-            <p style={{ color: "#94a3b8", marginBottom: "8px", fontSize: "0.9rem" }}>Unlimited support lines</p>
-            <p style={{ color: "#94a3b8", marginBottom: "8px", fontSize: "0.9rem" }}>Export to CSV and PDF</p>
-            <p style={{ color: "#94a3b8", marginBottom: "8px", fontSize: "0.9rem" }}>Auto public holiday calculations</p>
-            <p style={{ color: "#94a3b8", marginBottom: "20px", fontSize: "0.9rem" }}>Multiple participants</p>
-            <p style={{ fontSize: "2rem", color: "#d4a843", fontWeight: "bold", marginBottom: "20px" }}>$9.99 AUD</p>
+            <h2 style={{ fontSize: "1.8rem", color: "white", marginBottom: "8px" }}>Unlock NDIS Budget Calculator</h2>
+            <p style={{ color: "#94a3b8", marginBottom: "24px", fontSize: "0.95rem" }}>Cancel anytime. No lock-in.</p>
+
+            {/* Plan picker */}
+            <div style={{ display: "flex", gap: "12px", marginBottom: "24px" }}>
+              {([
+                { key: "monthly", label: "Monthly", price: "$9.99", period: "/ month", badge: null },
+                { key: "annual", label: "Annual", price: "$79", period: "/ year", badge: "Save 34%" },
+              ] as const).map((plan) => (
+                <div
+                  key={plan.key}
+                  onClick={() => setSelectedPlan(plan.key)}
+                  style={{
+                    flex: 1, padding: "16px 12px", borderRadius: "12px", cursor: "pointer",
+                    border: selectedPlan === plan.key ? "2px solid #d4a843" : "2px solid #334155",
+                    background: selectedPlan === plan.key ? "rgba(212,168,67,0.08)" : "rgba(255,255,255,0.02)",
+                    position: "relative",
+                  }}
+                >
+                  {plan.badge && (
+                    <div style={{
+                      position: "absolute", top: "-10px", left: "50%", transform: "translateX(-50%)",
+                      background: "#d4a843", color: "#1a1150", fontSize: "0.7rem", fontWeight: "800",
+                      padding: "2px 10px", borderRadius: "20px", whiteSpace: "nowrap",
+                    }}>{plan.badge}</div>
+                  )}
+                  <div style={{ fontSize: "0.85rem", color: "#94a3b8", marginBottom: "4px" }}>{plan.label}</div>
+                  <div style={{ fontSize: "1.6rem", fontWeight: "800", color: selectedPlan === plan.key ? "#d4a843" : "white" }}>{plan.price}</div>
+                  <div style={{ fontSize: "0.8rem", color: "#64748b" }}>{plan.period}</div>
+                </div>
+              ))}
+            </div>
+
+            {["Unlimited participants & support lines", "Public holiday auto-calculations", "Plan pace tracking", "Claims & actual spend tracker", "CSV & PDF exports", "Cancel anytime"].map((f) => (
+              <p key={f} style={{ color: "#94a3b8", marginBottom: "6px", fontSize: "0.88rem", textAlign: "left" }}>✓ {f}</p>
+            ))}
+
             <button onClick={handleCheckout} disabled={checkoutLoading} style={{
-              padding: "15px 40px", fontSize: "1.2rem", backgroundColor: "#d4a843", color: "#1a1150",
+              marginTop: "20px", padding: "15px 40px", fontSize: "1.1rem", backgroundColor: "#d4a843", color: "#1a1150",
               border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold", width: "100%",
-            }}>{checkoutLoading ? "Redirecting..." : "Pay $9.99 - Unlock Now"}</button>
+            }}>
+              {checkoutLoading ? "Redirecting..." : selectedPlan === "annual" ? "Subscribe — $79/yr" : "Subscribe — $9.99/mo"}
+            </button>
             <p onClick={handleLogout} style={{ marginTop: "15px", color: "#64748b", cursor: "pointer", fontSize: "0.9rem" }}>Log out</p>
           </div>
         </div>
@@ -260,6 +309,12 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-3">
             {user?.email && <span className="text-sm" style={{ color: "#8080a0" }}>{user.email}</span>}
+            {stripeCustomerId && (
+              <button onClick={handlePortal} disabled={portalLoading} style={{
+                background: "rgba(212,168,67,0.1)", border: "1px solid rgba(212,168,67,0.3)",
+                color: "#d4a843", padding: "8px 16px", borderRadius: "8px", cursor: "pointer", fontSize: "0.85rem",
+              }}>{portalLoading ? "..." : "Manage Subscription"}</button>
+            )}
             <button onClick={handleLogout} style={{
               background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
               color: "#b0b0d0", padding: "8px 16px", borderRadius: "8px", cursor: "pointer", fontSize: "0.85rem",

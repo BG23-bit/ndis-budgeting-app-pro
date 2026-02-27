@@ -292,74 +292,43 @@ export default function LandingPage() {
         background: "#1a1150",
         padding: "80px 40px",
       }}>
-        <div style={{ maxWidth: "500px", margin: "0 auto", textAlign: "center" }}>
+        <div style={{ maxWidth: "780px", margin: "0 auto", textAlign: "center" }}>
           <h2 style={{ fontSize: "2.2rem", fontWeight: "700", marginBottom: "10px" }}>
             Simple Pricing
           </h2>
           <p style={{ color: "#8080a0", marginBottom: "40px", fontSize: "1.1rem" }}>
-            No subscriptions. No hidden fees. Pay once, use forever.
+            No lock-in. Cancel anytime.
           </p>
 
-          <div style={{
-            background: "rgba(255,255,255,0.04)",
-            border: "2px solid #d4a843",
-            borderRadius: "20px",
-            padding: "40px",
-          }}>
-            <p style={{
-              fontSize: "0.9rem",
-              color: "#d4a843",
-              fontWeight: "600",
-              letterSpacing: "2px",
-              textTransform: "uppercase",
-              marginBottom: "10px",
-            }}>
-              Lifetime Access
-            </p>
-            <div style={{ fontSize: "3.5rem", fontWeight: "800", marginBottom: "5px" }}>
-              $9.99
-            </div>
-            <p style={{ color: "#8080a0", marginBottom: "25px" }}>AUD — One-time payment</p>
-
-            <div style={{ textAlign: "left", marginBottom: "30px" }}>
-              {[
-                "Unlimited support lines & participants",
-                "All shift rate calculations (incl. public holidays)",
-                "Sleepover calculations (active & fixed)",
-                "KM tracking",
-                "Plan pace tracking",
-                "Claims & actual spend tracker",
-                "CSV & PDF exports",
-                "Lifetime access — no expiry",
-                "Future updates included",
-              ].map((item, i) => (
-                <div key={i} style={{
-                  padding: "8px 0",
-                  borderBottom: i < 6 ? "1px solid rgba(255,255,255,0.05)" : "none",
-                  color: "#c0c0e0",
-                  fontSize: "0.95rem",
-                }}>
-                  ✅ {item}
-                </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "24px", textAlign: "left" }}>
+            {/* Monthly */}
+            <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "20px", padding: "36px" }}>
+              <p style={{ fontSize: "0.85rem", color: "#8080a0", fontWeight: "600", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "8px" }}>Monthly</p>
+              <div style={{ fontSize: "3rem", fontWeight: "800", marginBottom: "2px" }}>$9.99</div>
+              <p style={{ color: "#8080a0", marginBottom: "24px", fontSize: "0.9rem" }}>AUD / month</p>
+              {["Unlimited participants & support lines", "All shift rate calculations", "Public holiday auto-calc", "Plan pace tracking", "Claims tracker", "CSV & PDF exports", "Cancel anytime"].map((item, i) => (
+                <div key={i} style={{ padding: "7px 0", borderBottom: i < 6 ? "1px solid rgba(255,255,255,0.05)" : "none", color: "#c0c0e0", fontSize: "0.9rem" }}>✅ {item}</div>
               ))}
+              <button onClick={() => router.push("/login")} style={{ marginTop: "24px", width: "100%", padding: "14px", fontSize: "1rem", backgroundColor: "transparent", color: "#d4a843", border: "2px solid #d4a843", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}>
+                Get Started →
+              </button>
             </div>
 
-            <button
-              onClick={() => router.push("/login")}
-              style={{
-                width: "100%",
-                padding: "16px",
-                fontSize: "1.2rem",
-                backgroundColor: "#d4a843",
-                color: "#1a1150",
-                border: "none",
-                borderRadius: "8px",
-                cursor: "pointer",
-                fontWeight: "bold",
-              }}
-            >
-              Get Started Now →
-            </button>
+            {/* Annual */}
+            <div style={{ background: "rgba(212,168,67,0.06)", border: "2px solid #d4a843", borderRadius: "20px", padding: "36px", position: "relative" }}>
+              <div style={{ position: "absolute", top: "-14px", left: "50%", transform: "translateX(-50%)", background: "#d4a843", color: "#1a1150", fontSize: "0.75rem", fontWeight: "800", padding: "4px 16px", borderRadius: "20px", whiteSpace: "nowrap" }}>
+                BEST VALUE — SAVE 34%
+              </div>
+              <p style={{ fontSize: "0.85rem", color: "#d4a843", fontWeight: "600", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "8px" }}>Annual</p>
+              <div style={{ fontSize: "3rem", fontWeight: "800", marginBottom: "2px" }}>$79</div>
+              <p style={{ color: "#8080a0", marginBottom: "24px", fontSize: "0.9rem" }}>AUD / year <span style={{ color: "#d4a843" }}>(≈$6.58/mo)</span></p>
+              {["Everything in Monthly", "2 months free vs monthly", "Priority support", "Cancel anytime"].map((item, i) => (
+                <div key={i} style={{ padding: "7px 0", borderBottom: i < 3 ? "1px solid rgba(255,255,255,0.05)" : "none", color: "#c0c0e0", fontSize: "0.9rem" }}>✅ {item}</div>
+              ))}
+              <button onClick={() => router.push("/login")} style={{ marginTop: "24px", width: "100%", padding: "14px", fontSize: "1rem", backgroundColor: "#d4a843", color: "#1a1150", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}>
+                Get Started →
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -380,8 +349,8 @@ export default function LandingPage() {
               a: "This tool is built for NDIS service providers, support coordinators, and plan managers who need to track and forecast NDIS budgets.",
             },
             {
-              q: "Is this a subscription?",
-              a: "No! It's a one-time payment of $9.99 AUD. Pay once, use forever. No recurring charges.",
+              q: "How does pricing work?",
+              a: "Choose monthly ($9.99/mo) or annual ($79/yr — save 34%). Both plans include all features. No lock-in — cancel anytime from your account.",
             },
             {
               q: "Can I manage multiple participants?",
