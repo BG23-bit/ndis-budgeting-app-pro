@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 
@@ -12,6 +12,18 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  // If user lands here already authenticated (e.g. after email confirmation),
+  // send them straight to the dashboard.
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) router.push("/dashboard");
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) router.push("/dashboard");
+    });
+    return () => subscription.unsubscribe();
+  }, [router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -21,6 +33,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signUp({
         email,
         password,
+        options: { emailRedirectTo: window.location.origin + "/login" },
       });
       if (error) {
         setError(error.message);

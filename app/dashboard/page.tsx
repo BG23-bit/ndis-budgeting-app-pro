@@ -152,7 +152,7 @@ export default function DashboardPage() {
     });
     const data = await res.json();
     if (data.url) window.location.href = data.url;
-    else alert("Error starting checkout.");
+    else alert("Error starting checkout: " + (data.error || "Unknown error. Check Vercel logs."));
     setCheckoutLoading(false);
   };
 
