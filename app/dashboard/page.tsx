@@ -75,6 +75,9 @@ export default function DashboardPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newName, setNewName] = useState("");
   const [newNdis, setNewNdis] = useState("");
+  const [editingParticipant, setEditingParticipant] = useState<Participant | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editNdis, setEditNdis] = useState("");
   const router = useRouter();
 
   useEffect(() => {
@@ -167,6 +170,20 @@ export default function DashboardPage() {
     if (!confirm("Delete this participant and all their data?")) return;
     setParticipants((prev) => prev.filter((p) => p.id !== id));
     try { localStorage.removeItem("ndis_participant_" + id); } catch {}
+  };
+
+  const openEdit = (p: Participant) => {
+    setEditingParticipant(p);
+    setEditName(p.name);
+    setEditNdis(p.ndisNumber);
+  };
+
+  const saveEdit = () => {
+    if (!editingParticipant || !editName.trim()) return;
+    setParticipants((prev) => prev.map((p) =>
+      p.id === editingParticipant.id ? { ...p, name: editName.trim(), ndisNumber: editNdis.trim() } : p
+    ));
+    setEditingParticipant(null);
   };
 
   if (loading) {
@@ -337,6 +354,12 @@ export default function DashboardPage() {
                         background: statusColors.bg, color: statusColors.color, border: "1px solid " + statusColors.border,
                       }}>{statusColors.label}</span>
                       <button
+                        onClick={(e) => { e.stopPropagation(); openEdit(p); }}
+                        className="rounded-lg px-3 py-2" style={{
+                          background: "rgba(212,168,67,0.1)", border: "1px solid rgba(212,168,67,0.3)", color: "#d4a843",
+                          cursor: "pointer", fontSize: "0.8rem",
+                        }}>Edit</button>
+                      <button
                         onClick={(e) => { e.stopPropagation(); deleteParticipant(p.id); }}
                         className="rounded-lg px-3 py-2" style={{
                           background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444",
@@ -406,6 +429,48 @@ export default function DashboardPage() {
                   border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold",
                 }}>Add Participant</button>
                 <button onClick={() => { setShowAddForm(false); setNewName(""); setNewNdis(""); }} style={{
+                  flex: 1, padding: "12px", background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.1)", color: "#b0b0d0", borderRadius: "8px", cursor: "pointer",
+                }}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Participant Modal */}
+        {editingParticipant && (
+          <div style={{
+            position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+            background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100,
+          }}>
+            <div style={{
+              background: "#1a1150", padding: "32px", borderRadius: "16px",
+              border: "1px solid rgba(212,168,67,0.3)", maxWidth: "400px", width: "90%",
+            }}>
+              <h3 className="text-xl font-semibold mb-4" style={{ color: "#d4a843" }}>Edit Participant</h3>
+
+              <div className="mb-4">
+                <div className="text-sm mb-1" style={{ color: "#b0a0d0" }}>Participant Name *</div>
+                <input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="e.g. John Smith"
+                  className="w-full rounded-lg px-3 py-2 outline-none"
+                  style={{ background: "rgba(15,10,48,0.6)", border: "1px solid rgba(212,168,67,0.2)", color: "white" }}
+                />
+              </div>
+
+              <div className="mb-6">
+                <div className="text-sm mb-1" style={{ color: "#b0a0d0" }}>NDIS Number (optional)</div>
+                <input value={editNdis} onChange={(e) => setEditNdis(e.target.value)} placeholder="e.g. 431234567"
+                  className="w-full rounded-lg px-3 py-2 outline-none"
+                  style={{ background: "rgba(15,10,48,0.6)", border: "1px solid rgba(212,168,67,0.2)", color: "white" }}
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button onClick={saveEdit} style={{
+                  flex: 1, padding: "12px", backgroundColor: "#d4a843", color: "#1a1150",
+                  border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold",
+                }}>Save Changes</button>
+                <button onClick={() => setEditingParticipant(null)} style={{
                   flex: 1, padding: "12px", background: "rgba(255,255,255,0.05)",
                   border: "1px solid rgba(255,255,255,0.1)", color: "#b0b0d0", borderRadius: "8px", cursor: "pointer",
                 }}>Cancel</button>
