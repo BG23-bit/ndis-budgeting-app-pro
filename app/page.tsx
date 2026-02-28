@@ -441,6 +441,8 @@ export default function LandingPage() {
           <span style={{ color: "#3a3a60" }}>|</span>
           <a href="/privacy" style={{ color: "#6060a0", fontSize: "0.85rem", textDecoration: "none" }}>Privacy Policy</a>
           <span style={{ color: "#3a3a60" }}>|</span>
+          <a href="/terms" style={{ color: "#6060a0", fontSize: "0.85rem", textDecoration: "none" }}>Terms of Service</a>
+          <span style={{ color: "#3a3a60" }}>|</span>
           <a href="mailto:support@kevria.com" style={{ color: "#6060a0", fontSize: "0.85rem", textDecoration: "none" }}>support@kevria.com</a>
         </div>
         <p style={{ color: "#404070", fontSize: "0.75rem", maxWidth: "600px", margin: "0 auto 8px auto", lineHeight: "1.5" }}>

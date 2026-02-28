@@ -112,6 +112,8 @@ Website: kevria.com.au`,
         <p style={{ color: "#404070", fontSize: "0.85rem" }}>
           © {new Date().getFullYear()} Kevria. All rights reserved. —{" "}
           <a href="/" style={{ color: "#6060a0", textDecoration: "none" }}>Back to home</a>
+          {" "}—{" "}
+          <a href="/terms" style={{ color: "#6060a0", textDecoration: "none" }}>Terms of Service</a>
         </p>
       </footer>
     </div>
