@@ -263,7 +263,7 @@ export default function LandingPage() {
           <h2 style={{ fontSize: "2.2rem", fontWeight: "700", marginBottom: "10px" }}>How It Works</h2>
           <p style={{ color: "#8080a0", marginBottom: "50px", fontSize: "1.1rem" }}>Up and running in under 2 minutes</p>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "30px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "40px 30px" }}>
             {[
               { step: "1", title: "Create Account", desc: "Sign up with your email in seconds" },
               { step: "2", title: "Choose a Plan", desc: "Monthly ($9.99/mo) or Annual ($79/yr). Cancel anytime." },
