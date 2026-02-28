@@ -490,6 +490,80 @@ tr:nth-child(even) td{background:#fafafa}
   w.document.write(html);
   w.document.close();
 }
+function generateScheduleOfSupports(){
+  const pd=providerDetails;
+  const pName=participantName||"[Participant Name]";
+  const ndis=ndisNumber||"[NDIS Number]";
+  const dt=new Date().toLocaleDateString("en-AU",{day:"numeric",month:"long",year:"numeric"});
+  const supRows=perLine.map(l=>
+    "<tr>"
+    +"<td style=\"font-family:monospace;font-size:9pt;white-space:nowrap;background:#f8f9fa\">"+escapeHtml(l.code)+"</td>"
+    +"<td>"+escapeHtml(l.description)+"</td>"
+    +"<td style=\"text-align:center\">"+escapeHtml(l.ratio)+"</td>"
+    +"<td style=\"text-align:right\">"+escapeHtml(money(l.weeklyWithGST))+"</td>"
+    +"<td style=\"text-align:right\"><strong>"+escapeHtml(money(l.planTotal))+"</strong></td>"
+    +"</tr>"
+  ).join("");
+  const html=`<!doctype html><html><head><meta charset="utf-8"/><title>Schedule of Supports - ${escapeHtml(pName)}</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;color:#111;background:white;font-size:10.5pt;line-height:1.6}.header{background:#1a1150;color:white;padding:14px 40px;display:flex;justify-content:space-between;align-items:center}.brand{color:#d4a843;font-size:16px;font-weight:bold;letter-spacing:.05em}.doc-label{font-size:10px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.12em;margin-top:2px}.content{padding:28px 40px}.doc-title{font-size:15pt;font-weight:bold;color:#1a1150;text-align:center;margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em}.doc-ref{text-align:center;font-size:9.5pt;color:#666;margin-bottom:20px}.details-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;border:1.5px solid #1a1150;border-radius:6px;padding:16px}.det-label{font-size:8pt;text-transform:uppercase;letter-spacing:.1em;color:#888;margin-bottom:2px}.det-name{font-size:12pt;font-weight:bold;color:#1a1150;margin-bottom:3px}.det-info{font-size:9.5pt;color:#444;line-height:1.5}.section-heading{font-size:10pt;font-weight:bold;text-transform:uppercase;letter-spacing:.07em;color:#1a1150;margin-bottom:8px;padding-bottom:4px;border-bottom:1.5px solid #1a1150}table{width:100%;border-collapse:collapse;font-size:9.5pt;margin-bottom:12px}th{background:#1a1150;color:white;padding:7px 10px;text-align:left;font-size:8.5pt;text-transform:uppercase;letter-spacing:.05em}td{padding:7px 10px;border-bottom:1px solid #e8eaf0;vertical-align:middle}tr:nth-child(even) td{background:#f9fafb}.total-row td{font-weight:bold;border-top:2px solid #1a1150;background:#f1f5f9!important;font-size:10pt}.note{font-size:8.5pt;color:#666;margin-bottom:22px;line-height:1.5}.sig-section{margin-top:24px;page-break-inside:avoid}.sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:50px;margin-top:12px}.sig-name{font-weight:bold;font-size:10pt;margin-bottom:2px}.sig-role{font-size:9pt;color:#666;margin-bottom:24px}.sig-line{border-top:1px solid #333;padding-top:4px;margin-top:48px;font-size:9pt;color:#555}.date-line{border-top:1px solid #333;padding-top:4px;margin-top:16px;font-size:9pt;color:#555}.footer{margin-top:28px;padding:10px 40px;background:#f8f9fa;border-top:1px solid #ddd;font-size:8pt;color:#aaa;display:flex;justify-content:space-between}@media print{body{background:white}.header{-webkit-print-color-adjust:exact;print-color-adjust:exact}th{-webkit-print-color-adjust:exact;print-color-adjust:exact}.details-grid{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style>
+</head><body>
+<div class="header">
+  <div><div class="brand">&#10022; KEVRIA</div><div class="doc-label">Kevria Calc</div></div>
+  <div style="text-align:right;font-size:9.5px;color:rgba(255,255,255,.55)"><div style="font-size:11px;color:white;font-weight:600;text-transform:uppercase;letter-spacing:.1em">Schedule of Supports</div><div style="margin-top:3px">Generated: ${escapeHtml(dt)}</div></div>
+</div>
+<div class="content">
+  <div class="doc-title">Schedule of Supports</div>
+  <div class="doc-ref">This schedule forms part of the Service Agreement between <strong>${escapeHtml(pd.orgName||"the Provider")}</strong> and <strong>${escapeHtml(pName)}</strong></div>
+
+  <div class="details-grid">
+    <div>
+      <div class="det-label">Participant</div>
+      <div class="det-name">${escapeHtml(pName)}</div>
+      <div class="det-info">${ndis!=="[NDIS Number]"?"NDIS Number: "+escapeHtml(ndis)+"<br/>":""}Plan Period: <strong>${escapeHtml(planDates.start)}</strong> to <strong>${escapeHtml(planDates.end)}</strong><br/>State / Territory: ${escapeHtml(planDates.state)}<br/>Plan Duration: ${planWeeks.toFixed(1)} weeks</div>
+    </div>
+    <div>
+      <div class="det-label">Provider</div>
+      <div class="det-name">${escapeHtml(pd.orgName||"[Provider]")}</div>
+      <div class="det-info">${pd.abn?"ABN: "+escapeHtml(pd.abn)+"<br/>":""}${pd.registrationNumber?"NDIS Reg: "+escapeHtml(pd.registrationNumber)+"<br/>":""}${pd.contactName?"Contact: "+escapeHtml(pd.contactName)+"<br/>":""}${pd.phone?escapeHtml(pd.phone)+"<br/>":""}${pd.email?"<a href='mailto:"+escapeHtml(pd.email)+"' style='color:#1a1150'>"+escapeHtml(pd.email)+"</a>":""}</div>
+    </div>
+  </div>
+
+  <div class="section-heading">Funded Supports</div>
+  <table>
+    <tr><th style="width:22%">NDIS Item Code</th><th>Support Description</th><th style="width:8%;text-align:center">Ratio</th><th style="width:13%;text-align:right">Est. Weekly</th><th style="width:14%;text-align:right">Plan Total</th></tr>
+    ${supRows}
+    <tr class="total-row"><td colspan="3">TOTAL</td><td style="text-align:right">${escapeHtml(money(totals.weekly))}</td><td style="text-align:right">${escapeHtml(money(totals.planCost))}</td></tr>
+  </table>
+  <div class="note">Prices are in accordance with the NDIS Pricing Arrangements and Price Limits (2025&#8211;26). Estimated weekly costs are indicative and may vary based on actual supports delivered. Plan totals include public holiday adjustments where applicable. All prices are GST-inclusive where applicable under NDIS pricing rules.</div>
+
+  <div class="section-heading">Signatures</div>
+  <div class="sig-grid">
+    <div>
+      <div class="sig-name">${escapeHtml(pd.orgName||"Provider Organisation")}</div>
+      <div class="sig-role">Provider Representative</div>
+      <div class="sig-line">Signature</div>
+      <div class="date-line">Date</div>
+    </div>
+    <div>
+      <div class="sig-name">${escapeHtml(pName)}</div>
+      <div class="sig-role">Participant (or Representative)</div>
+      <div class="sig-line">Signature</div>
+      <div class="date-line">Date</div>
+    </div>
+  </div>
+</div>
+<div class="footer">
+  <div>Generated by <strong>Kevria Calc</strong> | kevriacalc.com</div>
+  <div>Rates: 2025&#8211;26 NDIS Price Guide. Verify before quoting. Not financial advice.</div>
+</div>
+<script>window.onload=function(){window.focus();window.print()}</script>
+</body></html>`;
+  const w=window.open("","_blank");
+  if(!w){alert("Popup blocked. Please allow popups for this site.");return}
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+}
 const totalStatus=getBudgetStatus(totals.remaining,totals.totalFunding);
 const pace=useMemo(()=>{
   if(!planDates.start||!planDates.end||totals.totalFunding<=0)return null;
@@ -853,11 +927,15 @@ return(
 <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:"16px"}}>
 <div style={{background:"#1a1150",border:"1px solid rgba(212,168,67,0.3)",borderRadius:"16px",maxWidth:"680px",width:"100%",maxHeight:"90vh",overflowY:"auto",padding:"32px"}}>
   <div className="flex items-center justify-between mb-6">
-    <h2 className="text-xl font-bold" style={{color:"#d4a843"}}>📋 Generate Service Agreement</h2>
+    <h2 className="text-xl font-bold" style={{color:"#d4a843"}}>📋 Generate Documents</h2>
     <button onClick={()=>setShowSAModal(false)} style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#b0b0d0",borderRadius:"8px",padding:"6px 12px",cursor:"pointer"}}>✕</button>
   </div>
 
   <div className="text-sm mb-5" style={{color:"#b0a0d0"}}>Your provider details are saved and reused for every participant. Fill them in once — they&apos;ll pre-fill next time.</div>
+  <div className="rounded-lg p-3 mb-4 text-xs" style={{background:"rgba(212,168,67,0.08)",border:"1px solid rgba(212,168,67,0.2)",color:"#c8a840"}}>
+    <strong>Schedule of Supports</strong> — a clean one-pager you attach to your existing SA template. Works for every provider, zero setup.<br/>
+    <strong style={{color:"#9090c0"}}>Full Service Agreement</strong> — a complete standalone NDIS-compliant agreement with all standard clauses.
+  </div>
 
   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mb-6">
     {([
@@ -895,16 +973,20 @@ return(
     </div>
   </div>
 
-  <div className="flex gap-3">
-    <button onClick={()=>{setShowSAModal(false);generateServiceAgreement()}} disabled={!providerDetails.orgName.trim()}
+  <div className="flex gap-3 mb-2">
+    <button onClick={()=>{setShowSAModal(false);generateScheduleOfSupports()}} disabled={!providerDetails.orgName.trim()}
       style={{flex:1,padding:"13px",backgroundColor:providerDetails.orgName.trim()?"#d4a843":"#4a3a20",color:providerDetails.orgName.trim()?"#1a1150":"#888",border:"none",borderRadius:"10px",cursor:providerDetails.orgName.trim()?"pointer":"not-allowed",fontWeight:"bold",fontSize:"1rem"}}>
-      Generate PDF →
+      Schedule of Supports →
     </button>
     <button onClick={()=>setShowSAModal(false)} style={{padding:"13px 20px",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#b0b0d0",borderRadius:"10px",cursor:"pointer"}}>
       Cancel
     </button>
   </div>
-  {!providerDetails.orgName.trim()&&<div className="text-xs mt-2 text-center" style={{color:"#6060a0"}}>Organisation name is required to generate the agreement</div>}
+  <button onClick={()=>{setShowSAModal(false);generateServiceAgreement()}} disabled={!providerDetails.orgName.trim()}
+    style={{width:"100%",padding:"11px",backgroundColor:"transparent",color:providerDetails.orgName.trim()?"#9090c0":"#4a4a6a",border:"1px solid "+(providerDetails.orgName.trim()?"rgba(144,144,192,0.4)":"rgba(74,74,106,0.3)"),borderRadius:"10px",cursor:providerDetails.orgName.trim()?"pointer":"not-allowed",fontSize:"0.9rem"}}>
+    Full Service Agreement
+  </button>
+  {!providerDetails.orgName.trim()&&<div className="text-xs mt-2 text-center" style={{color:"#6060a0"}}>Organisation name is required</div>}
 </div>
 </div>
 )}
