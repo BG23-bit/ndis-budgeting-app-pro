@@ -159,8 +159,8 @@ export default function LandingPage() {
             {[
               {
                 icon: "📄",
-                title: "Upload NDIS Plan PDF",
-                desc: "Upload a participant's NDIS plan and we automatically extract plan dates, support categories, and funding amounts — pre-filling the calculator instantly.",
+                title: "Upload Plan PDF — Skip the Data Entry",
+                desc: "Got the participant's plan PDF? Upload it and we extract the plan dates, state, support categories, and funding amounts automatically. Or enter it manually — your choice.",
                 highlight: true,
               },
               {
@@ -252,7 +252,7 @@ export default function LandingPage() {
             {[
               { step: "1", title: "Create Account", desc: "Sign up with your email in seconds" },
               { step: "2", title: "Choose a Plan", desc: "Monthly ($9.99/mo) or Annual ($79/yr). Cancel anytime." },
-              { step: "3", title: "Add Participants", desc: "Add participants and upload their NDIS plan PDF to auto-fill support categories and funding amounts" },
+              { step: "3", title: "Add Participants", desc: "Add participants and enter their plan details manually — or upload their NDIS plan PDF to auto-fill everything instantly" },
               { step: "4", title: "Build Rosters", desc: "Set up support lines, shifts, and rates — the calculator does the rest" },
               { step: "5", title: "Export & Share", desc: "Export professional PDF or CSV quotes to share with participants, families, or other providers" },
               { step: "6", title: "Track & Monitor", desc: "Log actual claims as invoices come in and monitor budget health — pace tracking shows you when a plan is at risk before it runs out" },

@@ -323,13 +323,16 @@ return(
 <div className="rounded-xl p-3" style={{background:"rgba(212,168,67,0.1)",border:"1px solid rgba(212,168,67,0.2)"}}><div className="text-xs" style={{color:"#b0a0d0"}}>State</div><div className="text-lg font-bold" style={{color:"#d4a843"}}>{planDates.state}</div></div>
 </div>
 {planDates.end&&planDates.start&&new Date(planDates.end)<=new Date(planDates.start)&&(<div className="mt-3 rounded-lg px-4 py-2 text-sm" style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",color:"#f87171"}}>⚠ Plan end date must be after the start date</div>)}
-<div className="mt-4 flex items-center gap-3 flex-wrap">
+<div className="mt-4">
+<div className="text-xs font-semibold mb-2" style={{color:"#6060a0",textTransform:"uppercase",letterSpacing:"0.06em"}}>Optional — Auto-fill from plan PDF</div>
+<div className="flex items-center gap-3 flex-wrap">
 <input ref={planFileRef} type="file" accept=".pdf,application/pdf" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f)handlePlanUpload(f);e.target.value="";}}/>
 <button onClick={()=>planFileRef.current?.click()} disabled={uploadingPlan} style={{background:"rgba(212,168,67,0.12)",border:"1px solid rgba(212,168,67,0.35)",color:"#d4a843",padding:"10px 18px",borderRadius:"8px",cursor:"pointer",fontWeight:"600",fontSize:"0.9rem",opacity:uploadingPlan?0.7:1}}>
 {uploadingPlan?"⏳ Reading plan...":"📄 Upload NDIS Plan PDF"}
 </button>
-<span style={{color:"#6060a0",fontSize:"0.82rem"}}>Auto-fills funding from your plan document</span>
-{planUploadError&&<span style={{color:"#ef4444",fontSize:"0.85rem"}}>{planUploadError}</span>}
+<span style={{color:"#6060a0",fontSize:"0.82rem"}}>Upload a plan PDF to auto-fill dates, state &amp; funding — or enter manually below</span>
+{planUploadError&&<div className="w-full mt-1"><span style={{color:"#ef4444",fontSize:"0.85rem"}}>{planUploadError}</span></div>}
+</div>
 </div>
 {holidays.length>0&&(<div className="mt-4"><div className="text-sm font-semibold mb-2" style={{color:"#b0a0d0"}}>Public Holidays in Plan Period:</div>
 <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 lg:grid-cols-3">{holidays.map((h,i)=>(<div key={i} className="text-sm py-1 px-2 rounded" style={{background:"rgba(255,255,255,0.03)"}}><span style={{color:"#d4a843"}}>{h.date}</span> <span style={{color:"#8080a0"}}>({getDayName(h.dayOfWeek)})</span> <span style={{color:"#b0a0d0"}}>{h.name}</span></div>))}</div></div>)}
