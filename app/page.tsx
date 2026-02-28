@@ -6,6 +6,20 @@ import { useState } from "react";
 export default function LandingPage() {
   const router = useRouter();
   const [participants, setParticipants] = useState(10);
+  const [hourlyRate, setHourlyRate] = useState(80);
+
+  // Time saved per participant per year (in hours) — broken down by task
+  const setupHrs = 2;          // Initial budget setup vs Excel
+  const monthlyReviewHrs = 5;  // 25 min × 12 months
+  const phCalcHrs = 1.5;       // Public holiday calculations
+  const scheduleHrs = 1.5;     // 2 × Schedule of Supports per year (~45 min each)
+  const claimsHrs = 3;         // 15 min × 12 months claims logging
+  const hrsPerParticipant = setupHrs + monthlyReviewHrs + phCalcHrs + scheduleHrs + claimsHrs;
+
+  const totalHrs = Math.round(participants * hrsPerParticipant);
+  const valuePerYear = totalHrs * hourlyRate;
+  const annualCost = 79;
+  const roi = Math.round(valuePerYear / annualCost);
 
   return (
     <div style={{ fontFamily: "'Segoe UI', sans-serif", color: "white" }}>
@@ -90,7 +104,7 @@ export default function LandingPage() {
             margin: "0 auto 16px auto",
             lineHeight: "1.6",
           }}>
-            Track funding, calculate rosters, forecast spending — built by an NDIS provider for every provider type across Australia.
+            Track funding, calculate rosters, forecast spending, and generate Schedule of Supports documents — built by an NDIS provider for every provider type across Australia.
           </p>
           <p style={{
             fontSize: "0.95rem",
@@ -158,6 +172,12 @@ export default function LandingPage() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "30px" }}>
             {[
               {
+                icon: "📋",
+                title: "Schedule of Supports — Ready to Sign",
+                desc: "Generate a professional Schedule of Supports PDF in seconds. Shows each support line with NDIS item code, weekly roster (days and hours), estimated weekly cost, and plan total — with signature blocks. Attach it to your existing SA template. Works out of the box for every provider.",
+                highlight: true,
+              },
+              {
                 icon: "📄",
                 title: "Upload Plan PDF — Skip the Data Entry",
                 desc: "Got the participant's plan PDF? Upload it and we extract the plan dates, state, support categories, and funding amounts automatically. Or enter it manually — your choice.",
@@ -215,11 +235,6 @@ export default function LandingPage() {
                 title: "Cloud Sync",
                 desc: "Your data saves automatically and syncs across all your devices. Access your participant budgets from anywhere.",
               },
-              {
-                icon: "🔒",
-                title: "Secure & Private",
-                desc: "Stored securely in your account. Your email is used only for login — never sold or shared.",
-              },
             ].map((f, i) => (
               <div
                 key={i}
@@ -244,7 +259,7 @@ export default function LandingPage() {
 
       {/* HOW IT WORKS */}
       <section id="how" style={{ background: "#150e40", padding: "80px 40px" }}>
-        <div style={{ maxWidth: "800px", margin: "0 auto", textAlign: "center" }}>
+        <div style={{ maxWidth: "900px", margin: "0 auto", textAlign: "center" }}>
           <h2 style={{ fontSize: "2.2rem", fontWeight: "700", marginBottom: "10px" }}>How It Works</h2>
           <p style={{ color: "#8080a0", marginBottom: "50px", fontSize: "1.1rem" }}>Up and running in under 2 minutes</p>
 
@@ -252,22 +267,23 @@ export default function LandingPage() {
             {[
               { step: "1", title: "Create Account", desc: "Sign up with your email in seconds" },
               { step: "2", title: "Choose a Plan", desc: "Monthly ($9.99/mo) or Annual ($79/yr). Cancel anytime." },
-              { step: "3", title: "Add Participants", desc: "Add participants and enter their plan details manually — or upload their NDIS plan PDF to auto-fill everything instantly" },
-              { step: "4", title: "Build Rosters", desc: "Set up support lines, shifts, and rates — the calculator does the rest" },
-              { step: "5", title: "Export & Share", desc: "Export professional PDF or CSV quotes to share with participants, families, or other providers" },
+              { step: "3", title: "Add Participants", desc: "Add participants and enter their plan details — or upload their NDIS plan PDF to auto-fill everything instantly" },
+              { step: "4", title: "Build Rosters", desc: "Set up support lines, shifts, and rates per day. The calculator handles costs, public holidays, and pace tracking automatically" },
+              { step: "5", title: "Generate Schedule of Supports", desc: "One click generates a professional Schedule of Supports PDF — NDIS codes, daily hours, weekly costs, plan totals, and signature blocks. Ready to attach to any SA template" },
               { step: "6", title: "Track & Monitor", desc: "Log actual claims as invoices come in and monitor budget health — pace tracking shows you when a plan is at risk before it runs out" },
             ].map((s, i) => (
               <div key={i} style={{ textAlign: "center" }}>
                 <div style={{
                   width: "60px", height: "60px", borderRadius: "50%",
-                  background: "#d4a843", color: "#1a1150",
+                  background: s.step === "5" ? "#d4a843" : "#d4a843",
+                  color: "#1a1150",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: "1.5rem", fontWeight: "bold", margin: "0 auto 15px auto",
                 }}>
                   {s.step}
                 </div>
-                <h3 style={{ fontSize: "1.1rem", fontWeight: "600", marginBottom: "8px" }}>{s.title}</h3>
-                <p style={{ color: "#9090b0", fontSize: "0.95rem" }}>{s.desc}</p>
+                <h3 style={{ fontSize: "1.05rem", fontWeight: "600", marginBottom: "8px", color: s.step === "5" ? "#d4a843" : "white" }}>{s.title}</h3>
+                <p style={{ color: "#9090b0", fontSize: "0.93rem", lineHeight: "1.55" }}>{s.desc}</p>
               </div>
             ))}
           </div>
@@ -285,8 +301,8 @@ export default function LandingPage() {
               <p style={{ fontSize: "0.85rem", color: "#8080a0", fontWeight: "600", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "8px" }}>Monthly</p>
               <div style={{ fontSize: "3rem", fontWeight: "800", marginBottom: "2px" }}>$9.99</div>
               <p style={{ color: "#8080a0", marginBottom: "24px", fontSize: "0.9rem" }}>AUD / month</p>
-              {["Unlimited participants & support lines", "PDF plan upload & auto-fill", "Per-category rate presets (01–15)", "Public holiday auto-calc by state", "Plan pace tracking", "Claims & actual spend tracker", "CSV & PDF exports", "Cancel anytime"].map((item, i) => (
-                <div key={i} style={{ padding: "7px 0", borderBottom: i < 7 ? "1px solid rgba(255,255,255,0.05)" : "none", color: "#c0c0e0", fontSize: "0.9rem" }}>✅ {item}</div>
+              {["Unlimited participants & support lines", "Schedule of Supports PDF generator", "PDF plan upload & auto-fill", "Per-category rate presets (01–15)", "Public holiday auto-calc by state", "Plan pace tracking", "Claims & actual spend tracker", "CSV & PDF exports", "Cancel anytime"].map((item, i) => (
+                <div key={i} style={{ padding: "7px 0", borderBottom: i < 8 ? "1px solid rgba(255,255,255,0.05)" : "none", color: "#c0c0e0", fontSize: "0.9rem" }}>✅ {item}</div>
               ))}
               <button onClick={() => router.push("/login")} style={{ marginTop: "24px", width: "100%", padding: "14px", fontSize: "1rem", backgroundColor: "transparent", color: "#d4a843", border: "2px solid #d4a843", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}>
                 Get Started →
@@ -323,6 +339,10 @@ export default function LandingPage() {
               a: "Any NDIS provider who manages participant budgets. Built originally as an internal tool for a provider's finance team — it works for SIL providers, support coordinators, specialist support coordinators, plan managers, community access providers, allied health providers, employment support providers, and respite services. If you deliver NDIS supports and need to track budgets, this is for you.",
             },
             {
+              q: "What is the Schedule of Supports?",
+              a: "The Schedule of Supports is a professional PDF document that lists all funded supports for a participant — including the NDIS item codes, the weekly roster (which days and how many hours), estimated weekly cost, and the total for the plan period. It includes provider and participant details and signature blocks. Most providers attach it to their own existing service agreement template. It's not a legal agreement itself — it's the supports schedule that sits inside your SA.",
+            },
+            {
               q: "How does the PDF upload work?",
               a: "Upload a participant's NDIS plan PDF and the tool reads it using AI — extracting the plan period, state, and each support category's funding amount. You review and confirm before anything is applied, so you stay in full control.",
             },
@@ -343,10 +363,6 @@ export default function LandingPage() {
               a: "Your data is stored securely in your Kevria account and syncs across devices. We use your email only for account access — never sold or shared. See our Privacy Policy for full details.",
             },
             {
-              q: "Can I export reports?",
-              a: "Yes — export CSV or professional PDF reports for plan reviews, audits, handovers, and sharing with participants or families.",
-            },
-            {
               q: "What if I need help?",
               a: "Contact us at support@kevria.com or visit kevria.com and we'll help you out.",
             },
@@ -360,67 +376,103 @@ export default function LandingPage() {
       </section>
 
       {/* SAVINGS CALCULATOR */}
-      {(() => {
-        const hoursPerYear = participants * 18;
-        const valuePerYear = hoursPerYear * 100;
-        const annualCost = 79;
-        const roi = Math.round(valuePerYear / annualCost);
-        return (
-          <section style={{ background: "#1a1150", padding: "80px 40px" }}>
-            <div style={{ maxWidth: "700px", margin: "0 auto", textAlign: "center" }}>
-              <p style={{ fontSize: "0.9rem", color: "#d4a843", fontWeight: "600", letterSpacing: "2px", textTransform: "uppercase", marginBottom: "12px" }}>
-                See your ROI
-              </p>
-              <h2 style={{ fontSize: "2.2rem", fontWeight: "700", marginBottom: "10px" }}>
-                How much time will you save?
-              </h2>
-              <p style={{ color: "#8080a0", marginBottom: "50px", fontSize: "1.1rem" }}>
-                Move the slider to see your estimated savings
-              </p>
+      <section style={{ background: "#1a1150", padding: "80px 40px" }}>
+        <div style={{ maxWidth: "780px", margin: "0 auto", textAlign: "center" }}>
+          <p style={{ fontSize: "0.9rem", color: "#d4a843", fontWeight: "600", letterSpacing: "2px", textTransform: "uppercase", marginBottom: "12px" }}>
+            See your ROI
+          </p>
+          <h2 style={{ fontSize: "2.2rem", fontWeight: "700", marginBottom: "10px" }}>
+            How much time will you save?
+          </h2>
+          <p style={{ color: "#8080a0", marginBottom: "50px", fontSize: "1.1rem" }}>
+            Adjust to match your caseload and see a breakdown of exactly where the time goes
+          </p>
 
-              <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(212,168,67,0.2)", borderRadius: "24px", padding: "40px" }}>
-                <div style={{ marginBottom: "40px" }}>
-                  <div style={{ fontSize: "1rem", color: "#b0a0d0", marginBottom: "12px" }}>
-                    I manage <span style={{ color: "#d4a843", fontWeight: "800", fontSize: "1.4rem" }}>{participants}</span> participants
-                  </div>
-                  <input
-                    type="range" min={1} max={50} value={participants}
-                    onChange={(e) => setParticipants(Number(e.target.value))}
-                    style={{ width: "100%", accentColor: "#d4a843", height: "6px", cursor: "pointer" }}
-                  />
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", color: "#505070", marginTop: "6px" }}>
-                    <span>1</span><span>25</span><span>50</span>
-                  </div>
+          <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(212,168,67,0.2)", borderRadius: "24px", padding: "40px" }}>
+
+            {/* Sliders */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "32px", marginBottom: "36px" }}>
+              <div>
+                <div style={{ fontSize: "1rem", color: "#b0a0d0", marginBottom: "12px" }}>
+                  I manage <span style={{ color: "#d4a843", fontWeight: "800", fontSize: "1.4rem" }}>{participants}</span> participants
                 </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "20px", marginBottom: "32px" }}>
-                  {[
-                    { label: "Hours saved per year", value: hoursPerYear + " hrs", color: "#d4a843" },
-                    { label: "Value of time saved", value: "$" + valuePerYear.toLocaleString(), color: "#22c55e" },
-                    { label: "Your ROI", value: roi + "x", color: "#a78bfa" },
-                  ].map((stat) => (
-                    <div key={stat.label} style={{ background: "rgba(255,255,255,0.04)", borderRadius: "16px", padding: "20px" }}>
-                      <div style={{ fontSize: "2rem", fontWeight: "800", color: stat.color, marginBottom: "6px" }}>{stat.value}</div>
-                      <div style={{ fontSize: "0.85rem", color: "#8080a0" }}>{stat.label}</div>
-                    </div>
-                  ))}
+                <input
+                  type="range" min={1} max={50} value={participants}
+                  onChange={(e) => setParticipants(Number(e.target.value))}
+                  style={{ width: "100%", accentColor: "#d4a843", height: "6px", cursor: "pointer" }}
+                />
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", color: "#505070", marginTop: "6px" }}>
+                  <span>1</span><span>25</span><span>50</span>
                 </div>
-
-                <p style={{ color: "#6060a0", fontSize: "0.8rem", marginBottom: "24px" }}>
-                  Based on ~1.5 hrs saved per participant per month at $100/hr coordinator rate
-                </p>
-
-                <button
-                  onClick={() => router.push("/login")}
-                  style={{ padding: "14px 48px", fontSize: "1.1rem", backgroundColor: "#d4a843", color: "#1a1150", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}
-                >
-                  Start Saving Time →
-                </button>
+              </div>
+              <div>
+                <div style={{ fontSize: "1rem", color: "#b0a0d0", marginBottom: "12px" }}>
+                  My time is worth <span style={{ color: "#d4a843", fontWeight: "800", fontSize: "1.4rem" }}>${hourlyRate}/hr</span>
+                </div>
+                <input
+                  type="range" min={50} max={200} step={10} value={hourlyRate}
+                  onChange={(e) => setHourlyRate(Number(e.target.value))}
+                  style={{ width: "100%", accentColor: "#d4a843", height: "6px", cursor: "pointer" }}
+                />
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", color: "#505070", marginTop: "6px" }}>
+                  <span>$50</span><span>$125</span><span>$200</span>
+                </div>
               </div>
             </div>
-          </section>
-        );
-      })()}
+
+            {/* Stats */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "28px" }}>
+              {[
+                { label: "Hours saved per year", value: totalHrs + " hrs", color: "#d4a843" },
+                { label: "Value of time saved", value: "$" + valuePerYear.toLocaleString(), color: "#22c55e" },
+                { label: "Return on investment", value: roi + "x", color: "#a78bfa" },
+              ].map((stat) => (
+                <div key={stat.label} style={{ background: "rgba(255,255,255,0.04)", borderRadius: "16px", padding: "20px" }}>
+                  <div style={{ fontSize: "1.9rem", fontWeight: "800", color: stat.color, marginBottom: "6px" }}>{stat.value}</div>
+                  <div style={{ fontSize: "0.83rem", color: "#8080a0" }}>{stat.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Breakdown */}
+            <div style={{ background: "rgba(0,0,0,0.2)", borderRadius: "12px", padding: "20px", marginBottom: "24px", textAlign: "left" }}>
+              <div style={{ fontSize: "0.75rem", color: "#6060a0", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "14px" }}>
+                Where the time comes from — per participant per year
+              </div>
+              {[
+                { task: "Initial budget setup", detail: "vs building in Excel from scratch", hrs: setupHrs },
+                { task: "Monthly budget reviews", detail: "25 min saved × 12 months", hrs: monthlyReviewHrs },
+                { task: "Public holiday calculations", detail: "auto-detected per state, per line", hrs: phCalcHrs },
+                { task: "Schedule of Supports", detail: "45 min manual → 2 min per participant", hrs: scheduleHrs },
+                { task: "Claims & reconciliation", detail: "15 min saved × 12 months", hrs: claimsHrs },
+              ].map((row) => (
+                <div key={row.task} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "7px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                  <div>
+                    <span style={{ color: "#c0c0e0", fontSize: "0.9rem", fontWeight: "500" }}>{row.task}</span>
+                    <span style={{ color: "#505070", fontSize: "0.8rem", marginLeft: "10px" }}>{row.detail}</span>
+                  </div>
+                  <span style={{ color: "#d4a843", fontWeight: "700", fontSize: "0.9rem", whiteSpace: "nowrap", marginLeft: "16px" }}>{row.hrs} hrs</span>
+                </div>
+              ))}
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0 0 0" }}>
+                <span style={{ color: "#8080a0", fontSize: "0.85rem", fontWeight: "600" }}>Total per participant per year</span>
+                <span style={{ color: "#d4a843", fontWeight: "800", fontSize: "0.95rem" }}>{hrsPerParticipant} hrs</span>
+              </div>
+            </div>
+
+            <p style={{ color: "#505070", fontSize: "0.78rem", marginBottom: "24px" }}>
+              Time estimates are conservative averages based on typical provider workflows. Individual savings will vary by caseload complexity and existing processes.
+            </p>
+
+            <button
+              onClick={() => router.push("/login")}
+              style={{ padding: "14px 48px", fontSize: "1.1rem", backgroundColor: "#d4a843", color: "#1a1150", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}
+            >
+              Start Saving Time →
+            </button>
+          </div>
+        </div>
+      </section>
 
       {/* FOOTER */}
       <footer style={{
