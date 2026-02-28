@@ -107,6 +107,7 @@ const[planExtract,setPlanExtract]=useState<any>(null);
 const[planUploadError,setPlanUploadError]=useState<string|null>(null);
 const[providerDetails,setProviderDetails]=useState<ProviderDetails>({orgName:"",abn:"",contactName:"",email:"",phone:"",address:"",registrationNumber:""});
 const[showSAModal,setShowSAModal]=useState(false);
+const[saModalTarget,setSaModalTarget]=useState<'schedule'|'full'>('schedule');
 useEffect(()=>{try{const raw=localStorage.getItem("kevria_provider_details");if(raw)setProviderDetails(p=>({...p,...JSON.parse(raw)}))}catch{}},[]);
 useEffect(()=>{try{localStorage.setItem("kevria_provider_details",JSON.stringify(providerDetails))}catch{}},[providerDetails]);
 const planFileRef=React.useRef<HTMLInputElement>(null);
@@ -636,7 +637,8 @@ return(
 <button onClick={addLine} className="rounded-xl px-4 py-2 font-semibold" style={{background:"rgba(212,168,67,0.15)",border:"1px solid rgba(212,168,67,0.3)",color:"#d4a843"}}>+ Add support line</button>
 <button onClick={exportCSV} className="rounded-xl px-4 py-2" style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#b0b0d0"}}>Export CSV</button>
 <button onClick={exportPDF} className="rounded-xl px-4 py-2" style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#b0b0d0"}}>Export PDF</button>
-<button onClick={()=>setShowSAModal(true)} className="rounded-xl px-4 py-2 font-semibold" style={{background:"rgba(212,168,67,0.12)",border:"1px solid rgba(212,168,67,0.35)",color:"#d4a843"}}>📋 Service Agreement</button>
+<button onClick={()=>{setSaModalTarget('schedule');setShowSAModal(true)}} className="rounded-xl px-4 py-2 font-semibold" style={{background:"rgba(212,168,67,0.12)",border:"1px solid rgba(212,168,67,0.35)",color:"#d4a843"}}>📋 Schedule of Supports</button>
+<button onClick={()=>{setSaModalTarget('full');setShowSAModal(true)}} className="rounded-xl px-4 py-2 font-semibold" style={{background:"rgba(144,144,192,0.1)",border:"1px solid rgba(144,144,192,0.3)",color:"#9090c0"}}>📄 Service Agreement</button>
 </div></div>
 
 {pace&&pace.status!=="not_started"&&(()=>{
@@ -927,14 +929,15 @@ return(
 <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:"16px"}}>
 <div style={{background:"#1a1150",border:"1px solid rgba(212,168,67,0.3)",borderRadius:"16px",maxWidth:"680px",width:"100%",maxHeight:"90vh",overflowY:"auto",padding:"32px"}}>
   <div className="flex items-center justify-between mb-6">
-    <h2 className="text-xl font-bold" style={{color:"#d4a843"}}>📋 Generate Documents</h2>
+    <h2 className="text-xl font-bold" style={{color:"#d4a843"}}>{saModalTarget==='schedule'?"📋 Schedule of Supports":"📄 Service Agreement"}</h2>
     <button onClick={()=>setShowSAModal(false)} style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#b0b0d0",borderRadius:"8px",padding:"6px 12px",cursor:"pointer"}}>✕</button>
   </div>
 
   <div className="text-sm mb-5" style={{color:"#b0a0d0"}}>Your provider details are saved and reused for every participant. Fill them in once — they&apos;ll pre-fill next time.</div>
-  <div className="rounded-lg p-3 mb-4 text-xs" style={{background:"rgba(212,168,67,0.08)",border:"1px solid rgba(212,168,67,0.2)",color:"#c8a840"}}>
-    <strong>Schedule of Supports</strong> — a clean one-pager you attach to your existing SA template. Works for every provider, zero setup.<br/>
-    <strong style={{color:"#9090c0"}}>Full Service Agreement</strong> — a complete standalone NDIS-compliant agreement with all standard clauses.
+  <div className="rounded-lg p-3 mb-4 text-xs" style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.07)",color:"#8080a0"}}>
+    {saModalTarget==='schedule'
+      ?"A clean one-pager listing all funded supports — attach it to your existing SA template. Works for every provider, no setup required."
+      :"A complete standalone NDIS-compliant service agreement with all standard clauses, ready to print and sign."}
   </div>
 
   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mb-6">
@@ -973,19 +976,15 @@ return(
     </div>
   </div>
 
-  <div className="flex gap-3 mb-2">
-    <button onClick={()=>{setShowSAModal(false);generateScheduleOfSupports()}} disabled={!providerDetails.orgName.trim()}
+  <div className="flex gap-3">
+    <button onClick={()=>{setShowSAModal(false);saModalTarget==='schedule'?generateScheduleOfSupports():generateServiceAgreement()}} disabled={!providerDetails.orgName.trim()}
       style={{flex:1,padding:"13px",backgroundColor:providerDetails.orgName.trim()?"#d4a843":"#4a3a20",color:providerDetails.orgName.trim()?"#1a1150":"#888",border:"none",borderRadius:"10px",cursor:providerDetails.orgName.trim()?"pointer":"not-allowed",fontWeight:"bold",fontSize:"1rem"}}>
-      Schedule of Supports →
+      Generate PDF →
     </button>
     <button onClick={()=>setShowSAModal(false)} style={{padding:"13px 20px",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#b0b0d0",borderRadius:"10px",cursor:"pointer"}}>
       Cancel
     </button>
   </div>
-  <button onClick={()=>{setShowSAModal(false);generateServiceAgreement()}} disabled={!providerDetails.orgName.trim()}
-    style={{width:"100%",padding:"11px",backgroundColor:"transparent",color:providerDetails.orgName.trim()?"#9090c0":"#4a4a6a",border:"1px solid "+(providerDetails.orgName.trim()?"rgba(144,144,192,0.4)":"rgba(74,74,106,0.3)"),borderRadius:"10px",cursor:providerDetails.orgName.trim()?"pointer":"not-allowed",fontSize:"0.9rem"}}>
-    Full Service Agreement
-  </button>
   {!providerDetails.orgName.trim()&&<div className="text-xs mt-2 text-center" style={{color:"#6060a0"}}>Organisation name is required</div>}
 </div>
 </div>
