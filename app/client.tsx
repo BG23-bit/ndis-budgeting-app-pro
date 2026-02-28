@@ -6,6 +6,7 @@ type PlanDates = { start: string; end: string; state: string };
 type DayRoster = { enabled: boolean; hours: number; nightHours: number; frequency: string };
 type Claim = { id: string; date: string; amount: number; note: string };
 type SupportLine = { id: string; code: string; description: string; totalFunding: number; ratio: string; excludedHolidays: string[]; roster: { [key: string]: DayRoster }; activeSleepoverHours: number; activeSleepoverFreq: string; fixedSleepovers: number; fixedSleepoverFreq: string; kmsPerWeek: number; kmRate: number; kmFreq: string; claims: Claim[]; lineRates: Rates };
+type ProviderDetails = { orgName: string; abn: string; contactName: string; email: string; phone: string; address: string; registrationNumber: string };
 const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
 const DL: {[k:string]:string} = {mon:"Monday",tue:"Tuesday",wed:"Wednesday",thu:"Thursday",fri:"Friday",sat:"Saturday",sun:"Sunday"};
 const FREQ: {[k:string]:{label:string;multiplier:number}} = {"every":{label:"Every week",multiplier:1},"2nd":{label:"Every 2nd week",multiplier:0.5},"3rd":{label:"Every 3rd week",multiplier:0.333},"4th":{label:"Every 4th week",multiplier:0.25},"monthly":{label:"Monthly",multiplier:0.2308}};
@@ -104,6 +105,10 @@ function deleteClaim(lineId:string,claimId:string){setLines(prev=>prev.map(l=>l.
 const[uploadingPlan,setUploadingPlan]=useState(false);
 const[planExtract,setPlanExtract]=useState<any>(null);
 const[planUploadError,setPlanUploadError]=useState<string|null>(null);
+const[providerDetails,setProviderDetails]=useState<ProviderDetails>({orgName:"",abn:"",contactName:"",email:"",phone:"",address:"",registrationNumber:""});
+const[showSAModal,setShowSAModal]=useState(false);
+useEffect(()=>{try{const raw=localStorage.getItem("kevria_provider_details");if(raw)setProviderDetails(p=>({...p,...JSON.parse(raw)}))}catch{}},[]);
+useEffect(()=>{try{localStorage.setItem("kevria_provider_details",JSON.stringify(providerDetails))}catch{}},[providerDetails]);
 const planFileRef=React.useRef<HTMLInputElement>(null);
 async function handlePlanUpload(file:File){
   setUploadingPlan(true);setPlanUploadError(null);
@@ -285,6 +290,206 @@ function exportPDF(){
   w.document.write(html);
   w.document.close();
 }
+function generateServiceAgreement(){
+  const pd=providerDetails;
+  const pName=participantName||"[Participant Name]";
+  const ndis=ndisNumber||"[NDIS Number]";
+  const dt=new Date().toLocaleDateString("en-AU",{day:"numeric",month:"long",year:"numeric"});
+  const supRows=perLine.map(l=>
+    "<tr>"
+    +"<td style=\"text-align:center\"><span style=\"font-family:monospace;background:#f1f5f9;padding:2px 6px;border-radius:3px\">"+escapeHtml(l.code)+"</span></td>"
+    +"<td>"+escapeHtml(l.description)+"</td>"
+    +"<td style=\"text-align:right\">"+escapeHtml(money(l.totalFunding))+"</td>"
+    +"<td style=\"text-align:right\">"+escapeHtml(money(l.weeklyWithGST))+"</td>"
+    +"</tr>"
+  ).join("");
+  const html=`<!doctype html><html><head><meta charset="utf-8"/><title>Service Agreement - ${escapeHtml(pName)}</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Times New Roman',Georgia,serif;color:#111;background:white;font-size:11pt;line-height:1.7}
+.header{background:#1a1150;color:white;padding:18px 40px;display:flex;justify-content:space-between;align-items:center}
+.brand{color:#d4a843;font-size:17px;font-weight:bold;letter-spacing:.05em}
+.doc-label{font-size:10px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.15em;margin-top:3px}
+.content{padding:36px 48px}
+h1{font-size:20pt;text-align:center;color:#1a1150;margin-bottom:6px;letter-spacing:.02em}
+.subtitle{text-align:center;color:#666;font-size:10pt;margin-bottom:28px;text-transform:uppercase;letter-spacing:.08em}
+.parties{display:grid;grid-template-columns:1fr 1fr;gap:24px;border:2px solid #1a1150;border-radius:6px;padding:20px;margin-bottom:28px}
+.party-label{font-size:8.5pt;text-transform:uppercase;letter-spacing:.1em;color:#888;margin-bottom:3px}
+.party-name{font-size:13pt;font-weight:bold;color:#1a1150;margin-bottom:4px}
+.party-detail{font-size:9.5pt;color:#444;line-height:1.5}
+.divider{border:none;border-top:2px solid #1a1150;margin:22px 0}
+.section{margin-bottom:22px}
+.section-title{font-size:11pt;font-weight:bold;color:#1a1150;margin-bottom:10px;padding-bottom:4px;border-bottom:1px solid #ddd;text-transform:uppercase;letter-spacing:.05em}
+p{margin-bottom:8px;font-size:10.5pt}
+ul{margin:6px 0 8px 20px;font-size:10.5pt}
+li{margin-bottom:4px}
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:10pt}
+th{background:#1a1150;color:white;padding:8px 10px;text-align:left;font-size:9pt;text-transform:uppercase;letter-spacing:.05em}
+td{padding:8px 10px;border-bottom:1px solid #eee;vertical-align:top}
+tr:last-child td{border-bottom:none}
+tr:nth-child(even) td{background:#fafafa}
+.total-row td{font-weight:bold;border-top:2px solid #1a1150;background:#f1f5f9!important}
+.sig-section{margin-top:32px;page-break-inside:avoid}
+.sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:16px}
+.sig-block{}
+.sig-name{font-weight:bold;margin-bottom:4px;font-size:10.5pt}
+.sig-role{font-size:9pt;color:#666;margin-bottom:20px}
+.sig-line{border-top:1px solid #333;padding-top:4px;margin-top:48px;font-size:9pt;color:#555}
+.date-line{border-top:1px solid #333;padding-top:4px;margin-top:20px;font-size:9pt;color:#555}
+.notice-box{background:#fffbeb;border:1px solid #d97706;border-radius:4px;padding:12px 16px;margin:10px 0;font-size:10pt}
+.footer{margin-top:36px;padding:14px 48px;background:#f8f9fa;border-top:1px solid #ddd;font-size:8.5pt;color:#888;display:flex;justify-content:space-between}
+@media print{body{background:white}.header{-webkit-print-color-adjust:exact;print-color-adjust:exact}th{-webkit-print-color-adjust:exact;print-color-adjust:exact}.notice-box{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style>
+</head><body>
+<div class="header">
+  <div><div class="brand">&#10022; KEVRIA</div><div class="doc-label">Kevria Calc</div></div>
+  <div style="text-align:right;font-size:10px;color:rgba(255,255,255,.6)"><div>SERVICE AGREEMENT</div><div style="margin-top:3px">Generated: ${escapeHtml(dt)}</div></div>
+</div>
+<div class="content">
+  <h1>NDIS Service Agreement</h1>
+  <div class="subtitle">Between Provider and Participant</div>
+
+  <div class="parties">
+    <div>
+      <div class="party-label">Provider</div>
+      <div class="party-name">${escapeHtml(pd.orgName||"[Provider Organisation]")}</div>
+      <div class="party-detail">${pd.abn?"ABN: "+escapeHtml(pd.abn)+"<br/>":""}${pd.registrationNumber?"NDIS Reg No: "+escapeHtml(pd.registrationNumber)+"<br/>":""}${pd.contactName?"Contact: "+escapeHtml(pd.contactName)+"<br/>":""}${pd.phone?escapeHtml(pd.phone)+"<br/>":""}${pd.email?"<a href='mailto:"+escapeHtml(pd.email)+"' style='color:#1a1150'>"+escapeHtml(pd.email)+"</a><br/>":""}${pd.address?escapeHtml(pd.address):""}
+      </div>
+    </div>
+    <div>
+      <div class="party-label">Participant</div>
+      <div class="party-name">${escapeHtml(pName)}</div>
+      <div class="party-detail">${ndis!=="[NDIS Number]"?"NDIS Number: "+escapeHtml(ndis)+"<br/>":""}Plan Period: ${escapeHtml(planDates.start)} to ${escapeHtml(planDates.end)}<br/>State / Territory: ${escapeHtml(planDates.state)}</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">1. Purpose of this Agreement</div>
+    <p>This Service Agreement is made between <strong>${escapeHtml(pd.orgName||"the Provider")}</strong> (the Provider) and <strong>${escapeHtml(pName)}</strong> (the Participant) under the National Disability Insurance Scheme (NDIS).</p>
+    <p>This agreement sets out the supports the Provider will deliver to the Participant, how those supports will be delivered, and the terms and conditions that apply. Both parties agree to work together to ensure the Participant receives quality supports that help them achieve their goals.</p>
+  </div>
+
+  <div class="section">
+    <div class="section-title">2. Supports to be Delivered</div>
+    <p>The Provider agrees to deliver the following NDIS funded supports during the plan period <strong>${escapeHtml(planDates.start)}</strong> to <strong>${escapeHtml(planDates.end)}</strong>:</p>
+    <table>
+      <tr><th>Category</th><th>Support Description</th><th style="text-align:right">Plan Budget</th><th style="text-align:right">Est. Weekly Cost</th></tr>
+      ${supRows}
+      <tr class="total-row"><td colspan="2">Total</td><td style="text-align:right">${escapeHtml(money(totals.totalFunding))}</td><td style="text-align:right">${escapeHtml(money(totals.weekly))}</td></tr>
+    </table>
+    <p style="font-size:9.5pt;color:#666;margin-top:6px">Budgets are based on the 2025–26 NDIS Pricing Arrangements and Price Limits. Estimated weekly costs are indicative and may vary based on actual supports delivered.</p>
+  </div>
+
+  <div class="section">
+    <div class="section-title">3. How Supports Will be Delivered</div>
+    <p>The Provider will deliver supports in a manner that:</p>
+    <ul>
+      <li>Respects and upholds the Participant's rights to dignity, privacy, and autonomy</li>
+      <li>Aligns with the Participant's NDIS plan goals and outcomes</li>
+      <li>Complies with the NDIS Code of Conduct and the NDIS Practice Standards</li>
+      <li>Is culturally appropriate and responsive to the Participant's needs</li>
+      <li>Is delivered by workers who have met NDIS Worker Screening requirements</li>
+    </ul>
+    <p>The specific schedule, location, and delivery arrangements for supports will be agreed between the Participant and the Provider and may be documented separately.</p>
+  </div>
+
+  <div class="section">
+    <div class="section-title">4. Pricing and Payment</div>
+    <p>Prices for supports are in accordance with the NDIS Pricing Arrangements and Price Limits (2025–26). Prices charged will not exceed the NDIS price limits for the relevant support category.</p>
+    <p>The Provider will claim payment through the NDIS portal after supports have been delivered. The Participant (or their Plan Manager) authorises the Provider to make claims for supports delivered in accordance with this agreement.</p>
+    <p>All prices include GST where applicable in accordance with NDIS pricing rules.</p>
+  </div>
+
+  <div class="section">
+    <div class="section-title">5. Cancellation Policy</div>
+    <div class="notice-box"><strong>Short Notice Cancellation:</strong> If the Participant or their representative cancels a support with less than <strong>7 clear business days' notice</strong>, the Provider may charge up to 100% of the agreed support fee, in accordance with the NDIS Pricing Arrangements.</div>
+    <p>To avoid a cancellation charge, the Participant or their representative should notify the Provider as early as possible and with at least 7 clear business days' notice where a cancellation cannot be avoided.</p>
+    <p>The Provider will not charge for cancellations where:</p>
+    <ul>
+      <li>The cancellation is due to a circumstance beyond the Participant's control (e.g. hospitalisation)</li>
+      <li>The Provider is unable to provide the support</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <div class="section-title">6. Provider Responsibilities</div>
+    <p>The Provider agrees to:</p>
+    <ul>
+      <li>Deliver supports as agreed in this Service Agreement</li>
+      <li>Treat the Participant with dignity and respect at all times</li>
+      <li>Listen to feedback and resolve issues promptly</li>
+      <li>Give the Participant a minimum of <strong>14 days' written notice</strong> if the Provider needs to change or end the delivery of supports</li>
+      <li>Protect the Participant's privacy and handle personal information in accordance with the <em>Privacy Act 1988</em> (Cth)</li>
+      <li>Provide supports in a safe environment and in accordance with all relevant legislation</li>
+      <li>Keep accurate records of supports delivered</li>
+      <li>Comply with the NDIS Code of Conduct</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <div class="section-title">7. Participant Responsibilities</div>
+    <p>The Participant agrees to:</p>
+    <ul>
+      <li>Let the Provider know as soon as possible if needs, goals, or circumstances change</li>
+      <li>Give the Provider a minimum of <strong>14 days' written notice</strong> if the Participant wishes to end the agreement</li>
+      <li>Treat Provider staff with respect</li>
+      <li>Provide accurate information to the Provider to enable effective support delivery</li>
+      <li>Notify the Provider promptly if a support is no longer needed or a session is to be cancelled</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <div class="section-title">8. Feedback, Complaints, and Disputes</div>
+    <p>The Participant can provide feedback or make a complaint at any time by contacting:</p>
+    <p><strong>${escapeHtml(pd.orgName||"the Provider")}</strong>${pd.phone?" &nbsp;|&nbsp; "+escapeHtml(pd.phone):""}${pd.email?" &nbsp;|&nbsp; "+escapeHtml(pd.email):""}</p>
+    <p>If the Participant is not satisfied with the Provider's response, they may contact the <strong>NDIS Quality and Safeguards Commission</strong>:</p>
+    <ul>
+      <li>Phone: 1800 035 544</li>
+      <li>Website: ndiscommission.gov.au</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <div class="section-title">9. Changing this Agreement</div>
+    <p>Either party may request changes to this Service Agreement at any time. Changes must be agreed by both parties in writing. If the Participant's NDIS plan is reviewed and funding amounts change, a new or amended service agreement will be required.</p>
+  </div>
+
+  <div class="section">
+    <div class="section-title">10. Ending this Agreement</div>
+    <p>Either party may end this agreement by giving a minimum of <strong>14 days' written notice</strong>. In cases of serious concern for safety or welfare, immediate termination may be required and will be managed in accordance with the Provider's policies.</p>
+  </div>
+
+  <div class="sig-section">
+    <div class="section-title" style="margin-bottom:16px">11. Signatures</div>
+    <p>By signing this agreement, both parties confirm they have read, understood, and agree to the terms set out above.</p>
+    <div class="sig-grid">
+      <div class="sig-block">
+        <div class="sig-name">${escapeHtml(pd.orgName||"Provider Organisation")}</div>
+        <div class="sig-role">Provider</div>
+        <div class="sig-line">Authorised Signature</div>
+        <div class="sig-line">Full Name &amp; Position</div>
+        <div class="date-line">Date</div>
+      </div>
+      <div class="sig-block">
+        <div class="sig-name">${escapeHtml(pName)}</div>
+        <div class="sig-role">Participant / Representative</div>
+        <div class="sig-line">Signature</div>
+        <div class="sig-line">Full Name (print)</div>
+        <div class="date-line">Date</div>
+      </div>
+    </div>
+    <p style="margin-top:24px;font-size:9.5pt;color:#666">If the Participant has a Plan Nominee, Guardian, or Representative signing on their behalf, please note the nature of the representative relationship on the signature line.</p>
+  </div>
+</div>
+<div class="footer">
+  <div>Generated by <strong>Kevria Calc</strong> &mdash; kevriacalc.com</div>
+  <div>This agreement is based on the NDIS Act 2013 and the 2025&#8211;26 NDIS Pricing Arrangements. It is not legal advice.</div>
+</div>
+<script>window.onload=function(){window.focus();window.print()}</script>
+</body></html>`;
+  const w=window.open("","_blank");
+  if(!w){alert("Popup blocked. Please allow popups for this site.");return}
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+}
 const totalStatus=getBudgetStatus(totals.remaining,totals.totalFunding);
 const pace=useMemo(()=>{
   if(!planDates.start||!planDates.end||totals.totalFunding<=0)return null;
@@ -357,6 +562,7 @@ return(
 <button onClick={addLine} className="rounded-xl px-4 py-2 font-semibold" style={{background:"rgba(212,168,67,0.15)",border:"1px solid rgba(212,168,67,0.3)",color:"#d4a843"}}>+ Add support line</button>
 <button onClick={exportCSV} className="rounded-xl px-4 py-2" style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#b0b0d0"}}>Export CSV</button>
 <button onClick={exportPDF} className="rounded-xl px-4 py-2" style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#b0b0d0"}}>Export PDF</button>
+<button onClick={()=>setShowSAModal(true)} className="rounded-xl px-4 py-2 font-semibold" style={{background:"rgba(212,168,67,0.12)",border:"1px solid rgba(212,168,67,0.35)",color:"#d4a843"}}>📋 Service Agreement</button>
 </div></div>
 
 {pace&&pace.status!=="not_started"&&(()=>{
@@ -641,5 +847,67 @@ return(
 )}
 <div className="text-xs mt-8" style={{color:"#505080"}}>Auto-saves in your browser.</div>
 <div className="text-xs mt-2 mb-8" style={{color:"#6060a0"}}>Powered by <span style={{color:"#d4a843"}}>Kevria</span></div>
-</div></main>)}
+</div>
+
+{showSAModal&&(
+<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:"16px"}}>
+<div style={{background:"#1a1150",border:"1px solid rgba(212,168,67,0.3)",borderRadius:"16px",maxWidth:"680px",width:"100%",maxHeight:"90vh",overflowY:"auto",padding:"32px"}}>
+  <div className="flex items-center justify-between mb-6">
+    <h2 className="text-xl font-bold" style={{color:"#d4a843"}}>📋 Generate Service Agreement</h2>
+    <button onClick={()=>setShowSAModal(false)} style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#b0b0d0",borderRadius:"8px",padding:"6px 12px",cursor:"pointer"}}>✕</button>
+  </div>
+
+  <div className="text-sm mb-5" style={{color:"#b0a0d0"}}>Your provider details are saved and reused for every participant. Fill them in once — they&apos;ll pre-fill next time.</div>
+
+  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mb-6">
+    {([
+      {label:"Organisation Name *",key:"orgName",placeholder:"e.g. Kevria Support Services Pty Ltd"},
+      {label:"ABN",key:"abn",placeholder:"e.g. 12 345 678 901"},
+      {label:"NDIS Registration Number",key:"registrationNumber",placeholder:"e.g. 4050012345"},
+      {label:"Contact Person",key:"contactName",placeholder:"e.g. Jane Smith"},
+      {label:"Phone",key:"phone",placeholder:"e.g. 03 9000 0000"},
+      {label:"Email",key:"email",placeholder:"e.g. support@yourorg.com.au"},
+    ] as {label:string;key:keyof ProviderDetails;placeholder:string}[]).map(f=>(
+      <div key={f.key}>
+        <div className="text-xs mb-1 font-semibold" style={{color:"#b0a0d0"}}>{f.label}</div>
+        <input value={providerDetails[f.key]} onChange={e=>setProviderDetails(p=>({...p,[f.key]:e.target.value}))} placeholder={f.placeholder}
+          className="w-full rounded-lg px-3 py-2 outline-none text-sm"
+          style={{background:"rgba(15,10,48,0.6)",border:"1px solid rgba(212,168,67,0.2)",color:"white"}}/>
+      </div>
+    ))}
+    <div className="sm:col-span-2">
+      <div className="text-xs mb-1 font-semibold" style={{color:"#b0a0d0"}}>Address</div>
+      <input value={providerDetails.address} onChange={e=>setProviderDetails(p=>({...p,address:e.target.value}))} placeholder="e.g. 123 Main St, Melbourne VIC 3000"
+        className="w-full rounded-lg px-3 py-2 outline-none text-sm"
+        style={{background:"rgba(15,10,48,0.6)",border:"1px solid rgba(212,168,67,0.2)",color:"white"}}/>
+    </div>
+  </div>
+
+  <div className="rounded-xl p-4 mb-6" style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)"}}>
+    <div className="text-xs font-semibold mb-2" style={{color:"#6060a0",textTransform:"uppercase",letterSpacing:"0.06em"}}>Agreement will be generated for</div>
+    <div className="grid grid-cols-2 gap-3 text-sm">
+      <div><span style={{color:"#6060a0"}}>Participant: </span><span style={{color:"white",fontWeight:600}}>{participantName||"—"}</span></div>
+      <div><span style={{color:"#6060a0"}}>NDIS No: </span><span style={{color:"white",fontWeight:600}}>{ndisNumber||"—"}</span></div>
+      <div><span style={{color:"#6060a0"}}>Plan period: </span><span style={{color:"white",fontWeight:600}}>{planDates.start} → {planDates.end}</span></div>
+      <div><span style={{color:"#6060a0"}}>State: </span><span style={{color:"white",fontWeight:600}}>{planDates.state}</span></div>
+      <div><span style={{color:"#6060a0"}}>Support lines: </span><span style={{color:"white",fontWeight:600}}>{lines.length}</span></div>
+      <div><span style={{color:"#6060a0"}}>Total budget: </span><span style={{color:"#d4a843",fontWeight:600}}>{money(totals.totalFunding)}</span></div>
+    </div>
+  </div>
+
+  <div className="flex gap-3">
+    <button onClick={()=>{setShowSAModal(false);generateServiceAgreement()}} disabled={!providerDetails.orgName.trim()}
+      style={{flex:1,padding:"13px",backgroundColor:providerDetails.orgName.trim()?"#d4a843":"#4a3a20",color:providerDetails.orgName.trim()?"#1a1150":"#888",border:"none",borderRadius:"10px",cursor:providerDetails.orgName.trim()?"pointer":"not-allowed",fontWeight:"bold",fontSize:"1rem"}}>
+      Generate PDF →
+    </button>
+    <button onClick={()=>setShowSAModal(false)} style={{padding:"13px 20px",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#b0b0d0",borderRadius:"10px",cursor:"pointer"}}>
+      Cancel
+    </button>
+  </div>
+  {!providerDetails.orgName.trim()&&<div className="text-xs mt-2 text-center" style={{color:"#6060a0"}}>Organisation name is required to generate the agreement</div>}
+</div>
+</div>
+)}
+
+</main>)}
 
