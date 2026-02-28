@@ -391,7 +391,7 @@ export default function LandingPage() {
           <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(212,168,67,0.2)", borderRadius: "24px", padding: "40px" }}>
 
             {/* Sliders */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "32px", marginBottom: "36px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "32px", marginBottom: "36px" }}>
               <div>
                 <div style={{ fontSize: "1rem", color: "#b0a0d0", marginBottom: "12px" }}>
                   I manage <span style={{ color: "#d4a843", fontWeight: "800", fontSize: "1.4rem" }}>{participants}</span> participants
@@ -421,7 +421,7 @@ export default function LandingPage() {
             </div>
 
             {/* Stats */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "28px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "16px", marginBottom: "28px" }}>
               {[
                 { label: "Hours saved per year", value: totalHrs + " hrs", color: "#d4a843" },
                 { label: "Value of time saved", value: "$" + valuePerYear.toLocaleString(), color: "#22c55e" },

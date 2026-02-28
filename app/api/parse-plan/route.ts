@@ -2,6 +2,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+const DAILY_LIMIT = 10;
+
 export async function POST(req: NextRequest) {
   try {
     // Verify the user is authenticated and has an active subscription
@@ -18,9 +20,23 @@ export async function POST(req: NextRequest) {
     if (authError || !user) {
       return Response.json({ error: "Please log in to upload plans." }, { status: 401 });
     }
-    const { data: profile } = await supabase.from("profiles").select("paid").eq("id", user.id).single();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("paid, pdf_uploads_today, pdf_upload_date")
+      .eq("id", user.id)
+      .single();
+
     if (!profile?.paid) {
       return Response.json({ error: "An active subscription is required to upload plans." }, { status: 403 });
+    }
+
+    // Check daily upload limit
+    const today = new Date().toISOString().slice(0, 10);
+    const uploadsToday = profile.pdf_upload_date === today ? (profile.pdf_uploads_today ?? 0) : 0;
+    if (uploadsToday >= DAILY_LIMIT) {
+      return Response.json({
+        error: `Daily PDF upload limit reached (${DAILY_LIMIT}/day). You can still enter plan details manually below. Limit resets at midnight.`,
+      }, { status: 429 });
     }
 
     const formData = await req.formData();
@@ -89,6 +105,15 @@ Extract ALL funding line items. If a field is not present in the document use nu
         ],
       }],
     });
+
+    // Increment daily upload count
+    await supabase
+      .from("profiles")
+      .update({
+        pdf_uploads_today: uploadsToday + 1,
+        pdf_upload_date: today,
+      })
+      .eq("id", user.id);
 
     const text = response.content[0].type === "text" ? response.content[0].text : "";
     const clean = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
