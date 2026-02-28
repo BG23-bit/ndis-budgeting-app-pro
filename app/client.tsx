@@ -496,65 +496,114 @@ function generateScheduleOfSupports(){
   const pName=participantName||"[Participant Name]";
   const ndis=ndisNumber||"[NDIS Number]";
   const dt=new Date().toLocaleDateString("en-AU",{day:"numeric",month:"long",year:"numeric"});
-  const supRows=perLine.map(l=>
-    "<tr>"
-    +"<td style=\"font-family:monospace;font-size:9pt;white-space:nowrap;background:#f8f9fa\">"+escapeHtml(l.code)+"</td>"
-    +"<td>"+escapeHtml(l.description)+"</td>"
-    +"<td style=\"text-align:center\">"+escapeHtml(l.ratio)+"</td>"
-    +"<td style=\"text-align:right\">"+escapeHtml(money(l.weeklyWithGST))+"</td>"
-    +"<td style=\"text-align:right\"><strong>"+escapeHtml(money(l.planTotal))+"</strong></td>"
-    +"</tr>"
-  ).join("");
-  const rosterBlocks=lines.map(l=>{
+
+  // Build schedule cell per line based on mode
+  function scheduleCell(l:any):string{
+    const mode=getLineMode(l.code);
+    if(mode==="lump") return"<span style=\"color:#888;font-style:italic\">Lump sum</span>";
+    if(mode==="weekday"){
+      // Total weekly hours weighted by frequency
+      const wkDays=["mon","tue","wed","thu","fri"];
+      const totalHrs=wkDays.reduce((sum,d)=>{const r=l.roster[d];return r?.enabled?sum+(r.hours||0)*(FREQ[r.frequency]?.multiplier||1):sum},0);
+      return totalHrs>0?totalHrs.toFixed(1)+" hrs/week":"As scheduled";
+    }
+    // Full mode: per-day rows
     const enabledDays=DAYS.filter(d=>l.roster[d]?.enabled);
-    if(enabledDays.length===0)return"";
-    const dayRows=enabledDays.map(d=>{
+    if(enabledDays.length===0) return"<span style=\"color:#888;font-style:italic\">No roster set</span>";
+    return enabledDays.map(d=>{
       const r=l.roster[d];
-      const stdHrs=r.hours||0;
-      const nightHrs=r.nightHours||0;
-      const hrsLabel=stdHrs>0?(stdHrs+"h"+(nightHrs>0?" + "+nightHrs+"h night":"")):(nightHrs>0?nightHrs+"h night":"—");
-      return"<tr><td style=\"font-weight:500\">"+DL[d]+"</td><td style=\"text-align:center\">"+hrsLabel+"</td><td style=\"text-align:center\">"+escapeHtml(FREQ[r.frequency]?.label||r.frequency)+"</td></tr>";
+      const std=r.hours||0;const night=r.nightHours||0;
+      const hrs=std>0?(std+"h"+(night>0?" + "+night+"h night":"")):(night>0?night+"h night":"\u2014");
+      const freq=FREQ[r.frequency]?.multiplier<1?" <span style=\"color:#888;font-size:8.5pt\">("+escapeHtml(FREQ[r.frequency]?.label||r.frequency)+")</span>":"";
+      return"<div style=\"padding:1px 0\"><span style=\"display:inline-block;width:36px;font-weight:600;color:#334155\">"+DL[d].slice(0,3)+"</span>"+hrs+freq+"</div>";
     }).join("");
-    return"<div class=\"roster-block\"><div class=\"roster-line-name\">"+escapeHtml(l.description)+" <span style=\"font-family:monospace;font-size:8.5pt;color:#888;font-weight:normal\">("+escapeHtml(l.code)+")</span></div><table class=\"roster-table\"><tr><th style=\"width:28%\">Day</th><th style=\"width:30%;text-align:center\">Hours</th><th style=\"text-align:center\">Frequency</th></tr>"+dayRows+"</table></div>";
+  }
+
+  const supRows=perLine.map(l=>{
+    const mode=getLineMode(l.code);
+    const isLump=mode==="lump";
+    return"<tr>"
+      +"<td style=\"font-family:monospace;font-size:8.5pt;white-space:nowrap;color:#475569;vertical-align:top;padding-top:10px\">"+escapeHtml(l.code)+"</td>"
+      +"<td style=\"vertical-align:top\"><div style=\"font-weight:600;color:#1e293b;margin-bottom:2px\">"+escapeHtml(l.description)+"</div>"+(isLump?"":"<div style=\"font-size:8.5pt;color:#94a3b8\">Ratio: "+escapeHtml(l.ratio)+"</div>")+"</td>"
+      +"<td style=\"vertical-align:top;font-size:9pt;line-height:1.6\">"+scheduleCell(l)+"</td>"
+      +"<td style=\"text-align:right;vertical-align:top;white-space:nowrap\">"+escapeHtml(money(l.weeklyWithGST))+"</td>"
+      +"<td style=\"text-align:right;vertical-align:top;white-space:nowrap;font-weight:700;color:#1a1150\">"+escapeHtml(money(l.planTotal))+"</td>"
+      +"</tr>";
   }).join("");
-  const hasRoster=lines.some(l=>DAYS.some(d=>l.roster[d]?.enabled));
-  const rosterSection=hasRoster?`<div class="section-heading" style="margin-top:18px">Weekly Roster</div><div class="roster-blocks">${rosterBlocks}</div>`:``;
 
   const html=`<!doctype html><html><head><meta charset="utf-8"/><title>Schedule of Supports - ${escapeHtml(pName)}</title>
-<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;color:#111;background:white;font-size:10.5pt;line-height:1.6}.header{background:#1a1150;color:white;padding:14px 40px;display:flex;justify-content:space-between;align-items:center}.brand{color:#d4a843;font-size:16px;font-weight:bold;letter-spacing:.05em}.doc-label{font-size:10px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.12em;margin-top:2px}.content{padding:28px 40px}.doc-title{font-size:15pt;font-weight:bold;color:#1a1150;text-align:center;margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em}.doc-ref{text-align:center;font-size:9.5pt;color:#666;margin-bottom:20px}.details-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;border:1.5px solid #1a1150;border-radius:6px;padding:16px}.det-label{font-size:8pt;text-transform:uppercase;letter-spacing:.1em;color:#888;margin-bottom:2px}.det-name{font-size:12pt;font-weight:bold;color:#1a1150;margin-bottom:3px}.det-info{font-size:9.5pt;color:#444;line-height:1.5}.section-heading{font-size:10pt;font-weight:bold;text-transform:uppercase;letter-spacing:.07em;color:#1a1150;margin-bottom:8px;padding-bottom:4px;border-bottom:1.5px solid #1a1150}table{width:100%;border-collapse:collapse;font-size:9.5pt;margin-bottom:12px}th{background:#1a1150;color:white;padding:7px 10px;text-align:left;font-size:8.5pt;text-transform:uppercase;letter-spacing:.05em}td{padding:7px 10px;border-bottom:1px solid #e8eaf0;vertical-align:middle}tr:nth-child(even) td{background:#f9fafb}.total-row td{font-weight:bold;border-top:2px solid #1a1150;background:#f1f5f9!important;font-size:10pt}.note{font-size:8.5pt;color:#666;margin-bottom:22px;line-height:1.5}.sig-section{margin-top:24px;page-break-inside:avoid}.sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:50px;margin-top:12px}.sig-name{font-weight:bold;font-size:10pt;margin-bottom:2px}.sig-role{font-size:9pt;color:#666;margin-bottom:24px}.sig-line{border-top:1px solid #333;padding-top:4px;margin-top:48px;font-size:9pt;color:#555}.date-line{border-top:1px solid #333;padding-top:4px;margin-top:16px;font-size:9pt;color:#555}.roster-blocks{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-bottom:12px}.roster-block{page-break-inside:avoid}.roster-line-name{font-weight:bold;font-size:9.5pt;color:#1a1150;margin-bottom:5px}.roster-table{margin-bottom:0}.roster-table th{background:#334155;font-size:8pt;padding:5px 8px}.roster-table td{padding:5px 8px;font-size:9pt;border-bottom:1px solid #e8eaf0}.roster-table tr:nth-child(even) td{background:#f9fafb}.footer{margin-top:28px;padding:10px 40px;background:#f8f9fa;border-top:1px solid #ddd;font-size:8pt;color:#aaa;display:flex;justify-content:space-between}@media print{body{background:white}.header{-webkit-print-color-adjust:exact;print-color-adjust:exact}th{-webkit-print-color-adjust:exact;print-color-adjust:exact}.details-grid{-webkit-print-color-adjust:exact;print-color-adjust:exact}.roster-table th{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;color:#1e293b;background:white;font-size:10pt;line-height:1.5}
+.header{background:#1a1150;color:white;padding:14px 40px;display:flex;justify-content:space-between;align-items:center}
+.brand{color:#d4a843;font-size:16px;font-weight:bold;letter-spacing:.05em}
+.doc-label{font-size:9px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.12em;margin-top:2px}
+.content{padding:24px 40px}
+.doc-title{font-size:14pt;font-weight:700;color:#1a1150;text-align:center;margin-bottom:3px;text-transform:uppercase;letter-spacing:.06em}
+.doc-ref{text-align:center;font-size:9pt;color:#64748b;margin-bottom:18px}
+.details-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-bottom:18px;border:1.5px solid #1a1150;border-radius:6px;overflow:hidden}
+.det-col{padding:14px 18px}
+.det-col+.det-col{border-left:1.5px solid #1a1150}
+.det-label{font-size:7.5pt;text-transform:uppercase;letter-spacing:.12em;color:#94a3b8;margin-bottom:3px}
+.det-name{font-size:11.5pt;font-weight:700;color:#1a1150;margin-bottom:4px}
+.det-info{font-size:9pt;color:#475569;line-height:1.6}
+.section-heading{font-size:8.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#1a1150;margin-bottom:8px;padding-bottom:5px;border-bottom:2px solid #1a1150}
+table{width:100%;border-collapse:collapse;font-size:9.5pt;margin-bottom:10px}
+thead tr{background:#1a1150}
+thead th{color:white;padding:8px 10px;text-align:left;font-size:8pt;text-transform:uppercase;letter-spacing:.07em;font-weight:600}
+tbody tr{border-bottom:1px solid #e2e8f0}
+tbody tr:nth-child(even){background:#f8fafc}
+tbody td{padding:9px 10px;vertical-align:top}
+.total-row{background:#f1f5f9!important;border-top:2px solid #1a1150}
+.total-row td{font-weight:700;padding:10px;font-size:10pt;color:#1a1150}
+.note{font-size:8pt;color:#94a3b8;margin-bottom:18px;line-height:1.5;border-left:3px solid #e2e8f0;padding-left:10px}
+.sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:10px}
+.sig-name{font-weight:700;font-size:10pt;margin-bottom:1px}
+.sig-role{font-size:8.5pt;color:#64748b;margin-bottom:22px}
+.sig-line{border-top:1px solid #94a3b8;padding-top:4px;margin-top:44px;font-size:8.5pt;color:#94a3b8}
+.date-line{border-top:1px solid #94a3b8;padding-top:4px;margin-top:14px;font-size:8.5pt;color:#94a3b8}
+.footer{margin-top:24px;padding:9px 40px;background:#f8fafc;border-top:1px solid #e2e8f0;font-size:7.5pt;color:#94a3b8;display:flex;justify-content:space-between}
+@media print{body{background:white}.header{-webkit-print-color-adjust:exact;print-color-adjust:exact}thead tr{-webkit-print-color-adjust:exact;print-color-adjust:exact}.details-grid{-webkit-print-color-adjust:exact;print-color-adjust:exact}.total-row{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style>
 </head><body>
 <div class="header">
   <div><div class="brand">&#10022; KEVRIA</div><div class="doc-label">Kevria Calc</div></div>
-  <div style="text-align:right;font-size:9.5px;color:rgba(255,255,255,.55)"><div style="font-size:11px;color:white;font-weight:600;text-transform:uppercase;letter-spacing:.1em">Schedule of Supports</div><div style="margin-top:3px">Generated: ${escapeHtml(dt)}</div></div>
+  <div style="text-align:right;font-size:9px;color:rgba(255,255,255,.55)"><div style="font-size:10.5px;color:white;font-weight:700;text-transform:uppercase;letter-spacing:.1em">Schedule of Supports</div><div style="margin-top:3px">Generated: ${escapeHtml(dt)}</div></div>
 </div>
 <div class="content">
   <div class="doc-title">Schedule of Supports</div>
   <div class="doc-ref">This schedule forms part of the Service Agreement between <strong>${escapeHtml(pd.orgName||"the Provider")}</strong> and <strong>${escapeHtml(pName)}</strong></div>
 
   <div class="details-grid">
-    <div>
+    <div class="det-col">
       <div class="det-label">Participant</div>
       <div class="det-name">${escapeHtml(pName)}</div>
-      <div class="det-info">${ndis!=="[NDIS Number]"?"NDIS Number: "+escapeHtml(ndis)+"<br/>":""}Plan Period: <strong>${escapeHtml(planDates.start)}</strong> to <strong>${escapeHtml(planDates.end)}</strong><br/>State / Territory: ${escapeHtml(planDates.state)}<br/>Plan Duration: ${planWeeks.toFixed(1)} weeks</div>
+      <div class="det-info">${ndis!=="[NDIS Number]"?"NDIS Number: <strong>"+escapeHtml(ndis)+"</strong><br/>":""}Plan Period: <strong>${escapeHtml(planDates.start)}</strong> to <strong>${escapeHtml(planDates.end)}</strong><br/>State / Territory: ${escapeHtml(planDates.state)} &nbsp;|&nbsp; Duration: ${planWeeks.toFixed(1)} weeks</div>
     </div>
-    <div>
+    <div class="det-col">
       <div class="det-label">Provider</div>
       <div class="det-name">${escapeHtml(pd.orgName||"[Provider]")}</div>
-      <div class="det-info">${pd.abn?"ABN: "+escapeHtml(pd.abn)+"<br/>":""}${pd.registrationNumber?"NDIS Reg: "+escapeHtml(pd.registrationNumber)+"<br/>":""}${pd.contactName?"Contact: "+escapeHtml(pd.contactName)+"<br/>":""}${pd.phone?escapeHtml(pd.phone)+"<br/>":""}${pd.email?"<a href='mailto:"+escapeHtml(pd.email)+"' style='color:#1a1150'>"+escapeHtml(pd.email)+"</a>":""}</div>
+      <div class="det-info">${pd.abn?"ABN: "+escapeHtml(pd.abn)+"<br/>":""}${pd.registrationNumber?"NDIS Reg: "+escapeHtml(pd.registrationNumber)+"<br/>":""}${pd.contactName?escapeHtml(pd.contactName)+"<br/>":""}${pd.phone?escapeHtml(pd.phone)+" &nbsp;":""}${pd.email?"<a href='mailto:"+escapeHtml(pd.email)+"' style='color:#1a1150'>"+escapeHtml(pd.email)+"</a>":""}</div>
     </div>
   </div>
 
-  <div class="section-heading">Funded Supports</div>
+  <div class="section-heading">Funded Supports &amp; Schedule</div>
   <table>
-    <tr><th style="width:22%">NDIS Item Code</th><th>Support Description</th><th style="width:8%;text-align:center">Ratio</th><th style="width:13%;text-align:right">Est. Weekly</th><th style="width:14%;text-align:right">Plan Total</th></tr>
+    <thead><tr>
+      <th style="width:18%">NDIS Code</th>
+      <th style="width:28%">Support Description</th>
+      <th>Weekly Schedule</th>
+      <th style="width:13%;text-align:right">Wkly Cost</th>
+      <th style="width:14%;text-align:right">Plan Total</th>
+    </tr></thead>
+    <tbody>
     ${supRows}
-    <tr class="total-row"><td colspan="3">TOTAL</td><td style="text-align:right">${escapeHtml(money(totals.weekly))}</td><td style="text-align:right">${escapeHtml(money(totals.planCost))}</td></tr>
+    <tr class="total-row"><td colspan="3">Total</td><td style="text-align:right">${escapeHtml(money(totals.weekly))}</td><td style="text-align:right">${escapeHtml(money(totals.planCost))}</td></tr>
+    </tbody>
   </table>
-  <div class="note">Prices are in accordance with the NDIS Pricing Arrangements and Price Limits (2025&#8211;26). Estimated weekly costs are indicative and may vary based on actual supports delivered. Plan totals include public holiday adjustments where applicable. All prices are GST-inclusive where applicable under NDIS pricing rules.</div>
+  <div class="note">Prices per the NDIS Pricing Arrangements &amp; Price Limits (2025&#8211;26). Weekly costs are estimates and may vary based on actual supports delivered. Plan totals include public holiday adjustments. All prices are GST-inclusive where applicable.</div>
 
-  ${rosterSection}
-
-  <div class="section-heading">Signatures</div>
+  <div class="section-heading" style="margin-top:16px">Signatures</div>
   <div class="sig-grid">
     <div>
       <div class="sig-name">${escapeHtml(pd.orgName||"Provider Organisation")}</div>
