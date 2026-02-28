@@ -5,7 +5,7 @@ export default function TermsOfService() {
       <nav style={{ background: "#1a1150", padding: "20px 40px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
         <a href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none", color: "white", width: "fit-content" }}>
           <span style={{ fontSize: "1.5rem", color: "#d4a843" }}>✦</span>
-          <span style={{ fontSize: "1.1rem", fontWeight: "600" }}>NDIS Budget Calculator</span>
+          <span style={{ fontSize: "1.1rem", fontWeight: "600" }}>Kevria Calc</span>
         </a>
       </nav>
 
@@ -16,7 +16,7 @@ export default function TermsOfService() {
         {[
           {
             heading: "1. Agreement to these terms",
-            body: `By creating an account or using the Kevria NDIS Budget Calculator ("the Service"), you agree to be bound by these Terms of Service. If you do not agree, do not use the Service.
+            body: `By creating an account or using the Kevria Kevria Calc ("the Service"), you agree to be bound by these Terms of Service. If you do not agree, do not use the Service.
 
 The Service is operated by Kevria, an Australian business (kevria.com). References to "we", "us", or "our" refer to Kevria.`,
           },

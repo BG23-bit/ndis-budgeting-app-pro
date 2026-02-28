@@ -158,7 +158,7 @@ export default function LoginPage() {
               if (!email) { setError("Enter your email first"); return; }
               setLoading(true);
               const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: "https://ndis-budgeting-app-pro.vercel.app/login",
+                redirectTo: "https://kevriacalc.com/login",
               });
               if (error) setError(error.message);
               else setError("Password reset link sent! Check your email.");

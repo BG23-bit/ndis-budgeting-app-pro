@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     }
 
     const baseUrl =
-      process.env.NEXT_PUBLIC_BASE_URL || "https://ndis-budgeting-app-pro.vercel.app";
+      process.env.NEXT_PUBLIC_BASE_URL || "https://kevriacalc.com";
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",

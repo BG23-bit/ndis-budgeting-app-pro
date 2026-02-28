@@ -235,7 +235,7 @@ export default function DashboardPage() {
             background: "#1e293b", padding: "40px", borderRadius: "16px",
             textAlign: "center", maxWidth: "480px", width: "90%", border: "1px solid #334155",
           }}>
-            <h2 style={{ fontSize: "1.8rem", color: "white", marginBottom: "8px" }}>Unlock NDIS Budget Calculator</h2>
+            <h2 style={{ fontSize: "1.8rem", color: "white", marginBottom: "8px" }}>Unlock Kevria Calc</h2>
             <p style={{ color: "#94a3b8", marginBottom: "24px", fontSize: "0.95rem" }}>Cancel anytime. No lock-in.</p>
 
             {/* Plan picker */}
@@ -314,7 +314,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
             <span style={{ fontSize: "1.5rem", color: "#d4a843" }}>✦</span>
-            <h1 className="text-3xl font-bold">NDIS Budget Calculator</h1>
+            <h1 className="text-3xl font-bold">Kevria Calc</h1>
           </div>
           <div className="flex items-center gap-3">
             {user?.email && <span className="text-sm" style={{ color: "#8080a0" }}>{user.email}</span>}
@@ -559,7 +559,7 @@ export default function DashboardPage() {
                 You&apos;re all set!
               </h2>
               <p style={{ color: "#b0a0d0", fontSize: "1rem", lineHeight: "1.6", marginBottom: "8px" }}>
-                Welcome to <span style={{ color: "#d4a843", fontWeight: "700" }}>Kevria NDIS Budget Calculator</span>.
+                Welcome to <span style={{ color: "#d4a843", fontWeight: "700" }}>Kevria Kevria Calc</span>.
               </p>
               <p style={{ color: "#8080a0", fontSize: "0.9rem", lineHeight: "1.6", marginBottom: "32px" }}>
                 Add your first participant to get started. Your data saves automatically and syncs across all your devices.

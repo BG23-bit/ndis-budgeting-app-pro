@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     }
 
     const baseUrl =
-      process.env.NEXT_PUBLIC_BASE_URL || "https://ndis-budgeting-app-pro.vercel.app";
+      process.env.NEXT_PUBLIC_BASE_URL || "https://kevriacalc.com";
 
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: profile.stripe_customer_id,

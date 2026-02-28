@@ -20,7 +20,7 @@ export default function LandingPage() {
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <span style={{ fontSize: "1.5rem", color: "#d4a843", fontWeight: "bold" }}>✦</span>
-          <span style={{ fontSize: "1.2rem", fontWeight: "600" }}>NDIS Budget Calculator</span>
+          <span style={{ fontSize: "1.2rem", fontWeight: "600" }}>Kevria Calc</span>
         </div>
         <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
           <a href="#features" style={{ color: "#ccc", textDecoration: "none", fontSize: "0.95rem" }}>Features</a>
@@ -431,7 +431,7 @@ export default function LandingPage() {
       }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginBottom: "15px" }}>
           <span style={{ fontSize: "1.5rem", color: "#d4a843" }}>✦</span>
-          <span style={{ fontSize: "1.1rem", fontWeight: "600" }}>NDIS Budget Calculator</span>
+          <span style={{ fontSize: "1.1rem", fontWeight: "600" }}>Kevria Calc</span>
         </div>
         <p style={{ color: "#6060a0", fontSize: "0.9rem", marginBottom: "8px" }}>
           Powered by <a href="https://kevria.com" target="_blank" rel="noopener noreferrer" style={{ color: "#d4a843", textDecoration: "none" }}>Kevria</a> — Built by providers, for providers

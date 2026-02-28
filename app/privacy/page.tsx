@@ -5,7 +5,7 @@ export default function PrivacyPolicy() {
       <nav style={{ background: "#1a1150", padding: "20px 40px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
         <a href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none", color: "white", width: "fit-content" }}>
           <span style={{ fontSize: "1.5rem", color: "#d4a843" }}>✦</span>
-          <span style={{ fontSize: "1.1rem", fontWeight: "600" }}>NDIS Budget Calculator</span>
+          <span style={{ fontSize: "1.1rem", fontWeight: "600" }}>Kevria Calc</span>
         </a>
       </nav>
 
@@ -16,7 +16,7 @@ export default function PrivacyPolicy() {
         {[
           {
             heading: "1. Who we are",
-            body: `This NDIS Budget Calculator ("the Service") is operated by Kevria, an Australian business (kevria.com.au). References to "we", "us", or "our" in this policy refer to Kevria.
+            body: `This Kevria Calc ("the Service") is operated by Kevria, an Australian business (kevria.com.au). References to "we", "us", or "our" in this policy refer to Kevria.
 
 For privacy enquiries contact us at: support@kevria.com`,
           },
