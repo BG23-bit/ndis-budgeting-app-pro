@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Client from "../client";
@@ -82,6 +82,7 @@ export default function DashboardPage() {
   const [editingParticipant, setEditingParticipant] = useState<Participant | null>(null);
   const [editName, setEditName] = useState("");
   const [editNdis, setEditNdis] = useState("");
+  const hasLoadedRef = useRef(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -113,6 +114,7 @@ export default function DashboardPage() {
           const { data: row } = await supabase.from("participant_lists").select("participants").eq("user_id", d.user.id).single();
           if (row?.participants && Array.isArray(row.participants) && row.participants.length > 0) {
             setParticipants(row.participants);
+            hasLoadedRef.current = true;
             return;
           }
         }
@@ -129,12 +131,15 @@ export default function DashboardPage() {
             if (Array.isArray(parsed) && parsed.length > 0) setParticipants(parsed);
           } catch {}
         }
+      } finally {
+        hasLoadedRef.current = true;
       }
     }
     load();
   }, []);
 
   useEffect(() => {
+    if (!hasLoadedRef.current) return;
     try { localStorage.setItem("ndis_participants_list", JSON.stringify(participants)); } catch {}
     async function save() {
       try {
