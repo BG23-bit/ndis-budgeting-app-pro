@@ -247,7 +247,7 @@ export default function DashboardPage() {
             <div style={{ display: "flex", gap: "12px", marginBottom: "24px" }}>
               {([
                 { key: "monthly", label: "Monthly", price: "$9.99", period: "/ month", badge: null },
-                { key: "annual", label: "Annual", price: "$7.99", period: "/ mo, billed $95.88/yr", badge: "Save 20%" },
+                { key: "annual", label: "Annual", price: "$79", period: "/ year", badge: "Save 34%" },
               ] as const).map((plan) => (
                 <div
                   key={plan.key}
@@ -281,7 +281,7 @@ export default function DashboardPage() {
               marginTop: "20px", padding: "15px 40px", fontSize: "1.1rem", backgroundColor: "#d4a843", color: "#1a1150",
               border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold", width: "100%",
             }}>
-              {checkoutLoading ? "Redirecting..." : selectedPlan === "annual" ? "Subscribe — $95.88/yr" : "Subscribe — $9.99/mo"}
+              {checkoutLoading ? "Redirecting..." : selectedPlan === "annual" ? "Subscribe — $79/yr" : "Subscribe — $9.99/mo"}
             </button>
             <p onClick={handleLogout} style={{ marginTop: "15px", color: "#64748b", cursor: "pointer", fontSize: "0.9rem" }}>Log out</p>
           </div>
