@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const DAILY_LIMIT = 10;
+const MONTHLY_LIMIT = 100;
 
 export async function POST(req: NextRequest) {
   try {
@@ -30,12 +30,14 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "An active subscription is required to upload plans." }, { status: 403 });
     }
 
-    // Check daily upload limit
-    const today = new Date().toISOString().slice(0, 10);
-    const uploadsToday = profile.pdf_upload_date === today ? (profile.pdf_uploads_today ?? 0) : 0;
-    if (uploadsToday >= DAILY_LIMIT) {
+    // Check monthly upload limit
+    const currentMonth = new Date().toISOString().slice(0, 7); // "YYYY-MM"
+    const uploadsThisMonth = profile.pdf_upload_date?.slice(0, 7) === currentMonth
+      ? (profile.pdf_uploads_today ?? 0)
+      : 0;
+    if (uploadsThisMonth >= MONTHLY_LIMIT) {
       return Response.json({
-        error: `Daily PDF upload limit reached (${DAILY_LIMIT}/day). You can still enter plan details manually below. Limit resets at midnight.`,
+        error: `Monthly PDF upload limit reached (${MONTHLY_LIMIT}/month). You can still enter plan details manually below. Limit resets at the start of next month.`,
       }, { status: 429 });
     }
 
@@ -49,7 +51,7 @@ export async function POST(req: NextRequest) {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
     const response = await client.messages.create({
-      model: "claude-opus-4-6",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 2000,
       messages: [{
         role: "user",
@@ -106,12 +108,12 @@ Extract ALL funding line items. If a field is not present in the document use nu
       }],
     });
 
-    // Increment daily upload count
+    // Increment monthly upload count
     await supabase
       .from("profiles")
       .update({
-        pdf_uploads_today: uploadsToday + 1,
-        pdf_upload_date: today,
+        pdf_uploads_today: uploadsThisMonth + 1,
+        pdf_upload_date: new Date().toISOString().slice(0, 10),
       })
       .eq("id", user.id);
 

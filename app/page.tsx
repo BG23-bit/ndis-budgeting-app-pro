@@ -17,7 +17,7 @@ export default function LandingPage() {
 
   const totalHrs = Math.round(participants * hrsPerParticipant);
   const valuePerYear = totalHrs * hourlyRate;
-  const annualCost = 79;
+  const annualCost = 95.88;
   const roi = Math.round(valuePerYear / annualCost);
 
   return (
@@ -355,7 +355,7 @@ export default function LandingPage() {
                 <span style={{ fontSize: "2.8rem", fontWeight: "800" }}>$9.99</span>
               </div>
               <p style={{ color: "rgba(255,255,255,0.35)", marginBottom: "28px", fontSize: "0.88rem" }}>AUD / month</p>
-              {["Unlimited participants & support lines", "Schedule of Supports PDF generator", "PDF plan upload & auto-fill", "Per-category rate presets (01–15)", "Public holiday auto-calc by state", "Plan pace tracking", "Claims & actual spend tracker", "CSV & PDF exports", "Cancel anytime"].map((item, i) => (
+              {["Unlimited participants & support lines", "Schedule of Supports PDF generator", "100 PDF plan uploads / month", "Per-category rate presets (01–15)", "Public holiday auto-calc by state", "Plan pace tracking", "Claims & actual spend tracker", "CSV & PDF exports", "Cancel anytime"].map((item, i) => (
                 <div key={i} style={{ padding: "8px 0", borderBottom: i < 8 ? "1px solid rgba(255,255,255,0.05)" : "none", color: "rgba(255,255,255,0.65)", fontSize: "0.88rem", display: "flex", gap: "10px", alignItems: "center" }}>
                   <span style={{ color: "#22c55e", flexShrink: 0 }}>✓</span> {item}
                 </div>
@@ -368,14 +368,15 @@ export default function LandingPage() {
             {/* Annual */}
             <div style={{ background: "rgba(212,168,67,0.05)", border: "2px solid #d4a843", borderRadius: "20px", padding: "36px", position: "relative" }}>
               <div style={{ position: "absolute", top: "-14px", left: "50%", transform: "translateX(-50%)", background: "#d4a843", color: "#1a1150", fontSize: "0.72rem", fontWeight: "800", padding: "4px 16px", borderRadius: "20px", whiteSpace: "nowrap" }}>
-                BEST VALUE — SAVE 34%
+                BEST VALUE — SAVE 20%
               </div>
               <p style={{ fontSize: "0.78rem", color: "#d4a843", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "10px" }}>Annual</p>
               <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginBottom: "4px" }}>
-                <span style={{ fontSize: "2.8rem", fontWeight: "800" }}>$79</span>
+                <span style={{ fontSize: "2.8rem", fontWeight: "800" }}>$7.99</span>
+                <span style={{ fontSize: "1rem", color: "rgba(255,255,255,0.4)" }}>/mo</span>
               </div>
-              <p style={{ color: "rgba(255,255,255,0.35)", marginBottom: "28px", fontSize: "0.88rem" }}>AUD / year <span style={{ color: "#d4a843" }}>(≈$6.58/mo)</span></p>
-              {["Everything in Monthly", "2 months free vs monthly", "Priority support", "Cancel anytime"].map((item, i) => (
+              <p style={{ color: "rgba(255,255,255,0.35)", marginBottom: "28px", fontSize: "0.88rem" }}>Billed as $95.88/yr AUD <span style={{ color: "#d4a843" }}>(save 20%)</span></p>
+              {["Everything in Monthly", "20% off vs monthly billing", "Priority support", "Cancel anytime"].map((item, i) => (
                 <div key={i} style={{ padding: "8px 0", borderBottom: i < 3 ? "1px solid rgba(255,255,255,0.05)" : "none", color: "rgba(255,255,255,0.65)", fontSize: "0.88rem", display: "flex", gap: "10px", alignItems: "center" }}>
                   <span style={{ color: "#22c55e", flexShrink: 0 }}>✓</span> {item}
                 </div>
@@ -502,7 +503,7 @@ export default function LandingPage() {
             },
             {
               q: "How does pricing work?",
-              a: "Monthly ($9.99/mo) or Annual ($79/yr — save 34%). Both plans include all features with no limits. No lock-in — cancel anytime.",
+              a: "Monthly ($9.99/mo) or Annual ($95.88/yr — save 20%, billed as $7.99/mo). Both plans include all features including 100 PDF plan uploads per month. No lock-in — cancel anytime.",
             },
             {
               q: "Can I manage multiple participants?",
