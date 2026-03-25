@@ -83,6 +83,7 @@ export default function DashboardPage() {
   const [editName, setEditName] = useState("");
   const [editNdis, setEditNdis] = useState("");
   const hasLoadedRef = useRef(false);
+  const skipNextSaveRef = useRef(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -138,8 +139,24 @@ export default function DashboardPage() {
     load();
   }, []);
 
+  // Realtime sync — keeps all open sessions in sync when 1 login is shared
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel("participant_sync_" + user.id)
+      .on("postgres_changes", { event: "*", schema: "public", table: "participant_lists", filter: `user_id=eq.${user.id}` }, (payload: any) => {
+        if (Array.isArray(payload.new?.participants)) {
+          skipNextSaveRef.current = true;
+          setParticipants(payload.new.participants);
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
+
   useEffect(() => {
     if (!hasLoadedRef.current) return;
+    if (skipNextSaveRef.current) { skipNextSaveRef.current = false; return; }
     try { localStorage.setItem("ndis_participants_list", JSON.stringify(participants)); } catch {}
     async function save() {
       try {

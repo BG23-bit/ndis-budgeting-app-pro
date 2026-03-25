@@ -132,18 +132,28 @@ function applyPlanExtract(){
   if(planExtract.planStart)setPlanDates(p=>({...p,start:planExtract.planStart}));
   if(planExtract.planEnd)setPlanDates(p=>({...p,end:planExtract.planEnd}));
   if(planExtract.state)setPlanDates(p=>({...p,state:planExtract.state}));
-  if(Array.isArray(planExtract.supportLines)&&planExtract.supportLines.length>0){
-    setLines(prev=>{
-      const updated=[...prev];
+  const scheduleRateMap:{[k:string]:keyof Rates}={weekday:"weekdayOrd",weekdayNight:"weekdayNight",saturday:"sat",sunday:"sun",publicHoliday:"publicHoliday"};
+  setLines(prev=>{
+    let updated=[...prev];
+    if(Array.isArray(planExtract.supportLines)&&planExtract.supportLines.length>0){
       const used=new Set<number>();
       for(const sl of planExtract.supportLines){
         const idx=updated.findIndex((_l:SupportLine,i:number)=>!used.has(i)&&_l.code===sl.code);
         if(idx>=0){updated[idx]={...updated[idx],totalFunding:sl.totalFunding,description:sl.description,lineRates:updated[idx].lineRates||getPresetRates(sl.code)};used.add(idx);}
         else{updated.push({id:uid(),code:sl.code,description:sl.description,totalFunding:sl.totalFunding,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:0.99,kmFreq:"every",claims:[],lineRates:getPresetRates(sl.code)});}
       }
-      return updated;
-    });
-  }
+    }
+    if(Array.isArray(planExtract.scheduleOfSupports)&&planExtract.scheduleOfSupports.length>0){
+      updated=updated.map((l:SupportLine)=>{
+        const items=planExtract.scheduleOfSupports.filter((s:any)=>s.categoryCode===l.code&&s.price>0&&scheduleRateMap[s.rateType]);
+        if(!items.length)return l;
+        const newRates={...l.lineRates};
+        for(const item of items){const k=scheduleRateMap[item.rateType];if(k)(newRates as any)[k]=item.price;}
+        return{...l,lineRates:newRates};
+      });
+    }
+    return updated;
+  });
   setPlanExtract(null);
 }
 function exportCSV(){
@@ -780,7 +790,41 @@ return(
 ))}
 </div>
 )}
-<p style={{color:"#6060a0",fontSize:"0.82rem",marginTop:"16px"}}>Existing roster and claims data will be preserved. Funding amounts will be updated.</p>
+{Array.isArray(planExtract.scheduleOfSupports)&&planExtract.scheduleOfSupports.length>0&&(
+<div style={{marginTop:"16px"}}>
+<div style={{color:"#d4a843",fontWeight:"600",marginBottom:"8px",fontSize:"0.95rem"}}>Schedule of Supports:</div>
+<div style={{overflowX:"auto"}}>
+<table style={{width:"100%",borderCollapse:"collapse",fontSize:"0.78rem"}}>
+<thead><tr style={{color:"#b0a0d0",borderBottom:"1px solid rgba(212,168,67,0.2)"}}>
+<th style={{textAlign:"left",padding:"4px 8px",fontWeight:"600"}}>Item #</th>
+<th style={{textAlign:"left",padding:"4px 8px",fontWeight:"600"}}>Description</th>
+<th style={{textAlign:"right",padding:"4px 8px",fontWeight:"600"}}>Price</th>
+<th style={{textAlign:"right",padding:"4px 8px",fontWeight:"600"}}>Hours</th>
+<th style={{textAlign:"right",padding:"4px 8px",fontWeight:"600"}}>Total</th>
+</tr></thead>
+<tbody>{planExtract.scheduleOfSupports.map((item:any,i:number)=>(
+<tr key={i} style={{borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
+<td style={{padding:"4px 8px",color:"#d4a843",whiteSpace:"nowrap",fontFamily:"monospace"}}>{item.itemNumber}</td>
+<td style={{padding:"4px 8px",color:"#c0c0e0"}}>{item.supportCategory}</td>
+<td style={{padding:"4px 8px",color:"white",textAlign:"right",whiteSpace:"nowrap"}}>{money(item.price)}</td>
+<td style={{padding:"4px 8px",color:"#c0c0e0",textAlign:"right"}}>{item.hoursRequired??"-"}</td>
+<td style={{padding:"4px 8px",color:"white",textAlign:"right",whiteSpace:"nowrap"}}>{item.totalCost?money(item.totalCost):"-"}</td>
+</tr>
+))}</tbody>
+</table>
+</div>
+</div>
+)}
+{planExtract.specificRequirements&&(
+<div style={{marginTop:"12px",padding:"10px 12px",background:"rgba(212,168,67,0.05)",border:"1px solid rgba(212,168,67,0.15)",borderRadius:"8px",fontSize:"0.85rem"}}>
+<div style={{color:"#d4a843",fontWeight:"600",marginBottom:"6px"}}>Specific Requirements:</div>
+{([["Behaviours of Concern",planExtract.specificRequirements.behavioursOfConcern],["Regulated Restrictive Practice",planExtract.specificRequirements.regulatedRestrictivePractice],["Medication Management",planExtract.specificRequirements.medicationManagement]] as [string,boolean|null][]).filter(([,v])=>v!==null&&v!==undefined).map(([label,val],i)=>(
+<div key={i} style={{color:"#c0c0e0"}}>{label}: <span style={{color:val?"#ef4444":"#22c55e",fontWeight:"600"}}>{val?"Yes":"No"}</span></div>
+))}
+{planExtract.establishmentFee?<div style={{color:"#c0c0e0",marginTop:"4px"}}>Establishment Fee: <span style={{color:"white",fontWeight:"600"}}>{money(planExtract.establishmentFee)}</span></div>:null}
+</div>
+)}
+<p style={{color:"#6060a0",fontSize:"0.82rem",marginTop:"16px"}}>Existing roster and claims data will be preserved. Funding amounts and rates will be updated.</p>
 <div style={{display:"flex",gap:"12px",marginTop:"20px"}}>
 <button onClick={applyPlanExtract} style={{flex:1,padding:"12px",backgroundColor:"#d4a843",color:"#1a1150",border:"none",borderRadius:"8px",cursor:"pointer",fontWeight:"700",fontSize:"1rem"}}>Apply to Calculator</button>
 <button onClick={()=>setPlanExtract(null)} style={{flex:1,padding:"12px",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#b0b0d0",borderRadius:"8px",cursor:"pointer"}}>Cancel</button>

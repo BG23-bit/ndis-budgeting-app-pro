@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
 
     const response = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 2000,
+      max_tokens: 3000,
       messages: [{
         role: "user",
         content: [
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
           },
           {
             type: "text",
-            text: `You are extracting data from an Australian NDIS (National Disability Insurance Scheme) plan document.
+            text: `You are extracting data from an Australian NDIS (National Disability Insurance Scheme) plan or service agreement document.
 
 Extract the following and return ONLY a valid JSON object — no markdown, no extra text:
 
@@ -81,6 +81,23 @@ Extract the following and return ONLY a valid JSON object — no markdown, no ex
       "code": "2-digit string e.g. 01",
       "description": "string",
       "totalFunding": number
+    }
+  ],
+  "specificRequirements": {
+    "behavioursOfConcern": true or false or null,
+    "regulatedRestrictivePractice": true or false or null,
+    "medicationManagement": true or false or null
+  },
+  "establishmentFee": number or null,
+  "scheduleOfSupports": [
+    {
+      "supportCategory": "string — description of the service e.g. Assistance in Supported Independent Living - Weekly",
+      "itemNumber": "string — NDIS item number e.g. 01_821_0115_1_1",
+      "categoryCode": "2-digit string — first 2 chars of item number e.g. 01",
+      "price": number,
+      "hoursRequired": number or null,
+      "totalCost": number or null,
+      "rateType": "weekday|weekdayNight|saturday|sunday|publicHoliday|weekly|fixed|other"
     }
   ]
 }
@@ -102,7 +119,13 @@ NDIS support category codes:
 14 = Improved Daily Living Skills
 15 = Improved Relationships
 
-Extract ALL funding line items. If a field is not present in the document use null. Convert dates to YYYY-MM-DD. Funding amounts must be plain numbers (no $ symbol).`,
+For scheduleOfSupports: extract every line item from the Schedule of Supports / Annexure table. Use rateType to classify: look at the service description for keywords like "Weekday", "Saturday", "Sunday", "Public Holiday", "Night", "Weekly", "Establishment". If the description says "Saturday" → "saturday", "Sunday" → "sunday", "Public Holiday" → "publicHoliday", "Night" or "Evening" → "weekdayNight", "Weekly" or "week" in hours → "weekly", otherwise "weekday". Plain numbers only (no $ symbol). Extract ALL line items found.
+
+For specificRequirements: look for a "Specific Requirements" section with checkboxes. true = Yes is checked, false = No is checked, null = not found.
+
+For establishmentFee: look for an establishment fee amount. null if not present.
+
+If a field is not present in the document use null. Convert dates to YYYY-MM-DD.`,
           },
         ],
       }],
