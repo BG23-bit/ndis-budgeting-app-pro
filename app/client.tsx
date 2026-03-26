@@ -110,6 +110,8 @@ const[planExtract,setPlanExtract]=useState<any>(null);
 const[planUploadError,setPlanUploadError]=useState<string|null>(null);
 const[providerDetails,setProviderDetails]=useState<ProviderDetails>({orgName:"",abn:"",contactName:"",email:"",phone:"",address:"",registrationNumber:""});
 const[showSAModal,setShowSAModal]=useState(false);
+const[saSpecificReqs,setSaSpecificReqs]=useState({behavioursOfConcern:false,regulatedRestrictivePractice:false,medicationManagement:false});
+const[saEstFee,setSaEstFee]=useState("");
 useEffect(()=>{try{const raw=localStorage.getItem("kevria_provider_details");if(raw)setProviderDetails(p=>({...p,...JSON.parse(raw)}))}catch{}},[]);
 useEffect(()=>{try{localStorage.setItem("kevria_provider_details",JSON.stringify(providerDetails))}catch{}},[providerDetails]);
 const planFileRef=React.useRef<HTMLInputElement>(null);
@@ -308,40 +310,64 @@ function generateScheduleOfSupports(){
   const pName=participantName||"[Participant Name]";
   const ndis=ndisNumber||"[NDIS Number]";
   const dt=new Date().toLocaleDateString("en-AU",{day:"numeric",month:"long",year:"numeric"});
+  const estFee=parseFloat(saEstFee)||0;
 
-  // Build schedule cell per line based on mode
-  function scheduleCell(l:any):string{
+  // Build one row per active day-type per line (Annexure 1 format)
+  type SRow={category:string;itemNumber:string;price:number|null;hours:number|string|null;total:number|null};
+  const supRows:SRow[]=perLine.flatMap((l:any)=>{
+    const div=RATIOS[l.ratio]?.divisor||1;
     const mode=getLineMode(l.code);
-    if(mode==="lump") return"<span style=\"color:#888;font-style:italic\">Lump sum</span>";
-    if(mode==="weekday"){
-      // Total weekly hours weighted by frequency
-      const wkDays=["mon","tue","wed","thu","fri"];
-      const totalHrs=wkDays.reduce((sum,d)=>{const r=l.roster[d];return r?.enabled?sum+(r.hours||0)*(FREQ[r.frequency]?.multiplier||1):sum},0);
-      return totalHrs>0?totalHrs.toFixed(1)+" hrs/week":"As scheduled";
+    const rows:SRow[]=[];
+    if(mode==="lump"){
+      rows.push({category:escapeHtml(l.description),itemNumber:"",price:null,hours:null,total:l.totalFunding});
+      return rows;
     }
-    // Full mode: per-day rows
-    const enabledDays=DAYS.filter(d=>l.roster[d]?.enabled);
-    if(enabledDays.length===0) return"<span style=\"color:#888;font-style:italic\">No roster set</span>";
-    return enabledDays.map(d=>{
-      const r=l.roster[d];
-      const std=r.hours||0;const night=r.nightHours||0;
-      const hrs=std>0?(std+"h"+(night>0?" + "+night+"h night":"")):(night>0?night+"h night":"\u2014");
-      const freq=FREQ[r.frequency]?.multiplier<1?" <span style=\"color:#888;font-size:8.5pt\">("+escapeHtml(FREQ[r.frequency]?.label||r.frequency)+")</span>":"";
-      return"<div style=\"padding:1px 0\"><span style=\"display:inline-block;width:36px;font-weight:600;color:#334155\">"+DL[d].slice(0,3)+"</span>"+hrs+freq+"</div>";
-    }).join("");
-  }
+    const wkDays=["mon","tue","wed","thu","fri"];
+    const wkdOrdHrs=wkDays.reduce((s,d)=>{const r=l.roster[d];return r?.enabled&&(r.hours||0)>0?s+(r.hours||0)*(FREQ[r.frequency]?.multiplier||1)*planWeeks:s},0);
+    const wkdNightHrs=wkDays.reduce((s,d)=>{const r=l.roster[d];return r?.enabled&&(r.nightHours||0)>0?s+(r.nightHours||0)*(FREQ[r.frequency]?.multiplier||1)*planWeeks:s},0);
+    const satR=l.roster["sat"];const sunR=l.roster["sun"];
+    const satHrs=satR?.enabled?(satR.hours||0)*(FREQ[satR.frequency]?.multiplier||1)*planWeeks:0;
+    const satNightHrs=satR?.enabled?(satR.nightHours||0)*(FREQ[satR.frequency]?.multiplier||1)*planWeeks:0;
+    const sunHrs=sunR?.enabled?(sunR.hours||0)*(FREQ[sunR.frequency]?.multiplier||1)*planWeeks:0;
+    const sunNightHrs=sunR?.enabled?(sunR.nightHours||0)*(FREQ[sunR.frequency]?.multiplier||1)*planWeeks:0;
+    if(wkdOrdHrs>0){const rate=(l.lineRates?.weekdayOrd||0)/div;rows.push({category:escapeHtml(l.description)+" - Weekday Daytime",itemNumber:"",price:rate,hours:Math.round(wkdOrdHrs),total:rate*wkdOrdHrs});}
+    if(wkdNightHrs>0){const rate=(l.lineRates?.weekdayNight||0)/div;rows.push({category:escapeHtml(l.description)+" - Weekday Night",itemNumber:"",price:rate,hours:Math.round(wkdNightHrs),total:rate*wkdNightHrs});}
+    if(satHrs>0){const rate=(l.lineRates?.sat||0)/div;rows.push({category:escapeHtml(l.description)+" - Saturday",itemNumber:"",price:rate,hours:Math.round(satHrs),total:rate*satHrs});}
+    if(satNightHrs>0){const rate=(l.lineRates?.sat||0)/div;rows.push({category:escapeHtml(l.description)+" - Saturday Night",itemNumber:"",price:rate,hours:Math.round(satNightHrs),total:rate*satNightHrs});}
+    if(sunHrs>0){const rate=(l.lineRates?.sun||0)/div;rows.push({category:escapeHtml(l.description)+" - Sunday",itemNumber:"",price:rate,hours:Math.round(sunHrs),total:rate*sunHrs});}
+    if(sunNightHrs>0){const rate=(l.lineRates?.sun||0)/div;rows.push({category:escapeHtml(l.description)+" - Sunday Night",itemNumber:"",price:rate,hours:Math.round(sunNightHrs),total:rate*sunNightHrs});}
+    if(rows.length===0){rows.push({category:escapeHtml(l.description),itemNumber:"",price:null,hours:null,total:l.totalFunding});}
+    return rows;
+  });
 
-  const supRows=perLine.map(l=>{
-    const mode=getLineMode(l.code);
-    const isLump=mode==="lump";
-    return"<tr>"
-      +"<td style=\"font-family:monospace;font-size:8.5pt;white-space:nowrap;color:#475569;vertical-align:top;padding-top:10px\">"+escapeHtml(l.code)+"</td>"
-      +"<td style=\"vertical-align:top\"><div style=\"font-weight:600;color:#1e293b;margin-bottom:2px\">"+escapeHtml(l.description)+"</div>"+(isLump?"":"<div style=\"font-size:8.5pt;color:#94a3b8\">Ratio: "+escapeHtml(l.ratio)+"</div>")+"</td>"
-      +"<td style=\"vertical-align:top;font-size:9pt;line-height:1.6\">"+scheduleCell(l)+"</td>"
-      +"<td style=\"text-align:right;vertical-align:top;white-space:nowrap\">"+escapeHtml(money(l.weeklyWithGST))+"</td>"
-      +"<td style=\"text-align:right;vertical-align:top;white-space:nowrap;font-weight:700;color:#1a1150\">"+escapeHtml(money(l.planTotal))+"</td>"
-      +"</tr>";
-  }).join("");
+  const supRowsHtml=supRows.map(r=>
+    "<tr>"
+    +"<td style=\"vertical-align:top\">"+r.category+"</td>"
+    +"<td style=\"vertical-align:top;color:#475569;font-size:8.5pt\">"+(r.itemNumber||"<span style=\"color:#cbd5e1\">_______________</span>")+"</td>"
+    +"<td style=\"text-align:right;vertical-align:top;white-space:nowrap\">"+(r.price!==null?escapeHtml(money(r.price)):"&mdash;")+"</td>"
+    +"<td style=\"text-align:right;vertical-align:top\">"+(r.hours!==null?r.hours:"&mdash;")+"</td>"
+    +"<td style=\"text-align:right;vertical-align:top;white-space:nowrap;font-weight:700;color:#1a1150\">"+(r.total!==null?escapeHtml(money(r.total)):"&mdash;")+"</td>"
+    +"</tr>"
+  ).join("");
+
+  const sreqs=saSpecificReqs;
+  const specReqHtml=`<div style="margin-bottom:18px">
+  <div style="font-size:8.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#1a1150;padding-bottom:5px;border-bottom:2px solid #1a1150;margin-bottom:10px">Specific Requirements</div>
+  <table style="border:1.5px solid #1a1150;border-radius:6px;overflow:hidden;font-size:9pt;margin-bottom:0">
+    <tbody>
+      <tr><td style="padding:7px 12px;border-bottom:1px solid #e2e8f0;width:60%">Behaviours of Concern</td><td style="padding:7px 12px;border-bottom:1px solid #e2e8f0">${sreqs.behavioursOfConcern?"&#9745; Yes &nbsp;&nbsp;&#9744; No":"&#9744; Yes &nbsp;&nbsp;&#9745; No"}</td></tr>
+      <tr><td style="padding:7px 12px;border-bottom:1px solid #e2e8f0">Regulated Restrictive Practice</td><td style="padding:7px 12px;border-bottom:1px solid #e2e8f0">${sreqs.regulatedRestrictivePractice?"&#9745; Yes &nbsp;&nbsp;&#9744; No":"&#9744; Yes &nbsp;&nbsp;&#9745; No"}</td></tr>
+      <tr><td style="padding:7px 12px">Medication Management</td><td style="padding:7px 12px">${sreqs.medicationManagement?"&#9745; Yes &nbsp;&nbsp;&#9744; No":"&#9744; Yes &nbsp;&nbsp;&#9745; No"}</td></tr>
+    </tbody>
+  </table>
+  </div>`;
+
+  const estFeeHtml=estFee>0?`<div style="margin-bottom:18px;padding:12px 14px;border:1.5px solid #1a1150;border-radius:6px;display:flex;justify-content:space-between;align-items:center">
+  <div style="font-size:9pt;color:#475569">The following establishment fee will be payable if completing +20 hours per week in services</div>
+  <div style="font-size:12pt;font-weight:700;color:#1a1150;white-space:nowrap;margin-left:16px">${escapeHtml(money(estFee))}</div>
+  </div>`:"";
+
+  const grandTotal=supRows.reduce((s,r)=>s+(r.total||0),0)+(estFee||0);
 
   const html=`<!doctype html><html><head><meta charset="utf-8"/><title>Schedule of Supports - ${escapeHtml(pName)}</title>
 <style>
@@ -399,21 +425,23 @@ tbody td{padding:9px 10px;vertical-align:top}
     </div>
   </div>
 
+  ${specReqHtml}
+  ${estFeeHtml}
   <div class="section-heading">Funded Supports &amp; Schedule</div>
   <table>
     <thead><tr>
-      <th style="width:18%">NDIS Code</th>
-      <th style="width:28%">Support Description</th>
-      <th>Weekly Schedule</th>
-      <th style="width:13%;text-align:right">Wkly Cost</th>
-      <th style="width:14%;text-align:right">Plan Total</th>
+      <th style="width:28%">Support Category</th>
+      <th style="width:25%">Description of Service</th>
+      <th style="width:13%;text-align:right">Price</th>
+      <th style="width:13%;text-align:right">Hours Required</th>
+      <th style="width:14%;text-align:right">Total Cost</th>
     </tr></thead>
     <tbody>
-    ${supRows}
-    <tr class="total-row"><td colspan="3">Total</td><td style="text-align:right">${escapeHtml(money(totals.weekly))}</td><td style="text-align:right">${escapeHtml(money(totals.planCost))}</td></tr>
+    ${supRowsHtml}
+    <tr class="total-row"><td colspan="3">Total</td><td style="text-align:right">&mdash;</td><td style="text-align:right">${escapeHtml(money(grandTotal))}</td></tr>
     </tbody>
   </table>
-  <div class="note">Prices per the NDIS Pricing Arrangements &amp; Price Limits (2025&#8211;26). Weekly costs are estimates and may vary based on actual supports delivered. Plan totals include public holiday adjustments. All prices are GST-inclusive where applicable.</div>
+  <div class="note">Prices per the NDIS Pricing Arrangements &amp; Price Limits (2025&#8211;26). Plan totals are estimates and may vary based on actual supports delivered. All prices are GST-inclusive where applicable.</div>
 
   <div class="section-heading" style="margin-top:16px">Signatures</div>
   <div class="sig-grid">
@@ -882,6 +910,24 @@ return(
       <div><span style={{color:"#6060a0"}}>State: </span><span style={{color:"white",fontWeight:600}}>{planDates.state}</span></div>
       <div><span style={{color:"#6060a0"}}>Support lines: </span><span style={{color:"white",fontWeight:600}}>{lines.length}</span></div>
       <div><span style={{color:"#6060a0"}}>Total budget: </span><span style={{color:"#d4a843",fontWeight:600}}>{money(totals.totalFunding)}</span></div>
+    </div>
+  </div>
+
+  <div className="rounded-lg p-4 mb-5" style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)"}}>
+    <div className="text-xs font-semibold mb-3" style={{color:"#b0a0d0",textTransform:"uppercase",letterSpacing:"0.06em"}}>Specific Requirements</div>
+    <div className="grid grid-cols-1 gap-2">
+      {([["behavioursOfConcern","Behaviours of Concern"],["regulatedRestrictivePractice","Regulated Restrictive Practice"],["medicationManagement","Medication Management"]] as [keyof typeof saSpecificReqs,string][]).map(([key,label])=>(
+        <label key={key} className="flex items-center gap-3 cursor-pointer">
+          <input type="checkbox" checked={saSpecificReqs[key]} onChange={e=>setSaSpecificReqs(p=>({...p,[key]:e.target.checked}))} style={{width:"16px",height:"16px",accentColor:"#d4a843"}}/>
+          <span className="text-sm" style={{color:"#c0c0e0"}}>{label}</span>
+        </label>
+      ))}
+    </div>
+    <div className="mt-3">
+      <div className="text-xs mb-1 font-semibold" style={{color:"#b0a0d0"}}>Establishment Fee (leave blank if none)</div>
+      <input value={saEstFee} onChange={e=>setSaEstFee(e.target.value)} placeholder="e.g. 654.70" type="number" min="0" step="0.01"
+        className="w-full rounded-lg px-3 py-2 outline-none text-sm"
+        style={{background:"rgba(15,10,48,0.6)",border:"1px solid rgba(212,168,67,0.2)",color:"white"}}/>
     </div>
   </div>
 
