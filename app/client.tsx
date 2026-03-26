@@ -76,6 +76,20 @@ const CATEGORY_PRESETS:{[code:string]:{name:string;rates:Rates}}={
   "15":{name:"Improved Relationships",rates:{weekdayOrd:190.54,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
 };
 function getPresetRates(code:string):Rates{return CATEGORY_PRESETS[code]?.rates||NDIS_RATES_2025_26}
+const NDIS_ITEM_DEFAULTS:{[code:string]:{[rateType:string]:string}}={
+  "01":{weekday:"01_011_0107_1_1",weekdayNight:"01_012_0107_1_1",sat:"01_013_0107_1_1",satNight:"01_013_0107_1_1",sun:"01_014_0107_1_1",sunNight:"01_014_0107_1_1",lump:"01_821_0115_1_1"},
+  "04":{weekday:"04_104_0125_6_1",weekdayNight:"04_104_0125_6_1",sat:"04_105_0125_6_1",satNight:"04_105_0125_6_1",sun:"04_106_0125_6_1",sunNight:"04_106_0125_6_1"},
+  "07":{weekday:"07_001_0106_8_3",lump:"07_001_0106_8_3"},
+  "08":{weekday:"01_821_0115_1_1",lump:"01_821_0115_1_1"},
+  "09":{weekday:"04_104_0125_6_1",sat:"04_105_0125_6_1",sun:"04_106_0125_6_1"},
+  "10":{weekday:"10_002_0102_5_3",lump:"10_002_0102_5_3"},
+  "11":{weekday:"11_022_0110_7_3",lump:"11_022_0110_7_3"},
+  "12":{weekday:"12_001_0117_1_3",lump:"12_001_0117_1_3"},
+  "13":{weekday:"13_001_0132_3_3",lump:"13_001_0132_3_3"},
+  "14":{weekday:"14_033_0128_3_3",lump:"14_033_0128_3_3"},
+  "15":{weekday:"15_056_0128_1_3",lump:"15_056_0128_1_3"},
+};
+function getDefaultItemNumber(code:string,rateType:string):string{return NDIS_ITEM_DEFAULTS[code]?.[rateType]||""}
 function getLineMode(code:string):"full"|"weekday"|"lump"{if(["02","03","05","06"].includes(code))return"lump";if(["07","10","11","12","13","14","15"].includes(code))return"weekday";return"full"}
 function isBelowGuide(lr:Rates,code:string):boolean{const p=CATEGORY_PRESETS[code]?.rates;if(!p)return false;return(p.weekdayOrd>0&&lr.weekdayOrd<p.weekdayOrd)||(p.weekdayNight>0&&lr.weekdayNight<p.weekdayNight)||(p.sat>0&&lr.sat<p.sat)||(p.sun>0&&lr.sun<p.sun)||(p.publicHoliday>0&&lr.publicHoliday<p.publicHoliday)||(p.activeSleepoverHourly>0&&lr.activeSleepoverHourly<p.activeSleepoverHourly)}
 export default function PageClient({storageKey,participantName,ndisNumber}:{storageKey?:string;participantName?:string;ndisNumber?:string}){
@@ -92,8 +106,8 @@ const saveData={rates,lines,planDates,weeksOverride};useEffect(()=>{try{localSto
 const perLine=useMemo(()=>{return lines.map(l=>{const lr=l.lineRates||rates;const wt=calcWeeklyCost(l,lr);const weeklyGST=wt*(lr.gstRate||0);const weeklyWithGST=wt+weeklyGST;const basePlanCost=calcDayCountPlanCost(l,planDates.start,planDates.end,planWeeks,lr)*(1+(lr.gstRate||0));const phImpact=calcPHImpact(l,holidays,lr);const phAdjustment=phImpact.extraCost-phImpact.savedCost;const planTotal=basePlanCost+phAdjustment;const remaining=l.totalFunding-planTotal;const totalClaimed=(l.claims||[]).reduce((a:number,c:Claim)=>a+c.amount,0);const actualRemaining=l.totalFunding-totalClaimed;return{...l,weeklyTotal:wt,weeklyGST,weeklyWithGST,basePlanCost,phImpact,phAdjustment,planTotal,remaining,totalClaimed,actualRemaining}})},[lines,rates,planWeeks,holidays]);
 const totals=useMemo(()=>{const totalFunding=perLine.reduce((a,l)=>a+l.totalFunding,0);const weekly=perLine.reduce((a,l)=>a+l.weeklyWithGST,0);const planCost=perLine.reduce((a,l)=>a+l.planTotal,0);const totalPH=perLine.reduce((a,l)=>a+l.phAdjustment,0);const remaining=totalFunding-planCost;const totalClaimed=perLine.reduce((a,l)=>a+(l as any).totalClaimed,0);const actualRemaining=totalFunding-totalClaimed;return{totalFunding,weekly,planCost,totalPH,remaining,totalClaimed,actualRemaining}},[perLine]);
 const saRows=useMemo(()=>perLine.flatMap((l:any)=>{
-  const mode=getLineMode(l.code);const rows:{key:string;label:string}[]=[];
-  if(mode==="lump"){rows.push({key:l.id+"_lump",label:l.description});return rows;}
+  const mode=getLineMode(l.code);const rows:{key:string;code:string;rateType:string;label:string}[]=[];
+  if(mode==="lump"){rows.push({key:l.id+"_lump",code:l.code,rateType:"lump",label:l.description});return rows;}
   const wkDays=["mon","tue","wed","thu","fri"];
   const wkdOrdHrs=wkDays.reduce((s:number,d:string)=>{const r=l.roster[d];return r?.enabled&&(r.hours||0)>0?s+(r.hours||0)*(FREQ[r.frequency]?.multiplier||1)*planWeeks:s},0);
   const wkdNightHrs=wkDays.reduce((s:number,d:string)=>{const r=l.roster[d];return r?.enabled&&(r.nightHours||0)>0?s+(r.nightHours||0)*(FREQ[r.frequency]?.multiplier||1)*planWeeks:s},0);
@@ -102,13 +116,13 @@ const saRows=useMemo(()=>perLine.flatMap((l:any)=>{
   const satNightHrs=satR?.enabled?(satR.nightHours||0)*(FREQ[satR.frequency]?.multiplier||1)*planWeeks:0;
   const sunHrs=sunR?.enabled?(sunR.hours||0)*(FREQ[sunR.frequency]?.multiplier||1)*planWeeks:0;
   const sunNightHrs=sunR?.enabled?(sunR.nightHours||0)*(FREQ[sunR.frequency]?.multiplier||1)*planWeeks:0;
-  if(wkdOrdHrs>0)rows.push({key:l.id+"_weekday",label:l.description+" - Weekday Daytime"});
-  if(wkdNightHrs>0)rows.push({key:l.id+"_weekdayNight",label:l.description+" - Weekday Night"});
-  if(satHrs>0)rows.push({key:l.id+"_sat",label:l.description+" - Saturday"});
-  if(satNightHrs>0)rows.push({key:l.id+"_satNight",label:l.description+" - Saturday Night"});
-  if(sunHrs>0)rows.push({key:l.id+"_sun",label:l.description+" - Sunday"});
-  if(sunNightHrs>0)rows.push({key:l.id+"_sunNight",label:l.description+" - Sunday Night"});
-  if(rows.length===0)rows.push({key:l.id+"_lump",label:l.description});
+  if(wkdOrdHrs>0)rows.push({key:l.id+"_weekday",code:l.code,rateType:"weekday",label:l.description+" - Weekday Daytime"});
+  if(wkdNightHrs>0)rows.push({key:l.id+"_weekdayNight",code:l.code,rateType:"weekdayNight",label:l.description+" - Weekday Night"});
+  if(satHrs>0)rows.push({key:l.id+"_sat",code:l.code,rateType:"sat",label:l.description+" - Saturday"});
+  if(satNightHrs>0)rows.push({key:l.id+"_satNight",code:l.code,rateType:"satNight",label:l.description+" - Saturday Night"});
+  if(sunHrs>0)rows.push({key:l.id+"_sun",code:l.code,rateType:"sun",label:l.description+" - Sunday"});
+  if(sunNightHrs>0)rows.push({key:l.id+"_sunNight",code:l.code,rateType:"sunNight",label:l.description+" - Sunday Night"});
+  if(rows.length===0)rows.push({key:l.id+"_lump",code:l.code,rateType:"lump",label:l.description});
   return rows;
 }),[perLine,planWeeks]);
 function updateLine(id:string,patch:Partial<SupportLine>){setLines(prev=>prev.map(l=>(l.id===id?{...l,...patch}:l)))}
@@ -336,13 +350,13 @@ function generateScheduleOfSupports(){
   const estFee=parseFloat(saEstFee)||0;
 
   // Build one row per active day-type per line (Annexure 1 format)
-  type SRow={key:string;category:string;price:number|null;hours:number|string|null;total:number|null};
+  type SRow={key:string;code:string;rateType:string;category:string;price:number|null;hours:number|string|null;total:number|null};
   const supRows:SRow[]=perLine.flatMap((l:any)=>{
     const div=RATIOS[l.ratio]?.divisor||1;
     const mode=getLineMode(l.code);
     const rows:SRow[]=[];
     if(mode==="lump"){
-      rows.push({key:l.id+"_lump",category:escapeHtml(l.description),price:null,hours:null,total:l.totalFunding});
+      rows.push({key:l.id+"_lump",code:l.code,rateType:"lump",category:escapeHtml(l.description),price:null,hours:null,total:l.totalFunding});
       return rows;
     }
     const wkDays=["mon","tue","wed","thu","fri"];
@@ -353,18 +367,18 @@ function generateScheduleOfSupports(){
     const satNightHrs=satR?.enabled?(satR.nightHours||0)*(FREQ[satR.frequency]?.multiplier||1)*planWeeks:0;
     const sunHrs=sunR?.enabled?(sunR.hours||0)*(FREQ[sunR.frequency]?.multiplier||1)*planWeeks:0;
     const sunNightHrs=sunR?.enabled?(sunR.nightHours||0)*(FREQ[sunR.frequency]?.multiplier||1)*planWeeks:0;
-    if(wkdOrdHrs>0){const rate=(l.lineRates?.weekdayOrd||0)/div;rows.push({key:l.id+"_weekday",category:escapeHtml(l.description)+" - Weekday Daytime",price:rate,hours:Math.round(wkdOrdHrs),total:rate*wkdOrdHrs});}
-    if(wkdNightHrs>0){const rate=(l.lineRates?.weekdayNight||0)/div;rows.push({key:l.id+"_weekdayNight",category:escapeHtml(l.description)+" - Weekday Night",price:rate,hours:Math.round(wkdNightHrs),total:rate*wkdNightHrs});}
-    if(satHrs>0){const rate=(l.lineRates?.sat||0)/div;rows.push({key:l.id+"_sat",category:escapeHtml(l.description)+" - Saturday",price:rate,hours:Math.round(satHrs),total:rate*satHrs});}
-    if(satNightHrs>0){const rate=(l.lineRates?.sat||0)/div;rows.push({key:l.id+"_satNight",category:escapeHtml(l.description)+" - Saturday Night",price:rate,hours:Math.round(satNightHrs),total:rate*satNightHrs});}
-    if(sunHrs>0){const rate=(l.lineRates?.sun||0)/div;rows.push({key:l.id+"_sun",category:escapeHtml(l.description)+" - Sunday",price:rate,hours:Math.round(sunHrs),total:rate*sunHrs});}
-    if(sunNightHrs>0){const rate=(l.lineRates?.sun||0)/div;rows.push({key:l.id+"_sunNight",category:escapeHtml(l.description)+" - Sunday Night",price:rate,hours:Math.round(sunNightHrs),total:rate*sunNightHrs});}
-    if(rows.length===0){rows.push({key:l.id+"_lump",category:escapeHtml(l.description),price:null,hours:null,total:l.totalFunding});}
+    if(wkdOrdHrs>0){const rate=(l.lineRates?.weekdayOrd||0)/div;rows.push({key:l.id+"_weekday",code:l.code,rateType:"weekday",category:escapeHtml(l.description)+" - Weekday Daytime",price:rate,hours:Math.round(wkdOrdHrs),total:rate*wkdOrdHrs});}
+    if(wkdNightHrs>0){const rate=(l.lineRates?.weekdayNight||0)/div;rows.push({key:l.id+"_weekdayNight",code:l.code,rateType:"weekdayNight",category:escapeHtml(l.description)+" - Weekday Night",price:rate,hours:Math.round(wkdNightHrs),total:rate*wkdNightHrs});}
+    if(satHrs>0){const rate=(l.lineRates?.sat||0)/div;rows.push({key:l.id+"_sat",code:l.code,rateType:"sat",category:escapeHtml(l.description)+" - Saturday",price:rate,hours:Math.round(satHrs),total:rate*satHrs});}
+    if(satNightHrs>0){const rate=(l.lineRates?.sat||0)/div;rows.push({key:l.id+"_satNight",code:l.code,rateType:"satNight",category:escapeHtml(l.description)+" - Saturday Night",price:rate,hours:Math.round(satNightHrs),total:rate*satNightHrs});}
+    if(sunHrs>0){const rate=(l.lineRates?.sun||0)/div;rows.push({key:l.id+"_sun",code:l.code,rateType:"sun",category:escapeHtml(l.description)+" - Sunday",price:rate,hours:Math.round(sunHrs),total:rate*sunHrs});}
+    if(sunNightHrs>0){const rate=(l.lineRates?.sun||0)/div;rows.push({key:l.id+"_sunNight",code:l.code,rateType:"sunNight",category:escapeHtml(l.description)+" - Sunday Night",price:rate,hours:Math.round(sunNightHrs),total:rate*sunNightHrs});}
+    if(rows.length===0){rows.push({key:l.id+"_lump",code:l.code,rateType:"lump",category:escapeHtml(l.description),price:null,hours:null,total:l.totalFunding});}
     return rows;
   });
 
   const supRowsHtml=supRows.map(r=>{
-    const itemNum=saItemNumbers[r.key]||"";
+    const itemNum=saItemNumbers[r.key]||getDefaultItemNumber(r.code,r.rateType);
     return "<tr>"
     +"<td style=\"vertical-align:top\">"+r.category+"</td>"
     +"<td style=\"vertical-align:top;color:#475569;font-size:8.5pt\">"+(itemNum?"NDIS Item Number<br/>"+escapeHtml(itemNum):"<span style=\"color:#cbd5e1\">_______________</span>")+"</td>"
@@ -939,12 +953,12 @@ return(
 
   {saRows.length>0&&<div className="rounded-lg p-4 mb-5" style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)"}}>
     <div className="text-xs font-semibold mb-1" style={{color:"#b0a0d0",textTransform:"uppercase",letterSpacing:"0.06em"}}>NDIS Item Numbers</div>
-    <div className="text-xs mb-3" style={{color:"#6060a0"}}>Enter the item number for each support row. Saved automatically.</div>
+    <div className="text-xs mb-3" style={{color:"#6060a0"}}>Auto-filled from the 2025–26 price guide. Override any item number below if needed.</div>
     {saRows.map(row=>(
       <div key={row.key} className="flex items-center gap-2 mb-2">
         <div className="text-xs flex-1 truncate" style={{color:"#c0c0e0",minWidth:0}}>{row.label}</div>
         <input value={saItemNumbers[row.key]||""} onChange={e=>setSaItemNumbers(p=>({...p,[row.key]:e.target.value}))}
-          placeholder="e.g. 01_011_0107_1_1"
+          placeholder={getDefaultItemNumber(row.code,row.rateType)||"e.g. 01_011_0107_1_1"}
           className="rounded px-2 py-1 text-xs outline-none"
           style={{background:"rgba(15,10,48,0.6)",border:"1px solid rgba(212,168,67,0.2)",color:"white",width:"180px",flexShrink:0}}/>
       </div>
