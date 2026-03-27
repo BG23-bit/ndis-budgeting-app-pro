@@ -21,6 +21,9 @@ export default function AdminPage() {
   const [error, setError] = useState("");
   const [updating, setUpdating] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviting, setInviting] = useState(false);
+  const [inviteMsg, setInviteMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -71,6 +74,33 @@ export default function AdminPage() {
       alert("Failed to update: " + data.error);
     }
     setUpdating(null);
+  }
+
+  async function inviteUser(e: React.FormEvent) {
+    e.preventDefault();
+    if (!inviteEmail) return;
+    setInviting(true);
+    setInviteMsg(null);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const res = await fetch("/api/admin/invite", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ email: inviteEmail }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      setInviteMsg({ type: "success", text: `Invite sent to ${inviteEmail}` });
+      setInviteEmail("");
+      await fetchUsers(session.access_token);
+    } else {
+      setInviteMsg({ type: "error", text: data.error });
+    }
+    setInviting(false);
   }
 
   const filtered = users.filter((u) =>
@@ -215,6 +245,47 @@ export default function AdminPage() {
           <div style={s.statValue}>{staffUsers}</div>
         </div>
       </div>
+
+      {/* Invite form */}
+      <form onSubmit={inviteUser} style={{ display: "flex", gap: "12px", marginBottom: "24px", flexWrap: "wrap" as const }}>
+        <input
+          type="email"
+          required
+          placeholder="staff@email.com"
+          value={inviteEmail}
+          onChange={(e) => setInviteEmail(e.target.value)}
+          style={{ ...s.search, marginBottom: 0, flex: 1, minWidth: "220px" }}
+        />
+        <button
+          type="submit"
+          disabled={inviting}
+          style={{
+            padding: "10px 20px",
+            background: inviting ? "#3a2a60" : "#d4a843",
+            color: inviting ? "#9880b8" : "#1a0a2e",
+            border: "none",
+            borderRadius: "8px",
+            fontWeight: 700,
+            fontSize: "14px",
+            cursor: inviting ? "not-allowed" : "pointer",
+          }}
+        >
+          {inviting ? "Sending..." : "Invite Staff"}
+        </button>
+      </form>
+      {inviteMsg && (
+        <div style={{
+          marginBottom: "16px",
+          padding: "10px 16px",
+          borderRadius: "8px",
+          fontSize: "14px",
+          background: inviteMsg.type === "success" ? "#1a3a1a" : "#3a1a1a",
+          border: `1px solid ${inviteMsg.type === "success" ? "#4caf50" : "#f44"}`,
+          color: inviteMsg.type === "success" ? "#4caf50" : "#f88",
+        }}>
+          {inviteMsg.text}
+        </div>
+      )}
 
       <input
         style={s.search}
