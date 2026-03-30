@@ -112,26 +112,25 @@ export default function DashboardPage() {
       try {
         const { data: d } = await supabase.auth.getUser();
         if (d.user) {
+          // Authenticated: always use Supabase as source of truth — never fall back to
+          // localStorage, which may contain a different user's data on shared devices.
           const { data: row } = await supabase.from("participant_lists").select("participants").eq("user_id", d.user.id).single();
-          if (row?.participants && Array.isArray(row.participants) && row.participants.length > 0) {
+          if (row?.participants && Array.isArray(row.participants)) {
             setParticipants(row.participants);
-            hasLoadedRef.current = true;
-            return;
+          }
+          // If no Supabase row exists yet, leave list empty (don't read localStorage).
+        } else {
+          // Unauthenticated / preview mode — fall back to localStorage.
+          const raw = localStorage.getItem("ndis_participants_list");
+          if (raw) {
+            try {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed) && parsed.length > 0) setParticipants(parsed);
+            } catch {}
           }
         }
-        const raw = localStorage.getItem("ndis_participants_list");
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed) && parsed.length > 0) setParticipants(parsed);
-        }
       } catch {
-        const raw = localStorage.getItem("ndis_participants_list");
-        if (raw) {
-          try {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed) && parsed.length > 0) setParticipants(parsed);
-          } catch {}
-        }
+        // Network error while authenticated — stay empty rather than leak another user's data.
       } finally {
         hasLoadedRef.current = true;
       }
