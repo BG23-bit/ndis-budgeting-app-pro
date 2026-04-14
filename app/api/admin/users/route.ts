@@ -24,7 +24,7 @@ export async function GET(req: Request) {
   const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
   if (authError) return NextResponse.json({ error: authError.message }, { status: 500 });
 
-  const { data: profiles } = await supabase.from("profiles").select("id, paid, subscription_status");
+  const { data: profiles } = await supabase.from("profiles").select("id, paid, subscription_status, welcome_sent_at, followup1_sent_at, followup2_sent_at");
   const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
 
   const users = authUsers.users.map((u) => {
@@ -35,6 +35,9 @@ export async function GET(req: Request) {
       created_at: u.created_at,
       paid: profile?.paid ?? false,
       subscription_status: profile?.subscription_status ?? null,
+      welcome_sent_at: profile?.welcome_sent_at ?? null,
+      followup1_sent_at: profile?.followup1_sent_at ?? null,
+      followup2_sent_at: profile?.followup2_sent_at ?? null,
     };
   });
 

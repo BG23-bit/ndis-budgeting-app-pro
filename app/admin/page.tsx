@@ -12,6 +12,9 @@ type User = {
   created_at: string;
   paid: boolean;
   subscription_status: string | null;
+  welcome_sent_at: string | null;
+  followup1_sent_at: string | null;
+  followup2_sent_at: string | null;
 };
 
 export default function AdminPage() {
@@ -24,6 +27,7 @@ export default function AdminPage() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviting, setInviting] = useState(false);
   const [inviteMsg, setInviteMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [sendingEmail, setSendingEmail] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -101,6 +105,28 @@ export default function AdminPage() {
       setInviteMsg({ type: "error", text: data.error });
     }
     setInviting(false);
+  }
+
+  async function sendEmail(userId: string, type: "welcome" | "followup1" | "followup2") {
+    setSendingEmail(`${userId}-${type}`);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const res = await fetch("/api/admin/send-email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ userId, type }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      await fetchUsers(session.access_token);
+    } else {
+      alert("Failed: " + data.error);
+    }
+    setSendingEmail(null);
   }
 
   const filtered = users.filter((u) =>
@@ -304,13 +330,14 @@ export default function AdminPage() {
               <th style={s.th}>Joined</th>
               <th style={s.th}>Status</th>
               <th style={s.th}>Subscription</th>
+              <th style={s.th}>Emails Sent</th>
               <th style={s.th}>Action</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={5} style={{ ...s.td, textAlign: "center", color: "#9880b8", padding: "48px" }}>
+                <td colSpan={6} style={{ ...s.td, textAlign: "center", color: "#9880b8", padding: "48px" }}>
                   No users found.
                 </td>
               </tr>
@@ -333,6 +360,41 @@ export default function AdminPage() {
                   </td>
                   <td style={{ ...s.td, color: "#9880b8", fontSize: "13px" }}>
                     {u.subscription_status ?? "—"}
+                  </td>
+                  <td style={{ ...s.td, fontSize: "12px" }}>
+                    {u.email === ADMIN_EMAIL ? (
+                      <span style={{ color: "#9880b8" }}>—</span>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                        {(["welcome", "followup1", "followup2"] as const).map((type) => {
+                          const sentAt = u[`${type}_sent_at` as keyof User] as string | null;
+                          const label = type === "welcome" ? "Welcome" : type === "followup1" ? "Day 3" : "Day 7";
+                          const isSending = sendingEmail === `${u.id}-${type}`;
+                          return (
+                            <div key={type} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                              <span style={{ color: sentAt ? "#4caf50" : "#555", width: "6px" }}>{sentAt ? "✓" : "·"}</span>
+                              <span style={{ color: sentAt ? "#9880b8" : "#e8e0f0", minWidth: "52px" }}>{label}</span>
+                              <button
+                                onClick={() => sendEmail(u.id, type)}
+                                disabled={isSending}
+                                style={{
+                                  padding: "2px 8px",
+                                  background: "transparent",
+                                  border: "1px solid #4a3060",
+                                  borderRadius: "4px",
+                                  color: "#d4a843",
+                                  cursor: isSending ? "not-allowed" : "pointer",
+                                  fontSize: "11px",
+                                  opacity: isSending ? 0.5 : 1,
+                                }}
+                              >
+                                {isSending ? "..." : sentAt ? "Resend" : "Send"}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </td>
                   <td style={s.td}>
                     {u.email === ADMIN_EMAIL ? (
