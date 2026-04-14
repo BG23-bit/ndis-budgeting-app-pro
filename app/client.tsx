@@ -77,8 +77,8 @@ const CATEGORY_PRESETS:{[code:string]:{name:string;rates:Rates}}={
 };
 function getPresetRates(code:string):Rates{return CATEGORY_PRESETS[code]?.rates||NDIS_RATES_2025_26}
 const NDIS_ITEM_DEFAULTS:{[code:string]:{[rateType:string]:string}}={
-  "01":{weekday:"01_011_0107_1_1",weekdayNight:"01_012_0107_1_1",sat:"01_013_0107_1_1",satNight:"01_013_0107_1_1",sun:"01_014_0107_1_1",sunNight:"01_014_0107_1_1",publicHoliday:"01_015_0107_1_1",lump:"01_821_0115_1_1"},
-  "04":{weekday:"04_104_0125_6_1",weekdayNight:"04_104_0125_6_1",sat:"04_105_0125_6_1",satNight:"04_105_0125_6_1",sun:"04_106_0125_6_1",sunNight:"04_106_0125_6_1",publicHoliday:"04_117_0125_6_1"},
+  "01":{weekday:"01_011_0107_1_1",weekdayNight:"01_012_0107_1_1",sat:"01_013_0107_1_1",satNight:"01_013_0107_1_1",sun:"01_014_0107_1_1",sunNight:"01_014_0107_1_1",publicHoliday:"01_015_0107_1_1",activeSleepover:"01_010_0107_1_1",fixedSleepover:"01_799_0104_1_1",lump:"01_821_0115_1_1"},
+  "04":{weekday:"04_104_0125_6_1",weekdayNight:"04_104_0125_6_1",sat:"04_105_0125_6_1",satNight:"04_105_0125_6_1",sun:"04_106_0125_6_1",sunNight:"04_106_0125_6_1",publicHoliday:"04_117_0125_6_1",activeSleepover:"04_010_0125_6_1"},
   "07":{weekday:"07_001_0106_8_3",lump:"07_001_0106_8_3"},
   "08":{weekday:"01_821_0115_1_1",lump:"01_821_0115_1_1"},
   "09":{weekday:"04_104_0125_6_1",sat:"04_105_0125_6_1",sun:"04_106_0125_6_1"},
@@ -384,6 +384,8 @@ function generateScheduleOfSupports(){
     if(adjSun>0){const rate=(l.lineRates?.sun||0)/div;const h=Math.round(adjSun);rows.push({key:l.id+"_sun",code:l.code,rateType:"sun",category:escapeHtml(l.description)+" - Sunday",price:rate,hours:h,total:rate*h});}
     if(adjSunNight>0){const rate=(l.lineRates?.sun||0)/div;const h=Math.round(adjSunNight);rows.push({key:l.id+"_sunNight",code:l.code,rateType:"sunNight",category:escapeHtml(l.description)+" - Sunday Night",price:rate,hours:h,total:rate*h});}
     if(phHrs>0){const rate=(l.lineRates?.publicHoliday||0)/div;const h=Math.round(phHrs);rows.push({key:l.id+"_ph",code:l.code,rateType:"publicHoliday",category:escapeHtml(l.description)+" - Public Holiday",price:rate,hours:h,total:rate*h});}
+    const sf=FREQ[l.activeSleepoverFreq]?.multiplier||1;const activeSoHrs=Math.round((l.activeSleepoverHours||0)*sf*planWeeks);if(activeSoHrs>0&&(l.lineRates?.activeSleepoverHourly||0)>0){const rate=(l.lineRates?.activeSleepoverHourly||0)/div;rows.push({key:l.id+"_activeSleepover",code:l.code,rateType:"activeSleepover",category:escapeHtml(l.description)+" - Active Sleepover",price:rate,hours:activeSoHrs,total:rate*activeSoHrs});}
+    const ff=FREQ[l.fixedSleepoverFreq]?.multiplier||1;const fixedSoUnits=Math.round((l.fixedSleepovers||0)*ff*planWeeks);if(fixedSoUnits>0&&(l.lineRates?.fixedSleepoverUnit||0)>0){const rate=l.lineRates?.fixedSleepoverUnit||0;rows.push({key:l.id+"_fixedSleepover",code:l.code,rateType:"fixedSleepover",category:escapeHtml(l.description)+" - Sleepover (Overnight)",price:rate,hours:fixedSoUnits,total:rate*fixedSoUnits});}
     if(rows.length===0){rows.push({key:l.id+"_lump",code:l.code,rateType:"lump",category:escapeHtml(l.description),price:null,hours:null,total:l.totalFunding});}
     return rows;
   });
