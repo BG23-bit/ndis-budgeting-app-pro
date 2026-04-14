@@ -77,8 +77,8 @@ const CATEGORY_PRESETS:{[code:string]:{name:string;rates:Rates}}={
 };
 function getPresetRates(code:string):Rates{return CATEGORY_PRESETS[code]?.rates||NDIS_RATES_2025_26}
 const NDIS_ITEM_DEFAULTS:{[code:string]:{[rateType:string]:string}}={
-  "01":{weekday:"01_011_0107_1_1",weekdayNight:"01_012_0107_1_1",sat:"01_013_0107_1_1",satNight:"01_013_0107_1_1",sun:"01_014_0107_1_1",sunNight:"01_014_0107_1_1",lump:"01_821_0115_1_1"},
-  "04":{weekday:"04_104_0125_6_1",weekdayNight:"04_104_0125_6_1",sat:"04_105_0125_6_1",satNight:"04_105_0125_6_1",sun:"04_106_0125_6_1",sunNight:"04_106_0125_6_1"},
+  "01":{weekday:"01_011_0107_1_1",weekdayNight:"01_012_0107_1_1",sat:"01_013_0107_1_1",satNight:"01_013_0107_1_1",sun:"01_014_0107_1_1",sunNight:"01_014_0107_1_1",publicHoliday:"01_015_0107_1_1",lump:"01_821_0115_1_1"},
+  "04":{weekday:"04_104_0125_6_1",weekdayNight:"04_104_0125_6_1",sat:"04_105_0125_6_1",satNight:"04_105_0125_6_1",sun:"04_106_0125_6_1",sunNight:"04_106_0125_6_1",publicHoliday:"04_117_0125_6_1"},
   "07":{weekday:"07_001_0106_8_3",lump:"07_001_0106_8_3"},
   "08":{weekday:"01_821_0115_1_1",lump:"01_821_0115_1_1"},
   "09":{weekday:"04_104_0125_6_1",sat:"04_105_0125_6_1",sun:"04_106_0125_6_1"},
@@ -367,13 +367,23 @@ function generateScheduleOfSupports(){
     const satNightHrs=satR?.enabled?(satR.nightHours||0)*(FREQ[satR.frequency]?.multiplier||1)*planWeeks:0;
     const sunHrs=sunR?.enabled?(sunR.hours||0)*(FREQ[sunR.frequency]?.multiplier||1)*planWeeks:0;
     const sunNightHrs=sunR?.enabled?(sunR.nightHours||0)*(FREQ[sunR.frequency]?.multiplier||1)*planWeeks:0;
-    if(wkdOrdHrs>0){const rate=(l.lineRates?.weekdayOrd||0)/div;rows.push({key:l.id+"_weekday",code:l.code,rateType:"weekday",category:escapeHtml(l.description)+" - Weekday Daytime",price:rate,hours:Math.round(wkdOrdHrs),total:rate*wkdOrdHrs});}
-    if(wkdNightHrs>0){const rate=(l.lineRates?.weekdayNight||0)/div;rows.push({key:l.id+"_weekdayNight",code:l.code,rateType:"weekdayNight",category:escapeHtml(l.description)+" - Weekday Night",price:rate,hours:Math.round(wkdNightHrs),total:rate*wkdNightHrs});}
-    if(satHrs>0){const rate=(l.lineRates?.sat||0)/div;rows.push({key:l.id+"_sat",code:l.code,rateType:"sat",category:escapeHtml(l.description)+" - Saturday",price:rate,hours:Math.round(satHrs),total:rate*satHrs});}
-    if(satNightHrs>0){const rate=(l.lineRates?.sat||0)/div;rows.push({key:l.id+"_satNight",code:l.code,rateType:"satNight",category:escapeHtml(l.description)+" - Saturday Night",price:rate,hours:Math.round(satNightHrs),total:rate*satNightHrs});}
-    if(sunHrs>0){const rate=(l.lineRates?.sun||0)/div;rows.push({key:l.id+"_sun",code:l.code,rateType:"sun",category:escapeHtml(l.description)+" - Sunday",price:rate,hours:Math.round(sunHrs),total:rate*sunHrs});}
-    if(sunNightHrs>0){const rate=(l.lineRates?.sun||0)/div;rows.push({key:l.id+"_sunNight",code:l.code,rateType:"sunNight",category:escapeHtml(l.description)+" - Sunday Night",price:rate,hours:Math.round(sunNightHrs),total:rate*sunNightHrs});}
-    if(l.phAdjustment!==0&&l.phImpact?.details){const phDays=l.phImpact.details.filter((d:any)=>d.included&&d.impact>0).length;rows.push({key:l.id+"_ph",code:l.code,rateType:"publicHoliday",category:escapeHtml(l.description)+" — Public Holiday Adjustment ("+phDays+" day"+(phDays!==1?"s":"")+")",price:null,hours:null,total:l.phAdjustment});}
+    // Break PH hours out of regular rows into their own line item
+    let phHrs=0,phWkdDay=0,phWkdNight=0,phSatDay=0,phSatNight=0,phSunDay=0,phSunNight=0;
+    const _dow:{[k:number]:string}={0:"sun",1:"mon",2:"tue",3:"wed",4:"thu",5:"fri",6:"sat"};
+    if(l.phImpact?.details){for(const h of l.phImpact.details){if(!h.included||!h.impact)continue;const rd=_dow[new Date(h.date).getDay()];const r=l.roster[rd];if(!r||!r.enabled)continue;const dh=r.hours||0,nh=r.nightHours||0;phHrs+=dh+nh;if(rd==="sat"){phSatDay+=dh;phSatNight+=nh;}else if(rd==="sun"){phSunDay+=dh;phSunNight+=nh;}else{phWkdDay+=dh;phWkdNight+=nh;}}}
+    const adjWkdOrd=Math.max(0,wkdOrdHrs-phWkdDay);
+    const adjWkdNight=Math.max(0,wkdNightHrs-phWkdNight);
+    const adjSat=Math.max(0,satHrs-phSatDay);
+    const adjSatNight=Math.max(0,satNightHrs-phSatNight);
+    const adjSun=Math.max(0,sunHrs-phSunDay);
+    const adjSunNight=Math.max(0,sunNightHrs-phSunNight);
+    if(adjWkdOrd>0){const rate=(l.lineRates?.weekdayOrd||0)/div;rows.push({key:l.id+"_weekday",code:l.code,rateType:"weekday",category:escapeHtml(l.description)+" - Weekday Daytime",price:rate,hours:Math.round(adjWkdOrd),total:rate*adjWkdOrd});}
+    if(adjWkdNight>0){const rate=(l.lineRates?.weekdayNight||0)/div;rows.push({key:l.id+"_weekdayNight",code:l.code,rateType:"weekdayNight",category:escapeHtml(l.description)+" - Weekday Night",price:rate,hours:Math.round(adjWkdNight),total:rate*adjWkdNight});}
+    if(adjSat>0){const rate=(l.lineRates?.sat||0)/div;rows.push({key:l.id+"_sat",code:l.code,rateType:"sat",category:escapeHtml(l.description)+" - Saturday",price:rate,hours:Math.round(adjSat),total:rate*adjSat});}
+    if(adjSatNight>0){const rate=(l.lineRates?.sat||0)/div;rows.push({key:l.id+"_satNight",code:l.code,rateType:"satNight",category:escapeHtml(l.description)+" - Saturday Night",price:rate,hours:Math.round(adjSatNight),total:rate*adjSatNight});}
+    if(adjSun>0){const rate=(l.lineRates?.sun||0)/div;rows.push({key:l.id+"_sun",code:l.code,rateType:"sun",category:escapeHtml(l.description)+" - Sunday",price:rate,hours:Math.round(adjSun),total:rate*adjSun});}
+    if(adjSunNight>0){const rate=(l.lineRates?.sun||0)/div;rows.push({key:l.id+"_sunNight",code:l.code,rateType:"sunNight",category:escapeHtml(l.description)+" - Sunday Night",price:rate,hours:Math.round(adjSunNight),total:rate*adjSunNight});}
+    if(phHrs>0){const rate=(l.lineRates?.publicHoliday||0)/div;rows.push({key:l.id+"_ph",code:l.code,rateType:"publicHoliday",category:escapeHtml(l.description)+" - Public Holiday",price:rate,hours:Math.round(phHrs),total:rate*phHrs});}
     if(rows.length===0){rows.push({key:l.id+"_lump",code:l.code,rateType:"lump",category:escapeHtml(l.description),price:null,hours:null,total:l.totalFunding});}
     return rows;
   });
