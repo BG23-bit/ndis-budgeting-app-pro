@@ -373,6 +373,8 @@ function generateScheduleOfSupports(){
     if(satNightHrs>0){const rate=(l.lineRates?.sat||0)/div;rows.push({key:l.id+"_satNight",code:l.code,rateType:"satNight",category:escapeHtml(l.description)+" - Saturday Night",price:rate,hours:Math.round(satNightHrs),total:rate*satNightHrs});}
     if(sunHrs>0){const rate=(l.lineRates?.sun||0)/div;rows.push({key:l.id+"_sun",code:l.code,rateType:"sun",category:escapeHtml(l.description)+" - Sunday",price:rate,hours:Math.round(sunHrs),total:rate*sunHrs});}
     if(sunNightHrs>0){const rate=(l.lineRates?.sun||0)/div;rows.push({key:l.id+"_sunNight",code:l.code,rateType:"sunNight",category:escapeHtml(l.description)+" - Sunday Night",price:rate,hours:Math.round(sunNightHrs),total:rate*sunNightHrs});}
+    const phData=perLine.find((pl:any)=>pl.id===l.id);
+    if(phData&&phData.phAdjustment!==0){const phDays=phData.phImpact.details.filter((d:any)=>d.included&&d.impact>0).length;rows.push({key:l.id+"_ph",code:l.code,rateType:"publicHoliday",category:escapeHtml(l.description)+" — Public Holiday Adjustment ("+phDays+" day"+(phDays!==1?"s":"")+")",price:null,hours:null,total:phData.phAdjustment});}
     if(rows.length===0){rows.push({key:l.id+"_lump",code:l.code,rateType:"lump",category:escapeHtml(l.description),price:null,hours:null,total:l.totalFunding});}
     return rows;
   });
