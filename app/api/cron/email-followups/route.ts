@@ -9,14 +9,14 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const FROM = "NDIS Budget Pro <support@kevria.com>";
+const FROM = "Kevria Calc <support@kevria.com>";
 const DASHBOARD_URL = "https://kevriacalc.com/dashboard";
 const UPGRADE_URL = "https://kevriacalc.com/#pricing";
 
 function emailHeader(title: string, subtitle: string) {
   return `
     <div style="background: linear-gradient(135deg, #1a0a2e 0%, #2d1554 100%); padding: 40px 32px; border-radius: 12px 12px 0 0; text-align: center;">
-      <div style="font-size: 28px; font-weight: 800; color: #d4a843; margin-bottom: 6px; letter-spacing: -0.5px;">NDIS Budget Pro</div>
+      <div style="font-size: 28px; font-weight: 800; color: #d4a843; margin-bottom: 6px; letter-spacing: -0.5px;">Kevria Calc</div>
       <div style="font-size: 20px; font-weight: 600; color: #e8e0f0; margin-bottom: 4px;">${title}</div>
       <div style="font-size: 14px; color: #9880b8;">${subtitle}</div>
     </div>
@@ -26,7 +26,7 @@ function emailHeader(title: string, subtitle: string) {
 function emailFooter() {
   return `
     <div style="padding: 24px 32px; text-align: center; border-top: 1px solid #e8e0f0;">
-      <p style="font-size: 12px; color: #9ca3af; margin: 0 0 4px;">NDIS Budget Pro — built by Kevria</p>
+      <p style="font-size: 12px; color: #9ca3af; margin: 0 0 4px;">Kevria Calc — built by Kevria</p>
       <p style="font-size: 12px; color: #9ca3af; margin: 0;">Questions? Reply to this email or visit <a href="https://kevriacalc.com" style="color: #d4a843;">kevriacalc.com</a></p>
     </div>
   `;
@@ -54,7 +54,7 @@ function buildWelcomeEmail(email: string) {
         <div style="padding: 32px;">
           <p style="font-size: 16px; color: #1a0a2e; margin: 0 0 16px;">Hi ${displayName},</p>
           <p style="font-size: 15px; color: #374151; line-height: 1.7; margin: 0 0 16px;">
-            Thanks for signing up to <strong>NDIS Budget Pro</strong>. You now have access to Australia's most practical NDIS budget calculator — built specifically for support coordinators and plan managers.
+            Thanks for signing up to <strong>Kevria Calc</strong>. You now have access to Australia's most practical NDIS budget calculator — built specifically for support coordinators and plan managers.
           </p>
           <div style="background: #f9f5ff; border-left: 4px solid #d4a843; border-radius: 4px; padding: 16px 20px; margin: 24px 0;">
             <p style="font-size: 14px; font-weight: 700; color: #1a0a2e; margin: 0 0 10px;">Get started in 3 steps:</p>
@@ -79,7 +79,7 @@ function buildWelcomeEmail(email: string) {
   `;
 
   return {
-    subject: "Welcome to NDIS Budget Pro",
+    subject: "Welcome to Kevria Calc",
     html,
   };
 }
@@ -94,7 +94,7 @@ function buildFollowup1Email(email: string) {
     <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
     <body style="margin: 0; padding: 0; background: #f4f0fa; font-family: Arial, Helvetica, sans-serif;">
       <div style="max-width: 600px; margin: 32px auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(26,10,46,0.12);">
-        ${emailHeader("Getting the most out of NDIS Budget Pro", "A few things worth knowing")}
+        ${emailHeader("Getting the most out of Kevria Calc", "A few things worth knowing")}
         <div style="padding: 32px;">
           <p style="font-size: 16px; color: #1a0a2e; margin: 0 0 16px;">Hi ${displayName},</p>
           <p style="font-size: 15px; color: #374151; line-height: 1.7; margin: 0 0 16px;">
@@ -154,7 +154,7 @@ function buildFollowup2Email(email: string) {
         <div style="padding: 32px;">
           <p style="font-size: 16px; color: #1a0a2e; margin: 0 0 16px;">Hi ${displayName},</p>
           <p style="font-size: 15px; color: #374151; line-height: 1.7; margin: 0 0 20px;">
-            It's been a week since you joined NDIS Budget Pro. If you haven't had a chance to properly try it yet — or if something's not clicking — reply to this email and I'll help you get set up personally.
+            It's been a week since you joined Kevria Calc. If you haven't had a chance to properly try it yet — or if something's not clicking — reply to this email and I'll help you get set up personally.
           </p>
           <div style="background: #1a0a2e; border-radius: 10px; padding: 24px 28px; margin: 24px 0; text-align: center;">
             <p style="font-size: 13px; font-weight: 700; color: #d4a843; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.5px;">Upgrade today</p>
@@ -162,7 +162,7 @@ function buildFollowup2Email(email: string) {
             <p style="font-size: 13px; color: #9880b8; margin: 0 0 16px;">or $79/year — save 34%</p>
             <a href="${UPGRADE_URL}" style="display: inline-block; background: #d4a843; color: #1a0a2e; font-weight: 700; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 14px;">Unlock Full Access →</a>
           </div>
-          <p style="font-size: 14px; color: #374151; line-height: 1.7; margin: 0 0 8px;">NDIS Budget Pro is used by support coordinators across Australia to:</p>
+          <p style="font-size: 14px; color: #374151; line-height: 1.7; margin: 0 0 8px;">Kevria Calc is used by support coordinators across Australia to:</p>
           <p style="font-size: 14px; color: #6b7280; margin: 0 0 4px;">✓ Stay on top of participant budgets in real time</p>
           <p style="font-size: 14px; color: #6b7280; margin: 0 0 4px;">✓ Build accurate rosters with correct NDIS rates</p>
           <p style="font-size: 14px; color: #6b7280; margin: 0 0 20px;">✓ Track claims and actual spend per support line</p>
@@ -175,7 +175,7 @@ function buildFollowup2Email(email: string) {
   `;
 
   return {
-    subject: "One last thing from us — NDIS Budget Pro",
+    subject: "One last thing from us — Kevria Calc",
     html,
   };
 }
@@ -232,15 +232,15 @@ export async function GET(req: Request) {
     const createdAt = user.created_at;
 
     try {
-      // Welcome email — send to anyone who hasn't received it yet
+      // Skip paid users entirely — no emails needed
+      if (profile.paid) continue;
+
+      // Welcome email — send to free users who haven't received it yet
       if (!profile.welcome_sent_at) {
         await sendEmailForUser(user.id, user.email, "welcome");
         results.welcome++;
         continue; // don't stack emails on same run
       }
-
-      // Skip paid users for follow-ups
-      if (profile.paid) continue;
 
       // Day 3 follow-up
       if (!profile.followup1_sent_at && createdAt <= day3Cutoff) {
