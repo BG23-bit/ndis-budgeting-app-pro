@@ -26,15 +26,19 @@ const es=new Date(easter);es.setDate(easter.getDate()-1);add(formatDate(es),"Eas
 add(formatDate(easter),"Easter Sunday");
 const em=new Date(easter);em.setDate(easter.getDate()+1);add(formatDate(em),"Easter Monday");
 add(year+"-04-25","ANZAC Day");
+const anzac=new Date(year+"-04-25");if(anzac.getDay()===0)add(year+"-04-26","ANZAC Day (observed)");if(anzac.getDay()===6)add(year+"-04-27","ANZAC Day (observed)");
 if(state==="ACT"){const x=new Date(year,2,1);add(formatDate(new Date(year,2,1+((8-x.getDay())%7)+7)),"Canberra Day")}
 if(state==="VIC"){const x=new Date(year,5,1);add(formatDate(new Date(year,5,1+((8-x.getDay())%7)+7)),"Queen's Birthday");const y=new Date(year,10,1);add(formatDate(new Date(year,10,1+((9-y.getDay())%7))),"Melbourne Cup")}
 if(state==="NSW"||state==="SA"||state==="TAS"||state==="ACT"){const x=new Date(year,5,1);add(formatDate(new Date(year,5,1+((8-x.getDay())%7)+7)),"Queen's Birthday")}
 if(state==="QLD"){const x=new Date(year,9,1);add(formatDate(new Date(year,9,1+((8-x.getDay())%7)+21)),"Queen's Birthday")}
 if(state==="WA"){const x=new Date(year,8,1);add(formatDate(new Date(year,8,1+((8-x.getDay())%7)+21)),"Queen's Birthday")}
 if(state==="NT"){const x=new Date(year,4,1);add(formatDate(new Date(year,4,1+((8-x.getDay())%7))),"May Day");const y=new Date(year,5,1);add(formatDate(new Date(year,5,1+((8-y.getDay())%7)+7)),"Queen's Birthday")}
-if(state==="SA"){const x=new Date(year,9,1);add(formatDate(new Date(year,9,1+((8-x.getDay())%7))),"Labour Day")}
+if(state==="SA"||state==="NSW"||state==="ACT"){const x=new Date(year,9,1);add(formatDate(new Date(year,9,1+((8-x.getDay())%7))),"Labour Day")}
 if(state==="TAS"){const x=new Date(year,10,1);add(formatDate(new Date(year,10,1+((8-x.getDay())%7))),"Recreation Day")}
-add(year+"-12-25","Christmas Day");add(year+"-12-26","Boxing Day");return h}
+add(year+"-12-25","Christmas Day");add(year+"-12-26","Boxing Day");
+const xmas=new Date(year+"-12-25");if(xmas.getDay()===6)add(year+"-12-27","Christmas Day (observed)");if(xmas.getDay()===0)add(year+"-12-27","Christmas Day (observed)");
+const boxing=new Date(year+"-12-26");if(boxing.getDay()===6)add(year+"-12-28","Boxing Day (observed)");if(boxing.getDay()===0)add(year+"-12-27","Boxing Day (observed)");
+return h}
 function getHolidaysInRange(start:string,end:string,state:string){if(!start||!end)return[];const sd=new Date(start),ed=new Date(end);const all:{date:string;name:string;dayOfWeek:number}[]=[];for(let y=sd.getFullYear();y<=ed.getFullYear();y++)all.push(...getPublicHolidays(y,state));return all.filter(h=>{const d=new Date(h.date);return d>=sd&&d<=ed}).sort((a,b)=>a.date.localeCompare(b.date))}
 function getDayName(d:number):string{return["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][d]}
 function getWeeksInPlan(s:string,e:string):number{if(!s||!e)return 52;return Math.max(1,(new Date(e).getTime()-new Date(s).getTime())/(7*24*60*60*1000))}
