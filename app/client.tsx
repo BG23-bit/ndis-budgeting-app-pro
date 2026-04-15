@@ -503,6 +503,43 @@ tbody td{padding:9px 10px;vertical-align:top}
   </table>
   <div class="note">Prices per the NDIS Pricing Arrangements &amp; Price Limits (2025&#8211;26). Plan totals are estimates and may vary based on actual supports delivered. All prices are GST-inclusive where applicable.</div>
 
+  ${(()=>{
+    const rLines=perLine.filter((l:any)=>getLineMode(l.code)!=="lump"&&Object.values(l.roster).some((r:any)=>r?.enabled));
+    if(rLines.length===0)return"";
+    const dOrder=["mon","tue","wed","thu","fri","sat","sun"];
+    const dLabel=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+    const rows=rLines.map((l:any)=>{
+      const cells=dOrder.map((d,i)=>{
+        const r=l.roster[d];
+        if(!r?.enabled)return`<td style="text-align:center;color:#cbd5e1;font-size:8.5pt">—</td>`;
+        const dh=r.hours||0,nh=r.nightHours||0;
+        const freq=r.frequency&&r.frequency!=="every"?`<div style="color:#94a3b8;font-size:7pt;margin-top:1px">${r.frequency==="fortnightly"?"ftn":"mth"}</div>`:"";
+        const isSat=d==="sat",isSun=d==="sun";
+        const dayColour=isSat?"#1e40af":isSun?"#7c3aed":"inherit";
+        let inner="";
+        if(dh>0)inner+=`<div style="font-weight:600;color:${dayColour}">${dh}h</div>`;
+        if(nh>0)inner+=`<div style="color:#64748b;font-size:8pt">+${nh}n</div>`;
+        if(!inner)inner=`<div style="color:#cbd5e1">—</div>`;
+        return`<td style="text-align:center;vertical-align:top;padding:6px 4px">${inner}${freq}</td>`;
+      }).join("");
+      const weeklyDayHrs=dOrder.reduce((s:number,d:string)=>{const r=l.roster[d];if(!r?.enabled)return s;const fm=FREQ[r.frequency]?.multiplier||1;return s+(r.hours||0)*fm;},0);
+      const weeklyNightHrs=dOrder.reduce((s:number,d:string)=>{const r=l.roster[d];if(!r?.enabled)return s;const fm=FREQ[r.frequency]?.multiplier||1;return s+(r.nightHours||0)*fm;},0);
+      const totalLine=weeklyDayHrs+weeklyNightHrs;
+      const totalDisplay=`<div style="font-weight:700">${totalLine%1===0?totalLine:totalLine.toFixed(1)}h</div>${weeklyNightHrs>0?`<div style="color:#64748b;font-size:8pt">(${weeklyNightHrs%1===0?weeklyNightHrs:weeklyNightHrs.toFixed(1)}n)</div>`:""}`;
+      let soNote="";
+      const sf=FREQ[l.activeSleepoverFreq]?.multiplier||1;if((l.activeSleepoverHours||0)>0)soNote+=`Active SO: ${l.activeSleepoverHours}h × ${l.activeSleepoverFreq}`;
+      const ff=FREQ[l.fixedSleepoverFreq]?.multiplier||1;if((l.fixedSleepovers||0)>0)soNote+=(soNote?", ":"")+`Fixed SO: ${l.fixedSleepovers} × ${l.fixedSleepoverFreq}`;
+      return`<tr><td style="vertical-align:top;font-size:9pt;padding:6px 8px">${escapeHtml(l.description)}${soNote?`<div style="font-size:7.5pt;color:#94a3b8;margin-top:2px">${soNote}</div>`:""}</td>${cells}<td style="text-align:right;vertical-align:top;padding:6px 8px">${totalDisplay}</td></tr>`;
+    }).join("");
+    const headCells=dLabel.map((d,i)=>`<th style="text-align:center;width:7%">${d}</th>`).join("");
+    return`<div class="section-heading" style="margin-top:16px">Weekly Roster</div>
+  <table style="font-size:9pt">
+    <thead><tr><th style="width:22%;text-align:left">Support Category</th>${headCells}<th style="width:9%;text-align:right">Weekly Hrs</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div class="note" style="margin-top:6px">h = daytime hours &nbsp;|&nbsp; n = night hours &nbsp;|&nbsp; ftn = fortnightly &nbsp;|&nbsp; mth = monthly. Sat shown in blue, Sun in purple.</div>`;
+  })()}
+
   <div class="section-heading" style="margin-top:16px">Signatures</div>
   <div class="sig-grid">
     <div>
