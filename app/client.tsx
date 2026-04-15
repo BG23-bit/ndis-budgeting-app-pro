@@ -360,13 +360,16 @@ function generateScheduleOfSupports(){
       return rows;
     }
     const wkDays=["mon","tue","wed","thu","fri"];
-    const wkdOrdHrs=wkDays.reduce((s:number,d:string)=>{const r=l.roster[d];return r?.enabled&&(r.hours||0)>0?s+(r.hours||0)*(FREQ[r.frequency]?.multiplier||1)*planWeeks:s},0);
-    const wkdNightHrs=wkDays.reduce((s:number,d:string)=>{const r=l.roster[d];return r?.enabled&&(r.nightHours||0)>0?s+(r.nightHours||0)*(FREQ[r.frequency]?.multiplier||1)*planWeeks:s},0);
+    // Use countDayOccurrences (same as main calc) so SoS totals match exactly
+    const wkdOrdHrs=wkDays.reduce((s:number,d:string)=>{const r=l.roster[d];if(!r?.enabled||(r.hours||0)<=0)return s;const occ=countDayOccurrences(planDates.start,planDates.end,DAY_DOW[d])*(FREQ[r.frequency]?.multiplier||1);return s+(r.hours||0)*occ;},0);
+    const wkdNightHrs=wkDays.reduce((s:number,d:string)=>{const r=l.roster[d];if(!r?.enabled||(r.nightHours||0)<=0)return s;const occ=countDayOccurrences(planDates.start,planDates.end,DAY_DOW[d])*(FREQ[r.frequency]?.multiplier||1);return s+(r.nightHours||0)*occ;},0);
     const satR=l.roster["sat"];const sunR=l.roster["sun"];
-    const satHrs=satR?.enabled?(satR.hours||0)*(FREQ[satR.frequency]?.multiplier||1)*planWeeks:0;
-    const satNightHrs=satR?.enabled?(satR.nightHours||0)*(FREQ[satR.frequency]?.multiplier||1)*planWeeks:0;
-    const sunHrs=sunR?.enabled?(sunR.hours||0)*(FREQ[sunR.frequency]?.multiplier||1)*planWeeks:0;
-    const sunNightHrs=sunR?.enabled?(sunR.nightHours||0)*(FREQ[sunR.frequency]?.multiplier||1)*planWeeks:0;
+    const satOcc=satR?.enabled?countDayOccurrences(planDates.start,planDates.end,6)*(FREQ[satR.frequency]?.multiplier||1):0;
+    const sunOcc=sunR?.enabled?countDayOccurrences(planDates.start,planDates.end,0)*(FREQ[sunR.frequency]?.multiplier||1):0;
+    const satHrs=satR?.enabled?(satR.hours||0)*satOcc:0;
+    const satNightHrs=satR?.enabled?(satR.nightHours||0)*satOcc:0;
+    const sunHrs=sunR?.enabled?(sunR.hours||0)*sunOcc:0;
+    const sunNightHrs=sunR?.enabled?(sunR.nightHours||0)*sunOcc:0;
     // Break PH hours out of regular rows into their own line item
     let phHrs=0,phWkdDay=0,phWkdNight=0,phSatDay=0,phSatNight=0,phSunDay=0,phSunNight=0;
     const _dow:{[k:number]:string}={0:"sun",1:"mon",2:"tue",3:"wed",4:"thu",5:"fri",6:"sat"};
@@ -377,15 +380,16 @@ function generateScheduleOfSupports(){
     const adjSatNight=Math.max(0,satNightHrs-phSatNight);
     const adjSun=Math.max(0,sunHrs-phSunDay);
     const adjSunNight=Math.max(0,sunNightHrs-phSunNight);
-    if(adjWkdOrd>0){const rate=(l.lineRates?.weekdayOrd||0)/div;const h=Math.round(adjWkdOrd);rows.push({key:l.id+"_weekday",code:l.code,rateType:"weekday",category:escapeHtml(l.description)+" - Weekday Daytime",price:rate,hours:h,total:rate*h});}
-    if(adjWkdNight>0){const rate=(l.lineRates?.weekdayNight||0)/div;const h=Math.round(adjWkdNight);rows.push({key:l.id+"_weekdayNight",code:l.code,rateType:"weekdayNight",category:escapeHtml(l.description)+" - Weekday Night",price:rate,hours:h,total:rate*h});}
-    if(adjSat>0){const rate=(l.lineRates?.sat||0)/div;const h=Math.round(adjSat);rows.push({key:l.id+"_sat",code:l.code,rateType:"sat",category:escapeHtml(l.description)+" - Saturday",price:rate,hours:h,total:rate*h});}
-    if(adjSatNight>0){const rate=(l.lineRates?.sat||0)/div;const h=Math.round(adjSatNight);rows.push({key:l.id+"_satNight",code:l.code,rateType:"satNight",category:escapeHtml(l.description)+" - Saturday Night",price:rate,hours:h,total:rate*h});}
-    if(adjSun>0){const rate=(l.lineRates?.sun||0)/div;const h=Math.round(adjSun);rows.push({key:l.id+"_sun",code:l.code,rateType:"sun",category:escapeHtml(l.description)+" - Sunday",price:rate,hours:h,total:rate*h});}
-    if(adjSunNight>0){const rate=(l.lineRates?.sun||0)/div;const h=Math.round(adjSunNight);rows.push({key:l.id+"_sunNight",code:l.code,rateType:"sunNight",category:escapeHtml(l.description)+" - Sunday Night",price:rate,hours:h,total:rate*h});}
-    if(phHrs>0){const rate=(l.lineRates?.publicHoliday||0)/div;const h=Math.round(phHrs);rows.push({key:l.id+"_ph",code:l.code,rateType:"publicHoliday",category:escapeHtml(l.description)+" - Public Holiday",price:rate,hours:h,total:rate*h});}
-    const sf=FREQ[l.activeSleepoverFreq]?.multiplier||1;const activeSoHrs=Math.round((l.activeSleepoverHours||0)*sf*planWeeks);if(activeSoHrs>0&&(l.lineRates?.activeSleepoverHourly||0)>0){const rate=(l.lineRates?.activeSleepoverHourly||0)/div;rows.push({key:l.id+"_activeSleepover",code:l.code,rateType:"activeSleepover",category:escapeHtml(l.description)+" - Active Sleepover",price:rate,hours:activeSoHrs,total:rate*activeSoHrs});}
-    const ff=FREQ[l.fixedSleepoverFreq]?.multiplier||1;const fixedSoUnits=Math.round((l.fixedSleepovers||0)*ff*planWeeks);if(fixedSoUnits>0&&(l.lineRates?.fixedSleepoverUnit||0)>0){const rate=l.lineRates?.fixedSleepoverUnit||0;rows.push({key:l.id+"_fixedSleepover",code:l.code,rateType:"fixedSleepover",category:escapeHtml(l.description)+" - Sleepover (Overnight)",price:rate,hours:fixedSoUnits,total:rate*fixedSoUnits});}
+    // Display rounded hours but compute totals from unrounded values to match the main calc
+    if(adjWkdOrd>0){const rate=(l.lineRates?.weekdayOrd||0)/div;rows.push({key:l.id+"_weekday",code:l.code,rateType:"weekday",category:escapeHtml(l.description)+" - Weekday Daytime",price:rate,hours:Math.round(adjWkdOrd),total:rate*adjWkdOrd});}
+    if(adjWkdNight>0){const rate=(l.lineRates?.weekdayNight||0)/div;rows.push({key:l.id+"_weekdayNight",code:l.code,rateType:"weekdayNight",category:escapeHtml(l.description)+" - Weekday Night",price:rate,hours:Math.round(adjWkdNight),total:rate*adjWkdNight});}
+    if(adjSat>0){const rate=(l.lineRates?.sat||0)/div;rows.push({key:l.id+"_sat",code:l.code,rateType:"sat",category:escapeHtml(l.description)+" - Saturday",price:rate,hours:Math.round(adjSat),total:rate*adjSat});}
+    if(adjSatNight>0){const rate=(l.lineRates?.sat||0)/div;rows.push({key:l.id+"_satNight",code:l.code,rateType:"satNight",category:escapeHtml(l.description)+" - Saturday Night",price:rate,hours:Math.round(adjSatNight),total:rate*adjSatNight});}
+    if(adjSun>0){const rate=(l.lineRates?.sun||0)/div;rows.push({key:l.id+"_sun",code:l.code,rateType:"sun",category:escapeHtml(l.description)+" - Sunday",price:rate,hours:Math.round(adjSun),total:rate*adjSun});}
+    if(adjSunNight>0){const rate=(l.lineRates?.sun||0)/div;rows.push({key:l.id+"_sunNight",code:l.code,rateType:"sunNight",category:escapeHtml(l.description)+" - Sunday Night",price:rate,hours:Math.round(adjSunNight),total:rate*adjSunNight});}
+    if(phHrs>0){const rate=(l.lineRates?.publicHoliday||0)/div;rows.push({key:l.id+"_ph",code:l.code,rateType:"publicHoliday",category:escapeHtml(l.description)+" - Public Holiday",price:rate,hours:Math.round(phHrs),total:rate*phHrs});}
+    const sf=FREQ[l.activeSleepoverFreq]?.multiplier||1;const activeSoHrs=(l.activeSleepoverHours||0)*sf*planWeeks;if(activeSoHrs>0&&(l.lineRates?.activeSleepoverHourly||0)>0){const rate=(l.lineRates?.activeSleepoverHourly||0)/div;rows.push({key:l.id+"_activeSleepover",code:l.code,rateType:"activeSleepover",category:escapeHtml(l.description)+" - Active Sleepover",price:rate,hours:Math.round(activeSoHrs),total:rate*activeSoHrs});}
+    const ff=FREQ[l.fixedSleepoverFreq]?.multiplier||1;const fixedSoUnits=(l.fixedSleepovers||0)*ff*planWeeks;if(fixedSoUnits>0&&(l.lineRates?.fixedSleepoverUnit||0)>0){const rate=l.lineRates?.fixedSleepoverUnit||0;rows.push({key:l.id+"_fixedSleepover",code:l.code,rateType:"fixedSleepover",category:escapeHtml(l.description)+" - Sleepover (Overnight)",price:rate,hours:Math.round(fixedSoUnits),total:rate*fixedSoUnits});}
     if(rows.length===0){rows.push({key:l.id+"_lump",code:l.code,rateType:"lump",category:escapeHtml(l.description),price:null,hours:null,total:l.totalFunding});}
     return rows;
   });
