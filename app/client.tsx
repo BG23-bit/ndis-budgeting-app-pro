@@ -504,7 +504,7 @@ tbody td{padding:9px 10px;vertical-align:top}
   <div class="note">Prices per the NDIS Pricing Arrangements &amp; Price Limits (2025&#8211;26). Plan totals are estimates and may vary based on actual supports delivered. All prices are GST-inclusive where applicable.</div>
 
   ${(()=>{
-    const rLines=perLine.filter((l:any)=>getLineMode(l.code)!=="lump"&&Object.values(l.roster).some((r:any)=>r?.enabled));
+    const rLines=perLine.filter((l:any)=>getLineMode(l.code)!=="lump"&&(Object.values(l.roster).some((r:any)=>r?.enabled)||(l.kmsPerWeek||0)>0));
     if(rLines.length===0)return"";
     const dOrder=["mon","tue","wed","thu","fri","sat","sun"];
     const dLabel=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
@@ -525,7 +525,9 @@ tbody td{padding:9px 10px;vertical-align:top}
       const weeklyDayHrs=dOrder.reduce((s:number,d:string)=>{const r=l.roster[d];if(!r?.enabled)return s;const fm=FREQ[r.frequency]?.multiplier||1;return s+(r.hours||0)*fm;},0);
       const weeklyNightHrs=dOrder.reduce((s:number,d:string)=>{const r=l.roster[d];if(!r?.enabled)return s;const fm=FREQ[r.frequency]?.multiplier||1;return s+(r.nightHours||0)*fm;},0);
       const totalLine=weeklyDayHrs+weeklyNightHrs;
-      const totalDisplay=`<div style="font-weight:700">${totalLine%1===0?totalLine:totalLine.toFixed(1)}h</div>${weeklyNightHrs>0?`<div style="color:#64748b;font-size:8pt">(${weeklyNightHrs%1===0?weeklyNightHrs:weeklyNightHrs.toFixed(1)}n)</div>`:""}`;
+      const kmf=FREQ[l.kmFreq]?.multiplier||1;const weeklyKm=(l.kmsPerWeek||0)*kmf;
+      const totalDisplay=`<div style="font-weight:700">${totalLine>0?(totalLine%1===0?totalLine:totalLine.toFixed(1))+"h":"—"}</div>${weeklyNightHrs>0?`<div style="color:#64748b;font-size:8pt">(${weeklyNightHrs%1===0?weeklyNightHrs:weeklyNightHrs.toFixed(1)}n)</div>`:""}${weeklyKm>0?`<div style="color:#1e40af;font-size:8pt;margin-top:2px">${weeklyKm%1===0?weeklyKm:weeklyKm.toFixed(1)} km</div>`:""}`;
+
       let soNote="";
       const sf=FREQ[l.activeSleepoverFreq]?.multiplier||1;if((l.activeSleepoverHours||0)>0)soNote+=`Active SO: ${l.activeSleepoverHours}h × ${l.activeSleepoverFreq}`;
       const ff=FREQ[l.fixedSleepoverFreq]?.multiplier||1;if((l.fixedSleepovers||0)>0)soNote+=(soNote?", ":"")+`Fixed SO: ${l.fixedSleepovers} × ${l.fixedSleepoverFreq}`;
