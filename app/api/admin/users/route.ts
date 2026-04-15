@@ -3,15 +3,17 @@ import { createClient } from "@supabase/supabase-js";
 
 const ADMIN_EMAIL = "brent@kevria.com";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 async function getRequestingEmail(req: Request): Promise<string | null> {
   const token = req.headers.get("authorization")?.replace("Bearer ", "");
   if (!token) return null;
-  const { data: { user } } = await supabase.auth.getUser(token);
+  const { data: { user } } = await getSupabase().auth.getUser(token);
   return user?.email ?? null;
 }
 
@@ -21,6 +23,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const supabase = getSupabase();
   const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
   if (authError) return NextResponse.json({ error: authError.message }, { status: 500 });
 
@@ -57,7 +60,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
 
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from("profiles")
     .upsert({
       id: userId,

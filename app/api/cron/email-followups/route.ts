@@ -4,11 +4,6 @@ import { createClient } from "@supabase/supabase-js";
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 const FROM = "Kevria Calc <support@kevria.com>";
 const DASHBOARD_URL = "https://kevriacalc.com/dashboard";
 const UPGRADE_URL = "https://kevriacalc.com/#pricing";
@@ -181,6 +176,10 @@ function buildFollowup2Email(email: string) {
 }
 
 export async function sendEmailForUser(userId: string, userEmail: string, type: "welcome" | "followup1" | "followup2") {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
   let subject: string;
   let html: string;
 
@@ -204,6 +203,11 @@ export async function GET(req: Request) {
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
 
   const now = new Date();
   const day3Cutoff = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString();

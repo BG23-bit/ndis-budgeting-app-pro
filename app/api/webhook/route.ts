@@ -4,13 +4,15 @@ import { createClient } from "@supabase/supabase-js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 async function setActiveByUserId(userId: string, customerId: string) {
-  await supabase
+  await getSupabase()
     .from("profiles")
     .update({ paid: true, subscription_status: "active", stripe_customer_id: customerId })
     .eq("id", userId);
@@ -18,7 +20,7 @@ async function setActiveByUserId(userId: string, customerId: string) {
 
 async function updateStatusByCustomerId(customerId: string, status: string) {
   const active = status === "active" || status === "trialing";
-  await supabase
+  await getSupabase()
     .from("profiles")
     .update({ paid: active, subscription_status: status })
     .eq("stripe_customer_id", customerId);
