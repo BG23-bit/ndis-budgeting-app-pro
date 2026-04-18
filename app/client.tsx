@@ -1199,10 +1199,10 @@ return(
   <div className="text-xs font-semibold mb-2" style={{color:"#6060a0",textTransform:"uppercase",letterSpacing:"0.06em"}}>Practitioner Details</div>
   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 mb-5">
     {([
-      {label:"Practitioner Name *",key:"name",placeholder:"e.g. Joshua Dietrich"},
+      {label:"Practitioner Name *",key:"name",placeholder:"e.g. Jane Smith"},
       {label:"Title / Role",key:"title",placeholder:"e.g. Behaviour Practitioner"},
       {label:"Qualifications",key:"qualifications",placeholder:"e.g. B. Psych (Hons), BCBA"},
-      {label:"Organisation",key:"org",placeholder:"e.g. Kevria Clinical Service"},
+      {label:"Organisation",key:"org",placeholder:"e.g. Your Clinical Service"},
       {label:"Phone",key:"phone",placeholder:"e.g. 03 9000 0000"},
       {label:"Email",key:"email",placeholder:"e.g. clinician@yourorg.com.au"},
     ] as {label:string;key:string;placeholder:string}[]).map(f=>(
