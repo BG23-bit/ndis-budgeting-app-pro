@@ -770,8 +770,16 @@ return(
 <button onClick={addLine} className="rounded-xl px-4 py-2 font-semibold" style={{background:"rgba(212,168,67,0.15)",border:"1px solid rgba(212,168,67,0.3)",color:"#d4a843"}}>+ Add support line</button>
 <button onClick={exportCSV} className="rounded-xl px-4 py-2" style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#b0b0d0"}}>Export CSV</button>
 <button onClick={exportPDF} className="rounded-xl px-4 py-2" style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#b0b0d0"}}>Export PDF</button>
-<button onClick={()=>setShowSAModal(true)} className="rounded-xl px-4 py-2 font-semibold" style={{background:"rgba(212,168,67,0.12)",border:"1px solid rgba(212,168,67,0.35)",color:"#d4a843"}}>📋 Schedule of Supports</button>
-<button onClick={()=>setShowClinicalModal(true)} className="rounded-xl px-4 py-2 font-semibold" style={{background:"rgba(100,150,212,0.12)",border:"1px solid rgba(100,150,212,0.35)",color:"#7eb8f7"}}>🏥 Clinical SoS</button>
+<div style={{display:"flex",gap:"8px",flexWrap:"wrap"}}>
+  <button onClick={()=>setShowSAModal(true)} style={{display:"flex",flexDirection:"column",alignItems:"flex-start",padding:"10px 14px",background:"rgba(212,168,67,0.1)",border:"1px solid rgba(212,168,67,0.35)",borderRadius:"12px",cursor:"pointer",textAlign:"left"}}>
+    <span style={{color:"#d4a843",fontWeight:700,fontSize:"0.88rem"}}>📋 Roster / SIL / Core SoS</span>
+    <span style={{color:"#8070a0",fontSize:"0.72rem",marginTop:"2px"}}>Hourly roster — day, night, weekend rates</span>
+  </button>
+  <button onClick={()=>setShowClinicalModal(true)} style={{display:"flex",flexDirection:"column",alignItems:"flex-start",padding:"10px 14px",background:"rgba(100,150,212,0.1)",border:"1px solid rgba(100,150,212,0.35)",borderRadius:"12px",cursor:"pointer",textAlign:"left"}}>
+    <span style={{color:"#7eb8f7",fontWeight:700,fontSize:"0.88rem"}}>🏥 Clinical / Therapy SoS</span>
+    <span style={{color:"#6080a0",fontSize:"0.72rem",marginTop:"2px"}}>Behaviour support, allied health, therapy packages</span>
+  </button>
+</div>
 </div></div>
 
 {pace&&pace.status!=="not_started"&&(()=>{
