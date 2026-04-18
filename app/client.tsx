@@ -151,10 +151,17 @@ const[showSAModal,setShowSAModal]=useState(false);
 const[saSpecificReqs,setSaSpecificReqs]=useState({behavioursOfConcern:false,regulatedRestrictivePractice:false,medicationManagement:false});
 const[saEstFee,setSaEstFee]=useState("");
 const[saItemNumbers,setSaItemNumbers]=useState<{[k:string]:string}>({});
+const[showClinicalModal,setShowClinicalModal]=useState(false);
+const[clinicalPractitioner,setClinicalPractitioner]=useState({name:"",title:"",qualifications:"",org:"",phone:"",email:""});
+const[clinicalOverview,setClinicalOverview]=useState("");
+const[clinicalPriceItems,setClinicalPriceItems]=useState<{id:string;itemCode:string;description:string;rate:number}[]>([{id:"cp1",itemCode:"15_056_0128_1_3",description:"Behaviour Support Practitioner",rate:193.99}]);
+const[clinicalScheduleItems,setClinicalScheduleItems]=useState<{id:string;description:string;hours:number;rate:number;note:string}[]>([{id:"cs1",description:"",hours:0,rate:0,note:""}]);
 useEffect(()=>{try{const raw=localStorage.getItem("kevria_provider_details");if(raw)setProviderDetails(p=>({...p,...JSON.parse(raw)}))}catch{}},[]);
 useEffect(()=>{try{localStorage.setItem("kevria_provider_details",JSON.stringify(providerDetails))}catch{}},[providerDetails]);
 useEffect(()=>{try{const raw=localStorage.getItem("kevria_item_numbers");if(raw)setSaItemNumbers(JSON.parse(raw))}catch{}},[]);
 useEffect(()=>{try{localStorage.setItem("kevria_item_numbers",JSON.stringify(saItemNumbers))}catch{}},[saItemNumbers]);
+useEffect(()=>{try{const raw=localStorage.getItem("kevria_clinical_prac");if(raw)setClinicalPractitioner((p:any)=>({...p,...JSON.parse(raw)}))}catch{}},[]);
+useEffect(()=>{try{localStorage.setItem("kevria_clinical_prac",JSON.stringify(clinicalPractitioner))}catch{}},[clinicalPractitioner]);
 const planFileRef=React.useRef<HTMLInputElement>(null);
 async function handlePlanUpload(file:File){
   setUploadingPlan(true);setPlanUploadError(null);
@@ -570,6 +577,127 @@ tbody td{padding:9px 10px;vertical-align:top}
   w.document.write(html);
   w.document.close();
 }
+function generateClinicalSoS(){
+  const pName=participantName||"[Participant Name]";
+  const ndis=ndisNumber||"[NDIS Number]";
+  const dt=new Date().toLocaleDateString("en-AU",{day:"numeric",month:"long",year:"numeric"});
+  const cp=clinicalPractitioner;
+  const defaultRate=clinicalPriceItems[0]?.rate||0;
+  const activeItems=clinicalScheduleItems.filter(i=>i.description.trim()||i.hours>0);
+  const totalHours=activeItems.reduce((s,i)=>s+(i.hours||0),0);
+  const grandTotal=activeItems.reduce((s,i)=>s+(i.hours||0)*(i.rate>0?i.rate:defaultRate),0);
+  const titleHours=totalHours%1===0?String(totalHours):totalHours.toFixed(1);
+  const priceGuideRows=clinicalPriceItems.filter(p=>p.description.trim()||p.itemCode.trim()).map(p=>`<tr><td style="font-family:monospace;font-size:8.5pt">${escapeHtml(p.itemCode)}</td><td>${escapeHtml(p.description)}</td><td style="text-align:right;white-space:nowrap">${escapeHtml(money(p.rate))}/hr</td></tr>`).join("");
+  const scheduleHtmlRows=activeItems.map(r=>{const rate=r.rate>0?r.rate:defaultRate;const total=(r.hours||0)*rate;return`<tr><td>${escapeHtml(r.description)}${r.note?`<div style="font-size:8pt;color:#94a3b8">${escapeHtml(r.note)}</div>`:""}</td><td style="text-align:center;white-space:nowrap">${r.hours%1===0?r.hours:r.hours.toFixed(1)}</td><td style="text-align:right;white-space:nowrap">${escapeHtml(money(total))}</td></tr>`;}).join("");
+  const overviewHtml=clinicalOverview.trim()?`<div style="margin-bottom:18px"><div style="font-size:8.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#1a1150;padding-bottom:5px;border-bottom:2px solid #1a1150;margin-bottom:12px">Overview</div><div style="font-size:9.5pt;color:#374151;line-height:1.7;white-space:pre-wrap">${escapeHtml(clinicalOverview.trim())}</div></div>`:"";
+  const html=`<!doctype html><html><head><meta charset="utf-8"/><title>Clinical Schedule of Supports - ${escapeHtml(pName)}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;color:#1e293b;background:white;font-size:10pt;line-height:1.5}
+.header{background:#1a1150;color:white;padding:14px 40px;display:flex;justify-content:space-between;align-items:center}
+.brand{color:#d4a843;font-size:16px;font-weight:bold;letter-spacing:.05em}
+.doc-label{font-size:9px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.12em;margin-top:2px}
+.content{padding:24px 40px}
+.doc-title{font-size:14pt;font-weight:700;color:#1a1150;text-align:center;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em}
+.doc-sub{text-align:center;font-size:10.5pt;font-weight:600;color:#475569;margin-bottom:18px}
+.details-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-bottom:18px;border:1.5px solid #1a1150;border-radius:6px;overflow:hidden}
+.det-col{padding:14px 18px}
+.det-col+.det-col{border-left:1.5px solid #1a1150}
+.det-label{font-size:7.5pt;text-transform:uppercase;letter-spacing:.12em;color:#94a3b8;margin-bottom:3px}
+.det-name{font-size:11.5pt;font-weight:700;color:#1a1150;margin-bottom:4px}
+.det-info{font-size:9pt;color:#475569;line-height:1.6}
+.section-heading{font-size:8.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#1a1150;margin-bottom:8px;padding-bottom:5px;border-bottom:2px solid #1a1150}
+table{width:100%;border-collapse:collapse;font-size:9.5pt;margin-bottom:10px}
+thead tr{background:#1a1150}
+thead th{color:white;padding:8px 10px;text-align:left;font-size:8pt;text-transform:uppercase;letter-spacing:.07em;font-weight:600}
+tbody tr{border-bottom:1px solid #e2e8f0}
+tbody tr:nth-child(even){background:#f8fafc}
+tbody td{padding:9px 10px;vertical-align:top}
+.total-row{background:#f1f5f9!important;border-top:2px solid #1a1150}
+.total-row td{font-weight:700;padding:10px;font-size:10pt;color:#1a1150}
+.note{font-size:8pt;color:#94a3b8;margin-bottom:18px;line-height:1.5;border-left:3px solid #e2e8f0;padding-left:10px}
+.sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:10px}
+.sig-name{font-weight:700;font-size:10pt;margin-bottom:1px}
+.sig-role{font-size:8.5pt;color:#64748b;margin-bottom:22px}
+.sig-line{border-top:1px solid #94a3b8;padding-top:4px;margin-top:44px;font-size:8.5pt;color:#94a3b8}
+.date-line{border-top:1px solid #94a3b8;padding-top:4px;margin-top:14px;font-size:8.5pt;color:#94a3b8}
+.footer{margin-top:24px;padding:9px 40px;background:#f8fafc;border-top:1px solid #e2e8f0;font-size:7.5pt;color:#94a3b8;display:flex;justify-content:space-between}
+@media print{body{background:white}.header{-webkit-print-color-adjust:exact;print-color-adjust:exact}thead tr{-webkit-print-color-adjust:exact;print-color-adjust:exact}.details-grid{-webkit-print-color-adjust:exact;print-color-adjust:exact}.total-row{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style>
+</head><body>
+<div class="header">
+  <div><div class="brand">&#10022; KEVRIA</div><div class="doc-label">Kevria Calc</div></div>
+  <div style="text-align:right;font-size:9px;color:rgba(255,255,255,.55)"><div style="font-size:10.5px;color:white;font-weight:700;text-transform:uppercase;letter-spacing:.1em">Clinical Schedule of Supports</div><div style="margin-top:3px">Generated: ${escapeHtml(dt)}</div></div>
+</div>
+<div class="content">
+  <div class="doc-title">Schedule of Supports</div>
+  <div class="doc-sub">${escapeHtml(titleHours)}-Hour Plan Package</div>
+
+  <div class="details-grid">
+    <div class="det-col">
+      <div class="det-label">Participant</div>
+      <div class="det-name">${escapeHtml(pName)}</div>
+      <div class="det-info">${ndis!=="[NDIS Number]"?"NDIS Number: <strong>"+escapeHtml(ndis)+"</strong><br/>":""}Plan Period: <strong>${escapeHtml(planDates.start)}</strong> to <strong>${escapeHtml(planDates.end)}</strong><br/>Total Hours: <strong>${escapeHtml(titleHours)} hrs</strong> &nbsp;|&nbsp; Total Cost: <strong>${escapeHtml(money(grandTotal))}</strong></div>
+    </div>
+    <div class="det-col">
+      <div class="det-label">Service Provider</div>
+      <div class="det-name">${escapeHtml(cp.org||providerDetails.orgName||"[Provider]")}</div>
+      <div class="det-info">${cp.name?"Practitioner: <strong>"+escapeHtml(cp.name)+"</strong><br/>":""}${cp.title?escapeHtml(cp.title)+"<br/>":""}${cp.phone?escapeHtml(cp.phone)+" &nbsp;":""}${cp.email?"<a href='mailto:"+escapeHtml(cp.email)+"' style='color:#1a1150'>"+escapeHtml(cp.email)+"</a>":""}</div>
+    </div>
+  </div>
+
+  ${overviewHtml}
+
+  ${priceGuideRows?`<div class="section-heading">NDIS Price Guide</div>
+  <table>
+    <thead><tr><th style="width:28%">NDIS Item Number</th><th>Description</th><th style="width:16%;text-align:right">Rate</th></tr></thead>
+    <tbody>${priceGuideRows}</tbody>
+  </table>`:""}
+
+  <div class="section-heading" style="margin-top:16px">Schedule of Supports</div>
+  <table>
+    <thead><tr><th>Service</th><th style="width:10%;text-align:center">Hours</th><th style="width:18%;text-align:right">Total Cost</th></tr></thead>
+    <tbody>
+    ${scheduleHtmlRows}
+    <tr class="total-row"><td>Total</td><td style="text-align:center">${escapeHtml(titleHours)}</td><td style="text-align:right">${escapeHtml(money(grandTotal))}</td></tr>
+    </tbody>
+  </table>
+  <div class="note">All services are delivered in accordance with the NDIS Pricing Arrangements &amp; Price Limits (2025&#8211;26). Total hours and costs are estimates based on assessed clinical need and may be adjusted following review.</div>
+
+  <div class="section-heading" style="margin-top:16px">Practitioner Details &amp; Signatures</div>
+  <div style="margin-bottom:18px">
+    <div style="font-size:11pt;font-weight:700;color:#1a1150">${escapeHtml(cp.name||"[Practitioner Name]")}</div>
+    ${cp.title?`<div style="font-size:9.5pt;color:#475569">${escapeHtml(cp.title)}</div>`:""}
+    ${cp.qualifications?`<div style="font-size:9pt;color:#64748b;font-style:italic;margin-top:2px">${escapeHtml(cp.qualifications)}</div>`:""}
+    <div style="font-size:9pt;color:#475569;margin-top:4px">${escapeHtml(cp.org||providerDetails.orgName||"")}${cp.phone?" &nbsp;|&nbsp; "+escapeHtml(cp.phone):""}${cp.email?" &nbsp;|&nbsp; <a href='mailto:"+escapeHtml(cp.email)+"' style='color:#1a1150'>"+escapeHtml(cp.email)+"</a>":""}</div>
+  </div>
+  <div class="sig-grid">
+    <div>
+      <div class="sig-name">${escapeHtml(cp.name||"Practitioner")}</div>
+      <div class="sig-role">${escapeHtml(cp.title||"Practitioner")}</div>
+      <div class="sig-line">Signature</div>
+      <div class="date-line">Date</div>
+    </div>
+    <div>
+      <div class="sig-name">${escapeHtml(pName)}</div>
+      <div class="sig-role">Participant (or Representative)</div>
+      <div class="sig-line">Signature</div>
+      <div class="date-line">Date</div>
+    </div>
+  </div>
+</div>
+<div class="footer">
+  <div>Generated by <strong>Kevria Calc</strong> | kevriacalc.com</div>
+  <div>Rates: 2025&#8211;26 NDIS Price Guide. Verify before quoting. Not financial advice.</div>
+</div>
+<script>window.onload=function(){window.focus();window.print()}</script>
+</body></html>`;
+  const w=window.open("","_blank");
+  if(!w){alert("Popup blocked. Please allow popups for this site.");return}
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+}
 const totalStatus=getBudgetStatus(totals.remaining,totals.totalFunding);
 const pace=useMemo(()=>{
   if(!planDates.start||!planDates.end||totals.totalFunding<=0)return null;
@@ -643,6 +771,7 @@ return(
 <button onClick={exportCSV} className="rounded-xl px-4 py-2" style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#b0b0d0"}}>Export CSV</button>
 <button onClick={exportPDF} className="rounded-xl px-4 py-2" style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#b0b0d0"}}>Export PDF</button>
 <button onClick={()=>setShowSAModal(true)} className="rounded-xl px-4 py-2 font-semibold" style={{background:"rgba(212,168,67,0.12)",border:"1px solid rgba(212,168,67,0.35)",color:"#d4a843"}}>📋 Schedule of Supports</button>
+<button onClick={()=>setShowClinicalModal(true)} className="rounded-xl px-4 py-2 font-semibold" style={{background:"rgba(100,150,212,0.12)",border:"1px solid rgba(100,150,212,0.35)",color:"#7eb8f7"}}>🏥 Clinical SoS</button>
 </div></div>
 
 {pace&&pace.status!=="not_started"&&(()=>{
@@ -1054,6 +1183,114 @@ return(
     </button>
   </div>
   {!providerDetails.orgName.trim()&&<div className="text-xs mt-2 text-center" style={{color:"#6060a0"}}>Organisation name is required</div>}
+</div>
+</div>
+)}
+
+{showClinicalModal&&(
+<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:"16px"}}>
+<div style={{background:"#1a1150",border:"1px solid rgba(100,150,212,0.4)",borderRadius:"16px",maxWidth:"760px",width:"100%",maxHeight:"90vh",overflowY:"auto",padding:"32px"}}>
+  <div className="flex items-center justify-between mb-6">
+    <h2 className="text-xl font-bold" style={{color:"#7eb8f7"}}>🏥 Clinical Schedule of Supports</h2>
+    <button onClick={()=>setShowClinicalModal(false)} style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#b0b0d0",borderRadius:"8px",padding:"6px 12px",cursor:"pointer"}}>✕</button>
+  </div>
+  <div className="text-sm mb-5" style={{color:"#b0a0d0"}}>For clinical/therapeutic services (Behaviour Support, allied health, etc). Enter your price guide, services, and practitioner details. Practitioner details are saved for next time.</div>
+
+  <div className="text-xs font-semibold mb-2" style={{color:"#6060a0",textTransform:"uppercase",letterSpacing:"0.06em"}}>Practitioner Details</div>
+  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 mb-5">
+    {([
+      {label:"Practitioner Name *",key:"name",placeholder:"e.g. Joshua Dietrich"},
+      {label:"Title / Role",key:"title",placeholder:"e.g. Behaviour Practitioner"},
+      {label:"Qualifications",key:"qualifications",placeholder:"e.g. B. Psych (Hons), BCBA"},
+      {label:"Organisation",key:"org",placeholder:"e.g. Kevria Clinical Service"},
+      {label:"Phone",key:"phone",placeholder:"e.g. 03 9000 0000"},
+      {label:"Email",key:"email",placeholder:"e.g. clinician@yourorg.com.au"},
+    ] as {label:string;key:string;placeholder:string}[]).map(f=>(
+      <div key={f.key}>
+        <div className="text-xs mb-1 font-semibold" style={{color:"#b0a0d0"}}>{f.label}</div>
+        <input value={(clinicalPractitioner as any)[f.key]} onChange={e=>{const k=f.key;setClinicalPractitioner((p:any)=>({...p,[k]:e.target.value}))}} placeholder={f.placeholder}
+          className="w-full rounded-lg px-3 py-2 outline-none text-sm"
+          style={{background:"rgba(15,10,48,0.6)",border:"1px solid rgba(100,150,212,0.25)",color:"white"}}/>
+      </div>
+    ))}
+  </div>
+
+  <div className="text-xs font-semibold mb-1" style={{color:"#6060a0",textTransform:"uppercase",letterSpacing:"0.06em"}}>Overview / Narrative (optional)</div>
+  <div className="text-xs mb-2" style={{color:"#6060a0"}}>Letter-style narrative that appears in the PDF (e.g. addressed to guardian/participant).</div>
+  <textarea value={clinicalOverview} onChange={e=>setClinicalOverview(e.target.value)} rows={4} placeholder={"Dear Guardian,\n\nFollowing assessment of [participant name], the following schedule of supports has been prepared..."}
+    className="w-full rounded-lg px-3 py-2 outline-none text-sm mb-5"
+    style={{background:"rgba(15,10,48,0.6)",border:"1px solid rgba(100,150,212,0.25)",color:"white",resize:"vertical"}}/>
+
+  <div className="flex items-center justify-between mb-2">
+    <div className="text-xs font-semibold" style={{color:"#6060a0",textTransform:"uppercase",letterSpacing:"0.06em"}}>NDIS Price Guide Items</div>
+    <button onClick={()=>setClinicalPriceItems(p=>[...p,{id:uid(),itemCode:"",description:"",rate:0}])} style={{background:"rgba(100,150,212,0.12)",border:"1px solid rgba(100,150,212,0.3)",color:"#7eb8f7",padding:"4px 10px",borderRadius:"6px",cursor:"pointer",fontSize:"0.78rem"}}>+ Add row</button>
+  </div>
+  <div className="rounded-lg p-3 mb-5" style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)"}}>
+    <div className="grid mb-1" style={{gridTemplateColumns:"2.2fr 3fr 1.4fr auto",gap:"6px"}}>
+      <div className="text-xs" style={{color:"#6060a0"}}>Item Code</div>
+      <div className="text-xs" style={{color:"#6060a0"}}>Description</div>
+      <div className="text-xs" style={{color:"#6060a0"}}>Rate / hr ($)</div>
+      <div/>
+    </div>
+    {clinicalPriceItems.map((pi,idx)=>(
+      <div key={pi.id} className="grid mb-2" style={{gridTemplateColumns:"2.2fr 3fr 1.4fr auto",gap:"6px",alignItems:"center"}}>
+        <input value={pi.itemCode} onChange={e=>{const i=idx;setClinicalPriceItems(p=>p.map((x,j)=>j===i?{...x,itemCode:e.target.value}:x))}} placeholder="15_056_0128_1_3"
+          className="rounded px-2 py-1 text-xs outline-none"
+          style={{background:"rgba(15,10,48,0.6)",border:"1px solid rgba(100,150,212,0.2)",color:"white",fontFamily:"monospace"}}/>
+        <input value={pi.description} onChange={e=>{const i=idx;setClinicalPriceItems(p=>p.map((x,j)=>j===i?{...x,description:e.target.value}:x))}} placeholder="Service description"
+          className="rounded px-2 py-1 text-xs outline-none"
+          style={{background:"rgba(15,10,48,0.6)",border:"1px solid rgba(100,150,212,0.2)",color:"white"}}/>
+        <input type="number" step="0.01" value={pi.rate||""} onChange={e=>{const i=idx;setClinicalPriceItems(p=>p.map((x,j)=>j===i?{...x,rate:num(e.target.value)}:x))}} placeholder="193.99"
+          className="rounded px-2 py-1 text-xs outline-none"
+          style={{background:"rgba(15,10,48,0.6)",border:"1px solid rgba(100,150,212,0.2)",color:"white"}}/>
+        <button onClick={()=>{const i=idx;setClinicalPriceItems(p=>p.filter((_,j)=>j!==i))}} style={{color:"#ef4444",background:"none",border:"none",cursor:"pointer",fontSize:"0.9rem",padding:"2px 4px"}}>✕</button>
+      </div>
+    ))}
+    <div className="text-xs mt-1" style={{color:"#505070"}}>First item rate is used as the default for schedule items with no rate override.</div>
+  </div>
+
+  <div className="flex items-center justify-between mb-2">
+    <div className="text-xs font-semibold" style={{color:"#6060a0",textTransform:"uppercase",letterSpacing:"0.06em"}}>Schedule of Services</div>
+    <button onClick={()=>setClinicalScheduleItems(p=>[...p,{id:uid(),description:"",hours:0,rate:0,note:""}])} style={{background:"rgba(100,150,212,0.12)",border:"1px solid rgba(100,150,212,0.3)",color:"#7eb8f7",padding:"4px 10px",borderRadius:"6px",cursor:"pointer",fontSize:"0.78rem"}}>+ Add row</button>
+  </div>
+  <div className="rounded-lg p-3 mb-5" style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)"}}>
+    <div className="grid mb-1" style={{gridTemplateColumns:"3fr 1fr 1.4fr 2fr auto",gap:"6px"}}>
+      <div className="text-xs" style={{color:"#6060a0"}}>Service Description</div>
+      <div className="text-xs" style={{color:"#6060a0"}}>Hours</div>
+      <div className="text-xs" style={{color:"#6060a0"}}>Rate (0=default)</div>
+      <div className="text-xs" style={{color:"#6060a0"}}>Note (optional)</div>
+      <div/>
+    </div>
+    {clinicalScheduleItems.map((si,idx)=>(
+      <div key={si.id} className="grid mb-2" style={{gridTemplateColumns:"3fr 1fr 1.4fr 2fr auto",gap:"6px",alignItems:"center"}}>
+        <input value={si.description} onChange={e=>{const i=idx;setClinicalScheduleItems(p=>p.map((x,j)=>j===i?{...x,description:e.target.value}:x))}} placeholder="e.g. Comprehensive BSP Development"
+          className="rounded px-2 py-1 text-xs outline-none"
+          style={{background:"rgba(15,10,48,0.6)",border:"1px solid rgba(100,150,212,0.2)",color:"white"}}/>
+        <input type="number" step="0.5" min="0" value={si.hours||""} onChange={e=>{const i=idx;setClinicalScheduleItems(p=>p.map((x,j)=>j===i?{...x,hours:num(e.target.value)}:x))}} placeholder="0"
+          className="rounded px-2 py-1 text-xs outline-none"
+          style={{background:"rgba(15,10,48,0.6)",border:"1px solid rgba(100,150,212,0.2)",color:"white"}}/>
+        <input type="number" step="0.01" min="0" value={si.rate||""} onChange={e=>{const i=idx;setClinicalScheduleItems(p=>p.map((x,j)=>j===i?{...x,rate:num(e.target.value)}:x))}} placeholder="default"
+          className="rounded px-2 py-1 text-xs outline-none"
+          style={{background:"rgba(15,10,48,0.6)",border:"1px solid rgba(100,150,212,0.2)",color:"white"}}/>
+        <input value={si.note} onChange={e=>{const i=idx;setClinicalScheduleItems(p=>p.map((x,j)=>j===i?{...x,note:e.target.value}:x))}} placeholder="e.g. per session"
+          className="rounded px-2 py-1 text-xs outline-none"
+          style={{background:"rgba(15,10,48,0.6)",border:"1px solid rgba(100,150,212,0.2)",color:"white"}}/>
+        <button onClick={()=>{const i=idx;setClinicalScheduleItems(p=>p.filter((_,j)=>j!==i))}} style={{color:"#ef4444",background:"none",border:"none",cursor:"pointer",fontSize:"0.9rem",padding:"2px 4px"}}>✕</button>
+      </div>
+    ))}
+    {(()=>{const dr=clinicalPriceItems[0]?.rate||0;const th=clinicalScheduleItems.reduce((s,i)=>s+(i.hours||0),0);const tc=clinicalScheduleItems.reduce((s,i)=>s+(i.hours||0)*(i.rate>0?i.rate:dr),0);if(th<=0)return null;return<div className="text-sm font-semibold mt-2 pt-2" style={{borderTop:"1px solid rgba(255,255,255,0.1)",color:"#7eb8f7"}}>Total: {th%1===0?th:th.toFixed(1)} hours — {money(tc)}</div>})()}
+  </div>
+
+  <div className="flex gap-3">
+    <button onClick={()=>{setShowClinicalModal(false);generateClinicalSoS()}} disabled={!clinicalPractitioner.name.trim()}
+      style={{flex:1,padding:"13px",backgroundColor:clinicalPractitioner.name.trim()?"#7eb8f7":"#1e3050",color:clinicalPractitioner.name.trim()?"#0a1628":"#888",border:"none",borderRadius:"10px",cursor:clinicalPractitioner.name.trim()?"pointer":"not-allowed",fontWeight:"bold",fontSize:"1rem"}}>
+      Generate Clinical PDF →
+    </button>
+    <button onClick={()=>setShowClinicalModal(false)} style={{padding:"13px 20px",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#b0b0d0",borderRadius:"10px",cursor:"pointer"}}>
+      Cancel
+    </button>
+  </div>
+  {!clinicalPractitioner.name.trim()&&<div className="text-xs mt-2 text-center" style={{color:"#6060a0"}}>Practitioner name is required</div>}
 </div>
 </div>
 )}
