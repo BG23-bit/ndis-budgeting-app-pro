@@ -105,8 +105,11 @@ const[rates,setRates]=useState<Rates>({weekdayOrd:70.23,weekdayNight:77.38,sat:9
 const[lines,setLines]=useState<SupportLine[]>([{id:uid(),code:"01",description:"Core Supports",totalFunding:0,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:0.99,kmFreq:"every",claims:[],lineRates:NDIS_RATES_2025_26}]);
 const planWeeksCalc=useMemo(()=>getWeeksInPlan(planDates.start,planDates.end),[planDates.start,planDates.end]);const[weeksOverride,setWeeksOverride]=useState<number|null>(null);const planWeeks=weeksOverride!==null?weeksOverride:planWeeksCalc;
 const holidays=useMemo(()=>getHolidaysInRange(planDates.start,planDates.end,planDates.state),[planDates]);
-useEffect(()=>{async function load(){const cloud=await loadFromCloud(STORAGE_KEY);const raw=cloud||(()=>{try{const r=localStorage.getItem(STORAGE_KEY);return r?JSON.parse(r):null}catch{return null}})();if(!raw)return;if(raw?.rates)setRates((r:any)=>({...r,...raw.rates}));if(raw?.planDates)setPlanDates((p:any)=>({...p,...raw.planDates}));if(Array.isArray(raw?.lines)&&raw.lines.length>0)setLines(raw.lines.map((l:any)=>({...l,ratio:l.ratio||"1:1",excludedHolidays:l.excludedHolidays||[],roster:l.roster||defaultRoster(),activeSleepoverFreq:l.activeSleepoverFreq||"every",fixedSleepoverFreq:l.fixedSleepoverFreq||"every",kmsPerWeek:l.kmsPerWeek||0,kmRate:l.kmRate||0.99,kmFreq:l.kmFreq||"every",claims:l.claims||[],lineRates:l.lineRates||getPresetRates(l.code)})));if(raw?.weeksOverride!=null)setWeeksOverride(raw.weeksOverride)}load()},[]);
-const saveData={rates,lines,planDates,weeksOverride};useEffect(()=>{try{localStorage.setItem(STORAGE_KEY,JSON.stringify(saveData))}catch{}},[rates,lines,planDates,weeksOverride]);useCloudSync(STORAGE_KEY,saveData);
+useEffect(()=>{async function load(){const cloud=await loadFromCloud(STORAGE_KEY);const raw=cloud||(()=>{try{const r=localStorage.getItem(STORAGE_KEY);return r?JSON.parse(r):null}catch{return null}})();if(!raw)return;if(raw?.rates)setRates((r:any)=>({...r,...raw.rates}));if(raw?.planDates)setPlanDates((p:any)=>({...p,...raw.planDates}));if(Array.isArray(raw?.lines)&&raw.lines.length>0)setLines(raw.lines.map((l:any)=>({...l,ratio:l.ratio||"1:1",excludedHolidays:l.excludedHolidays||[],roster:l.roster||defaultRoster(),activeSleepoverFreq:l.activeSleepoverFreq||"every",fixedSleepoverFreq:l.fixedSleepoverFreq||"every",kmsPerWeek:l.kmsPerWeek||0,kmRate:l.kmRate||0.99,kmFreq:l.kmFreq||"every",claims:l.claims||[],lineRates:l.lineRates||getPresetRates(l.code)})));if(raw?.weeksOverride!=null)setWeeksOverride(raw.weeksOverride);if(raw?.calcMode!=null)setCalcMode(raw.calcMode as any);if(typeof raw?.clinicalFunding==="number")setClinicalFunding(raw.clinicalFunding);if(Array.isArray(raw?.clinicalServices))setClinicalServices(raw.clinicalServices);}load()},[]);
+const[calcMode,setCalcMode]=useState<"sil"|"clinical"|"both"|null>(null);
+const[clinicalFunding,setClinicalFunding]=useState(0);
+const[clinicalServices,setClinicalServices]=useState<{id:string;description:string;hours:number;rate:number;note:string}[]>([]);
+const saveData={rates,lines,planDates,weeksOverride,calcMode,clinicalFunding,clinicalServices};useEffect(()=>{try{localStorage.setItem(STORAGE_KEY,JSON.stringify(saveData))}catch{}},[rates,lines,planDates,weeksOverride]);useCloudSync(STORAGE_KEY,saveData);
 const perLine=useMemo(()=>{return lines.map(l=>{const lr=l.lineRates||rates;const wt=calcWeeklyCost(l,lr);const weeklyGST=wt*(lr.gstRate||0);const weeklyWithGST=wt+weeklyGST;const basePlanCost=calcDayCountPlanCost(l,planDates.start,planDates.end,planWeeks,lr)*(1+(lr.gstRate||0));const phImpact=calcPHImpact(l,holidays,lr);const phAdjustment=phImpact.extraCost-phImpact.savedCost;const planTotal=basePlanCost+phAdjustment;const remaining=l.totalFunding-planTotal;const totalClaimed=(l.claims||[]).reduce((a:number,c:Claim)=>a+c.amount,0);const actualRemaining=l.totalFunding-totalClaimed;return{...l,weeklyTotal:wt,weeklyGST,weeklyWithGST,basePlanCost,phImpact,phAdjustment,planTotal,remaining,totalClaimed,actualRemaining}})},[lines,rates,planWeeks,holidays]);
 const totals=useMemo(()=>{const totalFunding=perLine.reduce((a,l)=>a+l.totalFunding,0);const weekly=perLine.reduce((a,l)=>a+l.weeklyWithGST,0);const planCost=perLine.reduce((a,l)=>a+l.planTotal,0);const totalPH=perLine.reduce((a,l)=>a+l.phAdjustment,0);const remaining=totalFunding-planCost;const totalClaimed=perLine.reduce((a,l)=>a+(l as any).totalClaimed,0);const actualRemaining=totalFunding-totalClaimed;return{totalFunding,weekly,planCost,totalPH,remaining,totalClaimed,actualRemaining}},[perLine]);
 const saRows=useMemo(()=>perLine.flatMap((l:any)=>{
@@ -699,6 +702,11 @@ tbody td{padding:9px 10px;vertical-align:top}
   w.document.close();
 }
 const totalStatus=getBudgetStatus(totals.remaining,totals.totalFunding);
+const showSil=calcMode==="sil"||calcMode==="both";
+const showClinical=calcMode==="clinical"||calcMode==="both";
+const clinicalTotal=clinicalServices.reduce((s,i)=>s+(i.hours||0)*(i.rate||0),0);
+const clinicalRemaining=clinicalFunding-clinicalTotal;
+const clinicalStatus=getBudgetStatus(clinicalRemaining,clinicalFunding);
 const pace=useMemo(()=>{
   if(!planDates.start||!planDates.end||totals.totalFunding<=0)return null;
   const today=new Date();const start=new Date(planDates.start);const end=new Date(planDates.end);
@@ -724,7 +732,7 @@ return(
 <div className="text-sm mb-6" style={{color:"#6060a0"}}>Powered by <span style={{color:"#d4a843"}}>Kevria</span></div>
 
 <div className="rounded-2xl p-6 mb-6" style={{background:"rgba(26,17,80,0.4)",border:"1px solid rgba(212,168,67,0.15)"}}>
-<h2 className="text-xl font-semibold mb-4" style={{color:"#d4a843"}}>Plan Details</h2>
+<div className="flex items-center justify-between mb-4"><h2 className="text-xl font-semibold" style={{color:"#d4a843"}}>Plan Details</h2>{calcMode&&<button onClick={()=>setCalcMode(null)} style={{fontSize:"0.72rem",color:"#7090b0",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:"6px",padding:"4px 10px",cursor:"pointer"}}>{calcMode==="sil"?"SIL / Core":calcMode==="clinical"?"Clinical / Therapy":"SIL + Clinical"} · change mode</button>}</div>
 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
 <DateField label="Plan Start Date" value={planDates.start} onChange={v=>setPlanDates(p=>({...p,start:v}))}/>
 <DateField label="Plan End Date" value={planDates.end} onChange={v=>setPlanDates(p=>({...p,end:v}))}/>
@@ -751,7 +759,7 @@ return(
 <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 lg:grid-cols-3">{holidays.map((h,i)=>(<div key={i} className="text-sm py-1 px-2 rounded" style={{background:"rgba(255,255,255,0.03)"}}><span style={{color:"#d4a843"}}>{h.date}</span> <span style={{color:"#8080a0"}}>({getDayName(h.dayOfWeek)})</span> <span style={{color:"#b0a0d0"}}>{h.name}</span></div>))}</div></div>)}
 </div>
 
-<div className="rounded-2xl p-6 mb-6" style={{background:"linear-gradient(135deg, rgba(26,17,80,0.8), rgba(45,27,105,0.8))",border:"2px solid "+totalStatus.border}}>
+{showSil&&<><div className="rounded-2xl p-6 mb-6" style={{background:"linear-gradient(135deg, rgba(26,17,80,0.8), rgba(45,27,105,0.8))",border:"2px solid "+totalStatus.border}}>
 <div className="flex items-center justify-between mb-4">
 <div className="grid gap-2">
 <div>Combined funding: <span className="font-semibold" style={{color:"#d4a843"}}>{money(totals.totalFunding)}</span></div>
@@ -1094,9 +1102,111 @@ return(
 </div>
 </div>
 )}
+</>}
+
+{showClinical&&(
+<div className="rounded-2xl p-6 mb-6" style={{background:"rgba(10,20,45,0.7)",border:"1px solid rgba(100,150,212,0.25)"}}>
+  <div className="flex items-center justify-between mb-5">
+    <h2 className="text-xl font-semibold" style={{color:"#7eb8f7"}}>🏥 Clinical / Therapy Services</h2>
+    {calcMode==="clinical"&&<button onClick={()=>setCalcMode(null)} style={{fontSize:"0.72rem",color:"#7090b0",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:"6px",padding:"4px 10px",cursor:"pointer"}}>change mode</button>}
+  </div>
+
+  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mb-5">
+    <div>
+      <div className="text-xs font-semibold mb-1" style={{color:"#7090b0"}}>Total Clinical Funding</div>
+      <input type="number" step="0.01" min="0" value={clinicalFunding||""} onChange={e=>setClinicalFunding(num(e.target.value))} onFocus={e=>e.target.select()} placeholder="0.00"
+        className="w-full rounded-lg px-3 py-2 outline-none"
+        style={{background:"rgba(15,10,48,0.6)",border:"1px solid rgba(100,150,212,0.3)",color:"white",fontSize:"1.1rem",fontWeight:600}}/>
+    </div>
+    <div className="rounded-xl p-3" style={{background:"rgba(100,150,212,0.07)",border:"1px solid rgba(100,150,212,0.2)"}}>
+      <div className="text-xs" style={{color:"#7090b0"}}>Total Service Hours</div>
+      <div className="text-lg font-bold" style={{color:"#7eb8f7"}}>{(()=>{const h=clinicalServices.reduce((s,i)=>s+(i.hours||0),0);return(h%1===0?h:h.toFixed(1))+"h"})()}</div>
+      <div className="text-xs mt-1" style={{color:"#506080"}}>Est. cost: {money(clinicalTotal)}</div>
+    </div>
+  </div>
+
+  <div className="flex items-center justify-between mb-2">
+    <div className="text-xs font-semibold" style={{color:"#7090b0",textTransform:"uppercase",letterSpacing:"0.06em"}}>Services</div>
+    <button onClick={()=>setClinicalServices(p=>[...p,{id:uid(),description:"",hours:0,rate:193.99,note:""}])} style={{background:"rgba(100,150,212,0.12)",border:"1px solid rgba(100,150,212,0.3)",color:"#7eb8f7",padding:"5px 12px",borderRadius:"8px",cursor:"pointer",fontSize:"0.8rem",fontWeight:600}}>+ Add service</button>
+  </div>
+
+  <div className="rounded-xl mb-5" style={{border:"1px solid rgba(100,150,212,0.15)",overflow:"hidden"}}>
+    <div className="grid px-3 py-2" style={{gridTemplateColumns:"3fr 1fr 1.5fr 2fr auto",gap:"8px",background:"rgba(100,150,212,0.07)"}}>
+      <div className="text-xs font-semibold" style={{color:"#7090b0"}}>Service Description</div>
+      <div className="text-xs font-semibold" style={{color:"#7090b0"}}>Hours</div>
+      <div className="text-xs font-semibold" style={{color:"#7090b0"}}>Rate / hr ($)</div>
+      <div className="text-xs font-semibold" style={{color:"#7090b0"}}>Note</div>
+      <div/>
+    </div>
+    {clinicalServices.map((si,idx)=>(
+      <div key={si.id} className="grid px-3 py-2" style={{gridTemplateColumns:"3fr 1fr 1.5fr 2fr auto",gap:"8px",alignItems:"center",borderTop:"1px solid rgba(100,150,212,0.1)"}}>
+        <input value={si.description} onChange={e=>{const i=idx;setClinicalServices(p=>p.map((x,j)=>j===i?{...x,description:e.target.value}:x))}} placeholder="e.g. Comprehensive BSP Development"
+          className="rounded px-2 py-1 text-sm outline-none w-full" style={{background:"rgba(15,10,48,0.5)",border:"1px solid rgba(100,150,212,0.15)",color:"white"}}/>
+        <input type="number" step="0.5" min="0" value={si.hours||""} onChange={e=>{const i=idx;setClinicalServices(p=>p.map((x,j)=>j===i?{...x,hours:num(e.target.value)}:x))}} onFocus={e=>e.target.select()} placeholder="0"
+          className="rounded px-2 py-1 text-sm outline-none" style={{background:"rgba(15,10,48,0.5)",border:"1px solid rgba(100,150,212,0.15)",color:"white"}}/>
+        <input type="number" step="0.01" min="0" value={si.rate||""} onChange={e=>{const i=idx;setClinicalServices(p=>p.map((x,j)=>j===i?{...x,rate:num(e.target.value)}:x))}} onFocus={e=>e.target.select()} placeholder="193.99"
+          className="rounded px-2 py-1 text-sm outline-none" style={{background:"rgba(15,10,48,0.5)",border:"1px solid rgba(100,150,212,0.15)",color:"white"}}/>
+        <input value={si.note} onChange={e=>{const i=idx;setClinicalServices(p=>p.map((x,j)=>j===i?{...x,note:e.target.value}:x))}} placeholder="e.g. per term"
+          className="rounded px-2 py-1 text-sm outline-none w-full" style={{background:"rgba(15,10,48,0.5)",border:"1px solid rgba(100,150,212,0.15)",color:"white"}}/>
+        <button onClick={()=>{const i=idx;setClinicalServices(p=>p.filter((_,j)=>j!==i))}} style={{color:"#ef4444",background:"none",border:"none",cursor:"pointer",fontSize:"1rem",padding:"2px 4px"}}>✕</button>
+      </div>
+    ))}
+    {clinicalServices.length===0&&<div className="px-3 py-5 text-sm text-center" style={{color:"#506080"}}>No services yet — click &ldquo;+ Add service&rdquo; to start</div>}
+  </div>
+
+  {clinicalFunding>0&&(
+  <div className="rounded-xl p-4 mb-5" style={{background:"linear-gradient(135deg,rgba(10,20,50,0.9),rgba(15,30,65,0.9))",border:`2px solid ${clinicalStatus.border}`}}>
+    <div className="flex items-center justify-between mb-3">
+      <div className="grid gap-1">
+        <div className="text-sm" style={{color:"#7090b0"}}>Total funding: <span style={{color:"#7eb8f7",fontWeight:600}}>{money(clinicalFunding)}</span></div>
+        <div className="text-sm" style={{color:"#7090b0"}}>Service cost: <span style={{color:"white",fontWeight:600}}>{money(clinicalTotal)}</span></div>
+      </div>
+      <div className="text-sm font-semibold px-3 py-1 rounded-full" style={{background:clinicalStatus.bg,color:clinicalStatus.color,border:`1px solid ${clinicalStatus.border}`}}>{clinicalStatus.label}</div>
+    </div>
+    <div className="text-2xl font-bold mb-3" style={{color:clinicalStatus.color}}>Remaining: {money(clinicalRemaining)}</div>
+    <div style={{background:"rgba(255,255,255,0.08)",borderRadius:"8px",height:"10px",overflow:"hidden"}}>
+      <div style={{width:Math.min(100,clinicalFunding>0?(clinicalTotal/clinicalFunding)*100:0)+"%",height:"100%",borderRadius:"8px",background:`linear-gradient(90deg,${clinicalStatus.color},${clinicalStatus.color}99)`,transition:"width 0.3s"}}/>
+    </div>
+  </div>
+  )}
+
+  <button onClick={()=>{if(clinicalServices.length>0)setClinicalScheduleItems(clinicalServices.map(s=>({...s})));setShowClinicalModal(true)}} style={{padding:"10px 16px",background:"rgba(100,150,212,0.1)",border:"1px solid rgba(100,150,212,0.35)",borderRadius:"12px",cursor:"pointer",textAlign:"left"}}>
+    <span style={{display:"block",color:"#7eb8f7",fontWeight:700,fontSize:"0.88rem"}}>🏥 Generate Clinical Schedule of Supports</span>
+    <span style={{display:"block",color:"#506080",fontSize:"0.72rem",marginTop:"2px"}}>Services pre-filled from your list above</span>
+  </button>
+</div>
+)}
+
 <div className="text-xs mt-8" style={{color:"#505080"}}>Auto-saves in your browser.</div>
 <div className="text-xs mt-2 mb-8" style={{color:"#6060a0"}}>Powered by <span style={{color:"#d4a843"}}>Kevria</span></div>
 </div>
+
+{calcMode===null&&(
+<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(8,4,30,0.97)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:"24px"}}>
+  <div style={{maxWidth:"660px",width:"100%",textAlign:"center"}}>
+    <div style={{fontSize:"1.8rem",color:"#d4a843",marginBottom:"12px"}}>✦</div>
+    <h2 style={{fontSize:"1.5rem",fontWeight:800,color:"white",marginBottom:"8px"}}>What are you calculating for{participantName?" "+participantName:""}?</h2>
+    <p style={{color:"#7060a0",fontSize:"0.88rem",marginBottom:"32px",lineHeight:1.6}}>Choose the type of support. This sets up the right calculator view.<br/>You can change it any time from the Plan Details section.</p>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"14px"}}>
+      <button onClick={()=>setCalcMode("sil")} style={{padding:"28px 16px",background:"rgba(212,168,67,0.07)",border:"2px solid rgba(212,168,67,0.25)",borderRadius:"16px",cursor:"pointer",textAlign:"center"}}>
+        <div style={{fontSize:"2.2rem",marginBottom:"12px"}}>🏠</div>
+        <div style={{color:"#d4a843",fontWeight:700,fontSize:"1rem",marginBottom:"8px"}}>SIL / Core Supports</div>
+        <div style={{color:"#7060a0",fontSize:"0.78rem",lineHeight:1.6}}>Roster-based with day, night, weekend &amp; public holiday rates</div>
+      </button>
+      <button onClick={()=>setCalcMode("clinical")} style={{padding:"28px 16px",background:"rgba(100,150,212,0.07)",border:"2px solid rgba(100,150,212,0.25)",borderRadius:"16px",cursor:"pointer",textAlign:"center"}}>
+        <div style={{fontSize:"2.2rem",marginBottom:"12px"}}>🏥</div>
+        <div style={{color:"#7eb8f7",fontWeight:700,fontSize:"1rem",marginBottom:"8px"}}>Clinical / Therapy</div>
+        <div style={{color:"#506080",fontSize:"0.78rem",lineHeight:1.6}}>Behaviour support, allied health, therapy — flat hourly packages</div>
+      </button>
+      <button onClick={()=>setCalcMode("both")} style={{padding:"28px 16px",background:"rgba(100,200,130,0.07)",border:"2px solid rgba(100,200,130,0.25)",borderRadius:"16px",cursor:"pointer",textAlign:"center"}}>
+        <div style={{fontSize:"2.2rem",marginBottom:"12px"}}>📋</div>
+        <div style={{color:"#6dd68e",fontWeight:700,fontSize:"1rem",marginBottom:"8px"}}>Both</div>
+        <div style={{color:"#3d6050",fontSize:"0.78rem",lineHeight:1.6}}>Participant has roster supports and clinical services</div>
+      </button>
+    </div>
+  </div>
+</div>
+)}
 
 {showSAModal&&(
 <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:"16px"}}>
