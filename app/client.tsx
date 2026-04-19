@@ -108,7 +108,7 @@ const holidays=useMemo(()=>getHolidaysInRange(planDates.start,planDates.end,plan
 useEffect(()=>{async function load(){const cloud=await loadFromCloud(STORAGE_KEY);const raw=cloud||(()=>{try{const r=localStorage.getItem(STORAGE_KEY);return r?JSON.parse(r):null}catch{return null}})();if(!raw)return;if(raw?.rates)setRates((r:any)=>({...r,...raw.rates}));if(raw?.planDates)setPlanDates((p:any)=>({...p,...raw.planDates}));if(Array.isArray(raw?.lines)&&raw.lines.length>0)setLines(raw.lines.map((l:any)=>({...l,ratio:l.ratio||"1:1",excludedHolidays:l.excludedHolidays||[],roster:l.roster||defaultRoster(),activeSleepoverFreq:l.activeSleepoverFreq||"every",fixedSleepoverFreq:l.fixedSleepoverFreq||"every",kmsPerWeek:l.kmsPerWeek||0,kmRate:l.kmRate||0.99,kmFreq:l.kmFreq||"every",claims:l.claims||[],lineRates:l.lineRates||getPresetRates(l.code)})));if(raw?.weeksOverride!=null)setWeeksOverride(raw.weeksOverride);if(raw?.calcMode!=null)setCalcMode(raw.calcMode as any);if(typeof raw?.clinicalFunding==="number")setClinicalFunding(raw.clinicalFunding);if(Array.isArray(raw?.clinicalServices))setClinicalServices(raw.clinicalServices);}load()},[]);
 const[calcMode,setCalcMode]=useState<"sil"|"clinical"|"both"|null>(null);
 const[clinicalFunding,setClinicalFunding]=useState(0);
-const[clinicalServices,setClinicalServices]=useState<{id:string;description:string;hours:number;rate:number;note:string}[]>([]);
+const[clinicalServices,setClinicalServices]=useState<{id:string;code:string;description:string;hours:number;rate:number;note:string}[]>([]);
 const saveData={rates,lines,planDates,weeksOverride,calcMode,clinicalFunding,clinicalServices};useEffect(()=>{try{localStorage.setItem(STORAGE_KEY,JSON.stringify(saveData))}catch{}},[rates,lines,planDates,weeksOverride]);useCloudSync(STORAGE_KEY,saveData);
 const perLine=useMemo(()=>{return lines.map(l=>{const lr=l.lineRates||rates;const wt=calcWeeklyCost(l,lr);const weeklyGST=wt*(lr.gstRate||0);const weeklyWithGST=wt+weeklyGST;const basePlanCost=calcDayCountPlanCost(l,planDates.start,planDates.end,planWeeks,lr)*(1+(lr.gstRate||0));const phImpact=calcPHImpact(l,holidays,lr);const phAdjustment=phImpact.extraCost-phImpact.savedCost;const planTotal=basePlanCost+phAdjustment;const remaining=l.totalFunding-planTotal;const totalClaimed=(l.claims||[]).reduce((a:number,c:Claim)=>a+c.amount,0);const actualRemaining=l.totalFunding-totalClaimed;return{...l,weeklyTotal:wt,weeklyGST,weeklyWithGST,basePlanCost,phImpact,phAdjustment,planTotal,remaining,totalClaimed,actualRemaining}})},[lines,rates,planWeeks,holidays]);
 const totals=useMemo(()=>{const totalFunding=perLine.reduce((a,l)=>a+l.totalFunding,0);const weekly=perLine.reduce((a,l)=>a+l.weeklyWithGST,0);const planCost=perLine.reduce((a,l)=>a+l.planTotal,0);const totalPH=perLine.reduce((a,l)=>a+l.phAdjustment,0);const remaining=totalFunding-planCost;const totalClaimed=perLine.reduce((a,l)=>a+(l as any).totalClaimed,0);const actualRemaining=totalFunding-totalClaimed;return{totalFunding,weekly,planCost,totalPH,remaining,totalClaimed,actualRemaining}},[perLine]);
@@ -1127,11 +1127,12 @@ return(
 
   <div className="flex items-center justify-between mb-2">
     <div className="text-xs font-semibold" style={{color:"#7090b0",textTransform:"uppercase",letterSpacing:"0.06em"}}>Services</div>
-    <button onClick={()=>setClinicalServices(p=>[...p,{id:uid(),description:"",hours:0,rate:193.99,note:""}])} style={{background:"rgba(100,150,212,0.12)",border:"1px solid rgba(100,150,212,0.3)",color:"#7eb8f7",padding:"5px 12px",borderRadius:"8px",cursor:"pointer",fontSize:"0.8rem",fontWeight:600}}>+ Add service</button>
+    <button onClick={()=>setClinicalServices(p=>[...p,{id:uid(),code:"15",description:"",hours:0,rate:CATEGORY_PRESETS["15"].rates.weekdayOrd,note:""}])} style={{background:"rgba(100,150,212,0.12)",border:"1px solid rgba(100,150,212,0.3)",color:"#7eb8f7",padding:"5px 12px",borderRadius:"8px",cursor:"pointer",fontSize:"0.8rem",fontWeight:600}}>+ Add service</button>
   </div>
 
   <div className="rounded-xl mb-5" style={{border:"1px solid rgba(100,150,212,0.15)",overflow:"hidden"}}>
-    <div className="grid px-3 py-2" style={{gridTemplateColumns:"3fr 1fr 1.5fr 2fr auto",gap:"8px",background:"rgba(100,150,212,0.07)"}}>
+    <div className="grid px-3 py-2" style={{gridTemplateColumns:"1.8fr 2.5fr 1fr 1.3fr 1.5fr auto",gap:"8px",background:"rgba(100,150,212,0.07)"}}>
+      <div className="text-xs font-semibold" style={{color:"#7090b0"}}>Category</div>
       <div className="text-xs font-semibold" style={{color:"#7090b0"}}>Service Description</div>
       <div className="text-xs font-semibold" style={{color:"#7090b0"}}>Hours</div>
       <div className="text-xs font-semibold" style={{color:"#7090b0"}}>Rate / hr ($)</div>
@@ -1139,12 +1140,18 @@ return(
       <div/>
     </div>
     {clinicalServices.map((si,idx)=>(
-      <div key={si.id} className="grid px-3 py-2" style={{gridTemplateColumns:"3fr 1fr 1.5fr 2fr auto",gap:"8px",alignItems:"center",borderTop:"1px solid rgba(100,150,212,0.1)"}}>
+      <div key={si.id} className="grid px-3 py-2" style={{gridTemplateColumns:"1.8fr 2.5fr 1fr 1.3fr 1.5fr auto",gap:"8px",alignItems:"center",borderTop:"1px solid rgba(100,150,212,0.1)"}}>
+        <select value={si.code||"15"} onChange={e=>{const i=idx;const c=e.target.value;const preset=CATEGORY_PRESETS[c]?.rates.weekdayOrd||0;setClinicalServices(p=>p.map((x,j)=>j===i?{...x,code:c,rate:preset,description:x.description||CATEGORY_PRESETS[c]?.name||""}:x))}}
+          className="rounded px-2 py-1 text-xs outline-none" style={{background:"rgba(15,10,48,0.5)",border:"1px solid rgba(100,150,212,0.15)",color:"white"}}>
+          {[["07","07 — Support Coordination"],["11","11 — Health & Wellbeing"],["12","12 — Improved Learning"],["13","13 — Life Choices"],["14","14 — Daily Living"],["15","15 — Relationships"]].map(([v,l])=>(
+            <option key={v} value={v}>{l}</option>
+          ))}
+        </select>
         <input value={si.description} onChange={e=>{const i=idx;setClinicalServices(p=>p.map((x,j)=>j===i?{...x,description:e.target.value}:x))}} placeholder="e.g. Comprehensive BSP Development"
           className="rounded px-2 py-1 text-sm outline-none w-full" style={{background:"rgba(15,10,48,0.5)",border:"1px solid rgba(100,150,212,0.15)",color:"white"}}/>
         <input type="number" step="0.5" min="0" value={si.hours||""} onChange={e=>{const i=idx;setClinicalServices(p=>p.map((x,j)=>j===i?{...x,hours:num(e.target.value)}:x))}} onFocus={e=>e.target.select()} placeholder="0"
           className="rounded px-2 py-1 text-sm outline-none" style={{background:"rgba(15,10,48,0.5)",border:"1px solid rgba(100,150,212,0.15)",color:"white"}}/>
-        <input type="number" step="0.01" min="0" value={si.rate||""} onChange={e=>{const i=idx;setClinicalServices(p=>p.map((x,j)=>j===i?{...x,rate:num(e.target.value)}:x))}} onFocus={e=>e.target.select()} placeholder="193.99"
+        <input type="number" step="0.01" min="0" value={si.rate||""} onChange={e=>{const i=idx;setClinicalServices(p=>p.map((x,j)=>j===i?{...x,rate:num(e.target.value)}:x))}} onFocus={e=>e.target.select()} placeholder="0.00"
           className="rounded px-2 py-1 text-sm outline-none" style={{background:"rgba(15,10,48,0.5)",border:"1px solid rgba(100,150,212,0.15)",color:"white"}}/>
         <input value={si.note} onChange={e=>{const i=idx;setClinicalServices(p=>p.map((x,j)=>j===i?{...x,note:e.target.value}:x))}} placeholder="e.g. per term"
           className="rounded px-2 py-1 text-sm outline-none w-full" style={{background:"rgba(15,10,48,0.5)",border:"1px solid rgba(100,150,212,0.15)",color:"white"}}/>
