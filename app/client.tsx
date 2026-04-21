@@ -1143,8 +1143,8 @@ return(
       <div key={si.id} className="grid px-3 py-2" style={{gridTemplateColumns:"1.8fr 2.5fr 1fr 1.3fr 1.5fr auto",gap:"8px",alignItems:"center",borderTop:"1px solid rgba(100,150,212,0.1)"}}>
         <select value={si.code||"15"} onChange={e=>{const i=idx;const c=e.target.value;const preset=CATEGORY_PRESETS[c]?.rates.weekdayOrd||0;setClinicalServices(p=>p.map((x,j)=>j===i?{...x,code:c,rate:preset,description:x.description||CATEGORY_PRESETS[c]?.name||""}:x))}}
           className="rounded px-2 py-1 text-xs outline-none" style={{background:"rgba(15,10,48,0.5)",border:"1px solid rgba(100,150,212,0.15)",color:"white"}}>
-          {[["07","07 — Support Coordination"],["11","11 — Health & Wellbeing"],["12","12 — Improved Learning"],["13","13 — Life Choices"],["14","14 — Daily Living"],["15","15 — Relationships"]].map(([v,l])=>(
-            <option key={v} value={v}>{l}</option>
+          {["07","11","12","13","14","15"].map(v=>(
+            <option key={v} value={v}>{v} — {CATEGORY_PRESETS[v]?.name||v}</option>
           ))}
         </select>
         <input value={si.description} onChange={e=>{const i=idx;setClinicalServices(p=>p.map((x,j)=>j===i?{...x,description:e.target.value}:x))}} placeholder="e.g. Comprehensive BSP Development"
