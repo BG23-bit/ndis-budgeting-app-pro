@@ -422,8 +422,7 @@ function generateScheduleOfSupports(){
     return "<tr>"
     +"<td style=\"vertical-align:top\">"+r.category+"</td>"
     +"<td style=\"vertical-align:top;color:#475569;font-size:8.5pt\">"+(itemNum?"NDIS Item Number<br/>"+escapeHtml(itemNum):"<span style=\"color:#cbd5e1\">_______________</span>")+"</td>"
-    +"<td style=\"text-align:right;vertical-align:top;white-space:nowrap\">"+(r.price!==null?escapeHtml(money(r.price)):"&mdash;")+"</td>"
-    +"<td style=\"text-align:right;vertical-align:top\">"+(r.hours!==null?r.hours:"&mdash;")+"</td>"
+    +"<td style=\"text-align:right;vertical-align:top;white-space:nowrap\">"+(r.hours!==null?(r.hours+(r.price!==null?" @ "+escapeHtml(money(r.price))+(r.rateType==="km"?"/km":r.rateType==="fixedSleepover"?"/night":"/hr"):"")):"&mdash;")+"</td>"
     +"<td style=\"text-align:right;vertical-align:top;white-space:nowrap;font-weight:700;color:#f8fafc\">"+(r.total!==null?escapeHtml(money(r.total)):"&mdash;")+"</td>"
     +"</tr>";
   }).join("");
@@ -509,14 +508,13 @@ tbody td{padding:9px 10px;vertical-align:top}
   <table>
     <thead><tr>
       <th style="width:28%">Support Category</th>
-      <th style="width:25%">Description of Service</th>
-      <th style="width:13%;text-align:right">Price</th>
-      <th style="width:13%;text-align:right">Hrs / Units</th>
+      <th style="width:30%">Description of Service</th>
+      <th style="width:28%;text-align:right">Hrs / Units</th>
       <th style="width:14%;text-align:right">Total Cost</th>
     </tr></thead>
     <tbody>
     ${supRowsHtml}
-    <tr class="total-row"><td colspan="3">Total</td><td style="text-align:right">&mdash;</td><td style="text-align:right">${escapeHtml(money(grandTotal))}</td></tr>
+    <tr class="total-row"><td colspan="3">Total</td><td style="text-align:right">${escapeHtml(money(grandTotal))}</td></tr>
     </tbody>
   </table>
   <div class="note">Prices per the NDIS Pricing Arrangements &amp; Price Limits (2025&#8211;26). Plan totals are estimates and may vary based on actual supports delivered. All prices are GST-inclusive where applicable.</div>
