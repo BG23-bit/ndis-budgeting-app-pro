@@ -235,7 +235,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0f0a30", color: "white" }}>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#ffffff", color: "#0f172a" }}>
         Loading...
       </div>
     );
@@ -256,7 +256,7 @@ export default function DashboardPage() {
             background: "#1e293b", padding: "40px", borderRadius: "16px",
             textAlign: "center", maxWidth: "480px", width: "90%", border: "1px solid #334155",
           }}>
-            <h2 style={{ fontSize: "1.8rem", color: "white", marginBottom: "8px" }}>Unlock Kevria Calc</h2>
+            <h2 style={{ fontSize: "1.8rem", color: "#2d1b69", marginBottom: "8px" }}>Unlock Kevria Calc</h2>
             <p style={{ color: "#94a3b8", marginBottom: "24px", fontSize: "0.95rem" }}>Cancel anytime. No lock-in.</p>
 
             {/* Plan picker */}
@@ -271,14 +271,14 @@ export default function DashboardPage() {
                   style={{
                     flex: 1, padding: "16px 12px", borderRadius: "12px", cursor: "pointer",
                     border: selectedPlan === plan.key ? "2px solid #d4a843" : "2px solid #334155",
-                    background: selectedPlan === plan.key ? "rgba(212,168,67,0.08)" : "rgba(255,255,255,0.02)",
+                    background: selectedPlan === plan.key ? "rgba(212,168,67,0.08)" : "rgba(15,23,42,0.02)",
                     position: "relative",
                   }}
                 >
                   {plan.badge && (
                     <div style={{
                       position: "absolute", top: "-10px", left: "50%", transform: "translateX(-50%)",
-                      background: "#d4a843", color: "#1a1150", fontSize: "0.7rem", fontWeight: "800",
+                      background: "#d4a843", color: "#0f172a", fontSize: "0.7rem", fontWeight: "800",
                       padding: "2px 10px", borderRadius: "20px", whiteSpace: "nowrap",
                     }}>{plan.badge}</div>
                   )}
@@ -294,7 +294,7 @@ export default function DashboardPage() {
             ))}
 
             <button onClick={handleCheckout} disabled={checkoutLoading} style={{
-              marginTop: "20px", padding: "15px 40px", fontSize: "1.1rem", backgroundColor: "#d4a843", color: "#1a1150",
+              marginTop: "20px", padding: "15px 40px", fontSize: "1.1rem", backgroundColor: "#d4a843", color: "#0f172a",
               border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold", width: "100%",
             }}>
               {checkoutLoading ? "Redirecting..." : selectedPlan === "annual" ? "Subscribe — $79/yr" : "Subscribe — $9.99/mo"}
@@ -312,14 +312,14 @@ export default function DashboardPage() {
     return (
       <div>
         <div style={{
-          background: "#0f0a30", padding: "12px 24px", borderBottom: "1px solid rgba(212,168,67,0.15)",
+          background: "linear-gradient(135deg, #2d1b69 0%, #3d2787 100%)", padding: "12px 24px",
           display: "flex", alignItems: "center", justifyContent: "space-between",
         }}>
           <button onClick={() => setActiveParticipant(null)} style={{
-            background: "rgba(212,168,67,0.15)", border: "1px solid rgba(212,168,67,0.3)",
+            background: "rgba(212,168,67,0.18)", border: "1px solid rgba(212,168,67,0.5)",
             color: "#d4a843", padding: "8px 20px", borderRadius: "8px", cursor: "pointer", fontWeight: "600",
           }}>Back to All Participants</button>
-          <div style={{ color: "#b0a0d0", fontSize: "0.9rem" }}>
+          <div style={{ color: "rgba(255,255,255,0.9)", fontSize: "0.9rem", fontWeight: "500" }}>
             {p?.name} {p?.ndisNumber ? "(" + p.ndisNumber + ")" : ""}
           </div>
         </div>
@@ -329,16 +329,16 @@ export default function DashboardPage() {
   }
   // Overview - all participants
   return (
-    <main className="min-h-screen" style={{ background: "#0f0a30", color: "white" }}>
+    <main className="min-h-screen" style={{ background: "#ffffff", color: "#0f172a" }}>
       <div className="mx-auto max-w-6xl p-6">
 
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
             <span style={{ fontSize: "1.5rem", color: "#d4a843" }}>✦</span>
-            <h1 className="text-3xl font-bold">Kevria Calc</h1>
+            <h1 className="text-3xl font-bold" style={{ color: "#2d1b69" }}>Kevria Calc</h1>
           </div>
           <div className="flex items-center gap-3">
-            {user?.email && <span className="text-sm" style={{ color: "#8080a0" }}>{user.email}</span>}
+            {user?.email && <span className="text-sm" style={{ color: "#475569" }}>{user.email}</span>}
             {stripeCustomerId && (
               <button onClick={handlePortal} disabled={portalLoading} style={{
                 background: "rgba(212,168,67,0.1)", border: "1px solid rgba(212,168,67,0.3)",
@@ -346,30 +346,30 @@ export default function DashboardPage() {
               }}>{portalLoading ? "..." : "Manage Subscription"}</button>
             )}
             <button onClick={handleLogout} style={{
-              background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
-              color: "#b0b0d0", padding: "8px 16px", borderRadius: "8px", cursor: "pointer", fontSize: "0.85rem",
+              background: "rgba(15,23,42,0.05)", border: "1px solid rgba(15,23,42,0.1)",
+              color: "#334155", padding: "8px 16px", borderRadius: "8px", cursor: "pointer", fontSize: "0.85rem",
             }}>Log out</button>
           </div>
         </div>
 
-        <div className="text-sm mb-8" style={{ color: "#6060a0" }}>
+        <div className="text-sm mb-8" style={{ color: "#64748b" }}>
           Powered by <span style={{ color: "#d4a843" }}>Kevria</span> — Participant Overview
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-8">
-          <div className="rounded-2xl p-5" style={{ background: "rgba(26,17,80,0.4)", border: "1px solid rgba(212,168,67,0.15)" }}>
-            <div className="text-sm" style={{ color: "#b0a0d0" }}>Total Participants</div>
+          <div className="rounded-2xl p-5" style={{ background: "rgba(241,245,249,0.4)", border: "1px solid rgba(212,168,67,0.15)" }}>
+            <div className="text-sm" style={{ color: "#334155" }}>Total Participants</div>
             <div className="text-3xl font-bold" style={{ color: "#d4a843" }}>{participants.length}</div>
           </div>
-          <div className="rounded-2xl p-5" style={{ background: "rgba(26,17,80,0.4)", border: "1px solid rgba(212,168,67,0.15)" }}>
-            <div className="text-sm" style={{ color: "#b0a0d0" }}>Total Funding</div>
+          <div className="rounded-2xl p-5" style={{ background: "rgba(241,245,249,0.4)", border: "1px solid rgba(212,168,67,0.15)" }}>
+            <div className="text-sm" style={{ color: "#334155" }}>Total Funding</div>
             <div className="text-3xl font-bold" style={{ color: "#d4a843" }}>
               {money(participants.reduce((a, p) => a + getBudgetStatusFromStorage(p.id).totalFunding, 0))}
             </div>
           </div>
-          <div className="rounded-2xl p-5" style={{ background: "rgba(26,17,80,0.4)", border: "1px solid rgba(212,168,67,0.15)" }}>
-            <div className="text-sm" style={{ color: "#b0a0d0" }}>Total Remaining</div>
+          <div className="rounded-2xl p-5" style={{ background: "rgba(241,245,249,0.4)", border: "1px solid rgba(212,168,67,0.15)" }}>
+            <div className="text-sm" style={{ color: "#334155" }}>Total Remaining</div>
             <div className="text-3xl font-bold" style={{
               color: participants.reduce((a, p) => a + getBudgetStatusFromStorage(p.id).remaining, 0) < 0 ? "#ef4444" : "#22c55e"
             }}>
@@ -380,10 +380,10 @@ export default function DashboardPage() {
 
         {/* Participant Cards */}
         {participants.length === 0 ? (
-          <div className="rounded-2xl p-12 text-center" style={{ background: "rgba(26,17,80,0.4)", border: "1px solid rgba(212,168,67,0.15)" }}>
+          <div className="rounded-2xl p-12 text-center" style={{ background: "rgba(241,245,249,0.4)", border: "1px solid rgba(212,168,67,0.15)" }}>
             <div style={{ fontSize: "3rem", marginBottom: "15px" }}>👤</div>
-            <h2 className="text-xl font-semibold mb-2">No Participants Yet</h2>
-            <p className="mb-6" style={{ color: "#b0a0d0" }}>Add your first NDIS participant to get started.</p>
+            <h2 className="text-xl font-semibold mb-2" style={{ color: "#2d1b69" }}>No Participants Yet</h2>
+            <p className="mb-6" style={{ color: "#334155" }}>Add your first NDIS participant to get started.</p>
             <button onClick={() => setShowAddForm(true)} style={{
               background: "rgba(212,168,67,0.15)", border: "1px solid rgba(212,168,67,0.3)",
               color: "#d4a843", padding: "12px 32px", borderRadius: "8px", cursor: "pointer", fontWeight: "bold", fontSize: "1rem",
@@ -398,17 +398,17 @@ export default function DashboardPage() {
                 : budget.status === "low"
                 ? { color: "#f59e0b", bg: "rgba(245,158,11,0.1)", label: "LOW BUDGET", border: "rgba(245,158,11,0.3)" }
                 : budget.status === "empty"
-                ? { color: "#8080a0", bg: "rgba(128,128,160,0.1)", label: "NOT SET UP", border: "rgba(128,128,160,0.3)" }
+                ? { color: "#475569", bg: "rgba(128,128,160,0.1)", label: "NOT SET UP", border: "rgba(128,128,160,0.3)" }
                 : { color: "#22c55e", bg: "rgba(34,197,94,0.1)", label: "ON TRACK", border: "rgba(34,197,94,0.3)" };
 
               return (
                 <div key={p.id} className="rounded-2xl p-5" style={{
-                  background: "rgba(26,17,80,0.4)", border: "1px solid " + statusColors.border,
+                  background: "rgba(241,245,249,0.4)", border: "1px solid " + statusColors.border,
                   cursor: "pointer", transition: "all 0.2s",
                 }}
                   onClick={() => setActiveParticipant(p.id)}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "rgba(26,17,80,0.6)"; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "rgba(26,17,80,0.4)"; }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "rgba(241,245,249,0.6)"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "rgba(241,245,249,0.4)"; }}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -422,17 +422,17 @@ export default function DashboardPage() {
                       </div>
                       <div>
                         <div className="text-lg font-semibold">{p.name}</div>
-                        {p.ndisNumber && <div className="text-sm" style={{ color: "#8080a0" }}>NDIS: {p.ndisNumber}</div>}
+                        {p.ndisNumber && <div className="text-sm" style={{ color: "#475569" }}>NDIS: {p.ndisNumber}</div>}
                       </div>
                     </div>
 
                     <div className="flex items-center gap-4">
                       <div className="text-right" style={{ minWidth: "120px" }}>
-                        <div className="text-sm" style={{ color: "#b0a0d0" }}>Funding</div>
+                        <div className="text-sm" style={{ color: "#334155" }}>Funding</div>
                         <div className="font-semibold" style={{ color: "#d4a843" }}>{money(budget.totalFunding)}</div>
                       </div>
                       <div className="text-right" style={{ minWidth: "120px" }}>
-                        <div className="text-sm" style={{ color: "#b0a0d0" }}>Remaining</div>
+                        <div className="text-sm" style={{ color: "#334155" }}>Remaining</div>
                         <div className="font-semibold" style={{ color: statusColors.color }}>{money(budget.remaining)}</div>
                       </div>
                       <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{
@@ -456,14 +456,14 @@ export default function DashboardPage() {
                   {/* Budget bar */}
                   {budget.totalFunding > 0 && (
                     <div className="mt-3">
-                      <div style={{ background: "rgba(255,255,255,0.1)", borderRadius: "6px", height: "8px", overflow: "hidden" }}>
+                      <div style={{ background: "rgba(15,23,42,0.1)", borderRadius: "6px", height: "8px", overflow: "hidden" }}>
                         <div style={{
                           width: Math.min(100, budget.totalFunding > 0 ? (budget.planCost / budget.totalFunding) * 100 : 0) + "%",
                           height: "100%", borderRadius: "6px",
                           background: budget.status === "over" ? "#ef4444" : budget.status === "low" ? "#f59e0b" : "#22c55e",
                         }} />
                       </div>
-                      <div className="text-xs mt-1 text-right" style={{ color: "#8080a0" }}>
+                      <div className="text-xs mt-1 text-right" style={{ color: "#475569" }}>
                         {budget.totalFunding > 0 ? ((budget.planCost / budget.totalFunding) * 100).toFixed(1) : 0}% used
                       </div>
                     </div>
@@ -487,35 +487,35 @@ export default function DashboardPage() {
             background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100,
           }}>
             <div style={{
-              background: "#1a1150", padding: "32px", borderRadius: "16px",
+              background: "#f8fafc", padding: "32px", borderRadius: "16px",
               border: "1px solid rgba(212,168,67,0.3)", maxWidth: "400px", width: "90%",
             }}>
               <h3 className="text-xl font-semibold mb-4" style={{ color: "#d4a843" }}>Add New Participant</h3>
 
               <div className="mb-4">
-                <div className="text-sm mb-1" style={{ color: "#b0a0d0" }}>Participant Name *</div>
+                <div className="text-sm mb-1" style={{ color: "#334155" }}>Participant Name *</div>
                 <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g. John Smith"
                   className="w-full rounded-lg px-3 py-2 outline-none"
-                  style={{ background: "rgba(15,10,48,0.6)", border: "1px solid rgba(212,168,67,0.2)", color: "white" }}
+                  style={{ background: "rgba(248,250,252,0.6)", border: "1px solid rgba(212,168,67,0.2)", color: "#0f172a" }}
                 />
               </div>
 
               <div className="mb-6">
-                <div className="text-sm mb-1" style={{ color: "#b0a0d0" }}>NDIS Number (optional)</div>
+                <div className="text-sm mb-1" style={{ color: "#334155" }}>NDIS Number (optional)</div>
                 <input value={newNdis} onChange={(e) => setNewNdis(e.target.value)} placeholder="e.g. 431234567"
                   className="w-full rounded-lg px-3 py-2 outline-none"
-                  style={{ background: "rgba(15,10,48,0.6)", border: "1px solid rgba(212,168,67,0.2)", color: "white" }}
+                  style={{ background: "rgba(248,250,252,0.6)", border: "1px solid rgba(212,168,67,0.2)", color: "#0f172a" }}
                 />
               </div>
 
               <div className="flex gap-3">
                 <button onClick={addParticipant} style={{
-                  flex: 1, padding: "12px", backgroundColor: "#d4a843", color: "#1a1150",
+                  flex: 1, padding: "12px", backgroundColor: "#d4a843", color: "#0f172a",
                   border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold",
                 }}>Add Participant</button>
                 <button onClick={() => { setShowAddForm(false); setNewName(""); setNewNdis(""); }} style={{
-                  flex: 1, padding: "12px", background: "rgba(255,255,255,0.05)",
-                  border: "1px solid rgba(255,255,255,0.1)", color: "#b0b0d0", borderRadius: "8px", cursor: "pointer",
+                  flex: 1, padding: "12px", background: "rgba(15,23,42,0.05)",
+                  border: "1px solid rgba(15,23,42,0.1)", color: "#334155", borderRadius: "8px", cursor: "pointer",
                 }}>Cancel</button>
               </div>
             </div>
@@ -529,35 +529,35 @@ export default function DashboardPage() {
             background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100,
           }}>
             <div style={{
-              background: "#1a1150", padding: "32px", borderRadius: "16px",
+              background: "#f8fafc", padding: "32px", borderRadius: "16px",
               border: "1px solid rgba(212,168,67,0.3)", maxWidth: "400px", width: "90%",
             }}>
               <h3 className="text-xl font-semibold mb-4" style={{ color: "#d4a843" }}>Edit Participant</h3>
 
               <div className="mb-4">
-                <div className="text-sm mb-1" style={{ color: "#b0a0d0" }}>Participant Name *</div>
+                <div className="text-sm mb-1" style={{ color: "#334155" }}>Participant Name *</div>
                 <input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="e.g. John Smith"
                   className="w-full rounded-lg px-3 py-2 outline-none"
-                  style={{ background: "rgba(15,10,48,0.6)", border: "1px solid rgba(212,168,67,0.2)", color: "white" }}
+                  style={{ background: "rgba(248,250,252,0.6)", border: "1px solid rgba(212,168,67,0.2)", color: "#0f172a" }}
                 />
               </div>
 
               <div className="mb-6">
-                <div className="text-sm mb-1" style={{ color: "#b0a0d0" }}>NDIS Number (optional)</div>
+                <div className="text-sm mb-1" style={{ color: "#334155" }}>NDIS Number (optional)</div>
                 <input value={editNdis} onChange={(e) => setEditNdis(e.target.value)} placeholder="e.g. 431234567"
                   className="w-full rounded-lg px-3 py-2 outline-none"
-                  style={{ background: "rgba(15,10,48,0.6)", border: "1px solid rgba(212,168,67,0.2)", color: "white" }}
+                  style={{ background: "rgba(248,250,252,0.6)", border: "1px solid rgba(212,168,67,0.2)", color: "#0f172a" }}
                 />
               </div>
 
               <div className="flex gap-3">
                 <button onClick={saveEdit} style={{
-                  flex: 1, padding: "12px", backgroundColor: "#d4a843", color: "#1a1150",
+                  flex: 1, padding: "12px", backgroundColor: "#d4a843", color: "#0f172a",
                   border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold",
                 }}>Save Changes</button>
                 <button onClick={() => setEditingParticipant(null)} style={{
-                  flex: 1, padding: "12px", background: "rgba(255,255,255,0.05)",
-                  border: "1px solid rgba(255,255,255,0.1)", color: "#b0b0d0", borderRadius: "8px", cursor: "pointer",
+                  flex: 1, padding: "12px", background: "rgba(15,23,42,0.05)",
+                  border: "1px solid rgba(15,23,42,0.1)", color: "#334155", borderRadius: "8px", cursor: "pointer",
                 }}>Cancel</button>
               </div>
             </div>
@@ -571,25 +571,25 @@ export default function DashboardPage() {
             background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center",
           }}>
             <div style={{
-              background: "linear-gradient(135deg, #1a1150, #2d1b69)",
+              background: "linear-gradient(135deg, #f8fafc, #f1f5f9)",
               border: "1px solid rgba(212,168,67,0.4)", borderRadius: "24px",
               padding: "48px 40px", maxWidth: "480px", width: "90%", textAlign: "center",
             }}>
               <div style={{ fontSize: "3rem", marginBottom: "16px" }}>🎉</div>
-              <h2 style={{ fontSize: "1.9rem", fontWeight: "800", color: "white", marginBottom: "10px" }}>
+              <h2 style={{ fontSize: "1.9rem", fontWeight: "800", color: "#2d1b69", marginBottom: "10px" }}>
                 You&apos;re all set!
               </h2>
-              <p style={{ color: "#b0a0d0", fontSize: "1rem", lineHeight: "1.6", marginBottom: "8px" }}>
+              <p style={{ color: "#334155", fontSize: "1rem", lineHeight: "1.6", marginBottom: "8px" }}>
                 Welcome to <span style={{ color: "#d4a843", fontWeight: "700" }}>Kevria Kevria Calc</span>.
               </p>
-              <p style={{ color: "#8080a0", fontSize: "0.9rem", lineHeight: "1.6", marginBottom: "32px" }}>
+              <p style={{ color: "#475569", fontSize: "0.9rem", lineHeight: "1.6", marginBottom: "32px" }}>
                 Add your first participant to get started. Your data saves automatically and syncs across all your devices.
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 {["Unlimited participants & support lines", "Auto public holiday calculations", "Plan pace tracking", "Claims & actual spend tracker"].map((f) => (
                   <div key={f} style={{ display: "flex", alignItems: "center", gap: "10px", textAlign: "left" }}>
                     <span style={{ color: "#22c55e", fontSize: "1.1rem" }}>✓</span>
-                    <span style={{ color: "#c0c0e0", fontSize: "0.9rem" }}>{f}</span>
+                    <span style={{ color: "#1e293b", fontSize: "0.9rem" }}>{f}</span>
                   </div>
                 ))}
               </div>
@@ -597,24 +597,24 @@ export default function DashboardPage() {
                 onClick={() => { setShowWelcome(false); setShowAddForm(true); }}
                 style={{
                   marginTop: "32px", width: "100%", padding: "14px",
-                  backgroundColor: "#d4a843", color: "#1a1150",
+                  backgroundColor: "#d4a843", color: "#0f172a",
                   border: "none", borderRadius: "10px", cursor: "pointer",
                   fontWeight: "bold", fontSize: "1.05rem",
                 }}
               >
                 Add First Participant →
               </button>
-              <p onClick={() => setShowWelcome(false)} style={{ marginTop: "14px", color: "#505070", cursor: "pointer", fontSize: "0.85rem" }}>
+              <p onClick={() => setShowWelcome(false)} style={{ marginTop: "14px", color: "#64748b", cursor: "pointer", fontSize: "0.85rem" }}>
                 I&apos;ll do it later
               </p>
             </div>
           </div>
         )}
 
-        <div className="text-xs mt-8" style={{ color: "#505080" }}>
+        <div className="text-xs mt-8" style={{ color: "#64748b" }}>
           Auto-saves in your browser.
         </div>
-        <div className="text-xs mt-2 mb-8" style={{ color: "#6060a0" }}>
+        <div className="text-xs mt-2 mb-8" style={{ color: "#64748b" }}>
           Powered by <span style={{ color: "#d4a843" }}>Kevria</span>
         </div>
       </div>

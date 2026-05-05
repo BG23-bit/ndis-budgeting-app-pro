@@ -8,17 +8,17 @@ const UPGRADE_URL = "https://kevriacalc.com/#pricing";
 
 function emailHeader(title: string, subtitle: string) {
   return `
-    <div style="background: linear-gradient(135deg, #1a0a2e 0%, #2d1554 100%); padding: 40px 32px; border-radius: 12px 12px 0 0; text-align: center;">
-      <div style="font-size: 28px; font-weight: 800; color: #d4a843; margin-bottom: 6px; letter-spacing: -0.5px;">Kevria Calc</div>
-      <div style="font-size: 20px; font-weight: 600; color: #e8e0f0; margin-bottom: 4px;">${title}</div>
-      <div style="font-size: 14px; color: #9880b8;">${subtitle}</div>
+    <div style="background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%); padding: 40px 32px; border-radius: 12px 12px 0 0; text-align: center;">
+      <div style="font-size: 28px; font-weight: 800; color: #2d1b69; margin-bottom: 6px; letter-spacing: -0.5px;">Kevria Calc</div>
+      <div style="font-size: 20px; font-weight: 600; color: #0f172a; margin-bottom: 4px;">${title}</div>
+      <div style="font-size: 14px; color: #64748b;">${subtitle}</div>
     </div>
   `;
 }
 
 function emailFooter() {
   return `
-    <div style="padding: 24px 32px; text-align: center; border-top: 1px solid #e8e0f0;">
+    <div style="padding: 24px 32px; text-align: center; border-top: 1px solid #e2e8f0;">
       <p style="font-size: 12px; color: #9ca3af; margin: 0 0 4px;">Kevria Calc — built by Kevria</p>
       <p style="font-size: 12px; color: #9ca3af; margin: 0;">Questions? Reply to this email or visit <a href="https://kevriacalc.com" style="color: #d4a843;">kevriacalc.com</a></p>
     </div>
@@ -28,7 +28,7 @@ function emailFooter() {
 function ctaButton(text: string, url: string) {
   return `
     <div style="text-align: center; margin: 28px 0;">
-      <a href="${url}" style="display: inline-block; background: #d4a843; color: #1a0a2e; font-weight: 700; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-size: 15px; letter-spacing: 0.3px;">${text}</a>
+      <a href="${url}" style="display: inline-block; background: #2d1b69; color: #ffffff; font-weight: 700; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-size: 15px; letter-spacing: 0.3px;">${text}</a>
     </div>
   `;
 }
@@ -41,27 +41,27 @@ function buildWelcomeEmail(email: string) {
     <!DOCTYPE html>
     <html>
     <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
-    <body style="margin: 0; padding: 0; background: #f4f0fa; font-family: Arial, Helvetica, sans-serif;">
+    <body style="margin: 0; padding: 0; background: #f1f5f9; font-family: Arial, Helvetica, sans-serif;">
       <div style="max-width: 600px; margin: 32px auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(26,10,46,0.12);">
         ${emailHeader("Welcome aboard!", "Your NDIS budgeting toolkit is ready")}
         <div style="padding: 32px;">
-          <p style="font-size: 16px; color: #1a0a2e; margin: 0 0 16px;">Hi ${displayName},</p>
+          <p style="font-size: 16px; color: #0f172a; margin: 0 0 16px;">Hi ${displayName},</p>
           <p style="font-size: 15px; color: #374151; line-height: 1.7; margin: 0 0 16px;">
             Thanks for signing up to <strong>Kevria Calc</strong>. You now have access to Australia's most practical NDIS budget calculator — built specifically for support coordinators and plan managers.
           </p>
-          <div style="background: #f9f5ff; border-left: 4px solid #d4a843; border-radius: 4px; padding: 16px 20px; margin: 24px 0;">
-            <p style="font-size: 14px; font-weight: 700; color: #1a0a2e; margin: 0 0 10px;">Get started in 3 steps:</p>
+          <div style="background: #f8fafc; border-left: 4px solid #d4a843; border-radius: 4px; padding: 16px 20px; margin: 24px 0;">
+            <p style="font-size: 14px; font-weight: 700; color: #0f172a; margin: 0 0 10px;">Get started in 3 steps:</p>
             <p style="font-size: 14px; color: #4b5563; margin: 0 0 6px;">1. Add a participant via your dashboard</p>
             <p style="font-size: 14px; color: #4b5563; margin: 0 0 6px;">2. Enter their plan dates, state, and support line funding</p>
             <p style="font-size: 14px; color: #4b5563; margin: 0;">3. Build rosters and track actual spend against budget</p>
           </div>
           ${ctaButton("Open My Dashboard →", DASHBOARD_URL)}
-          <div style="background: #1a0a2e; border-radius: 8px; padding: 20px 24px; margin: 24px 0;">
+          <div style="background: #ffffff; border-radius: 8px; padding: 20px 24px; margin: 24px 0;">
             <p style="font-size: 13px; font-weight: 700; color: #d4a843; margin: 0 0 10px; text-transform: uppercase; letter-spacing: 0.5px;">Upgrade to unlock everything</p>
-            <p style="font-size: 13px; color: #c8b8e0; margin: 0 0 6px;">✓ Unlimited participants</p>
-            <p style="font-size: 13px; color: #c8b8e0; margin: 0 0 6px;">✓ PDF plan upload (auto-extract dates & funding)</p>
-            <p style="font-size: 13px; color: #c8b8e0; margin: 0 0 12px;">✓ Claims & actual spend tracking</p>
-            <p style="font-size: 13px; color: #9880b8; margin: 0;">From <strong style="color: #d4a843;">$9.99/month</strong> or $79/year (save 34%)</p>
+            <p style="font-size: 13px; color: #334155; margin: 0 0 6px;">✓ Unlimited participants</p>
+            <p style="font-size: 13px; color: #334155; margin: 0 0 6px;">✓ PDF plan upload (auto-extract dates & funding)</p>
+            <p style="font-size: 13px; color: #334155; margin: 0 0 12px;">✓ Claims & actual spend tracking</p>
+            <p style="font-size: 13px; color: #64748b; margin: 0;">From <strong style="color: #d4a843;">$9.99/month</strong> or $79/year (save 34%)</p>
           </div>
           <p style="font-size: 14px; color: #6b7280; margin: 0;">Any questions — just reply to this email.</p>
         </div>
@@ -85,33 +85,33 @@ function buildFollowup1Email(email: string) {
     <!DOCTYPE html>
     <html>
     <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
-    <body style="margin: 0; padding: 0; background: #f4f0fa; font-family: Arial, Helvetica, sans-serif;">
+    <body style="margin: 0; padding: 0; background: #f1f5f9; font-family: Arial, Helvetica, sans-serif;">
       <div style="max-width: 600px; margin: 32px auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(26,10,46,0.12);">
         ${emailHeader("Getting the most out of Kevria Calc", "A few things worth knowing")}
         <div style="padding: 32px;">
-          <p style="font-size: 16px; color: #1a0a2e; margin: 0 0 16px;">Hi ${displayName},</p>
+          <p style="font-size: 16px; color: #0f172a; margin: 0 0 16px;">Hi ${displayName},</p>
           <p style="font-size: 15px; color: #374151; line-height: 1.7; margin: 0 0 16px;">
             You signed up a few days ago — how's the planning going? Here are a few features that support coordinators tell us save them the most time:
           </p>
           <div style="margin: 20px 0;">
-            <div style="display: flex; align-items: flex-start; margin-bottom: 16px; padding: 16px; background: #f9f5ff; border-radius: 8px;">
+            <div style="display: flex; align-items: flex-start; margin-bottom: 16px; padding: 16px; background: #f8fafc; border-radius: 8px;">
               <div style="font-size: 24px; margin-right: 14px;">📄</div>
               <div>
-                <p style="font-size: 14px; font-weight: 700; color: #1a0a2e; margin: 0 0 4px;">PDF Plan Upload</p>
+                <p style="font-size: 14px; font-weight: 700; color: #0f172a; margin: 0 0 4px;">PDF Plan Upload</p>
                 <p style="font-size: 13px; color: #6b7280; margin: 0;">Upload an NDIS plan PDF and we'll auto-extract the plan dates, state, and funding amounts for each support line.</p>
               </div>
             </div>
-            <div style="display: flex; align-items: flex-start; margin-bottom: 16px; padding: 16px; background: #f9f5ff; border-radius: 8px;">
+            <div style="display: flex; align-items: flex-start; margin-bottom: 16px; padding: 16px; background: #f8fafc; border-radius: 8px;">
               <div style="font-size: 24px; margin-right: 14px;">📊</div>
               <div>
-                <p style="font-size: 14px; font-weight: 700; color: #1a0a2e; margin: 0 0 4px;">Plan Pace Tracker</p>
+                <p style="font-size: 14px; font-weight: 700; color: #0f172a; margin: 0 0 4px;">Plan Pace Tracker</p>
                 <p style="font-size: 13px; color: #6b7280; margin: 0;">See if a participant is ahead or behind on spending — updated automatically as you log actual spend against each support line.</p>
               </div>
             </div>
-            <div style="display: flex; align-items: flex-start; padding: 16px; background: #f9f5ff; border-radius: 8px;">
+            <div style="display: flex; align-items: flex-start; padding: 16px; background: #f8fafc; border-radius: 8px;">
               <div style="font-size: 24px; margin-right: 14px;">🗓️</div>
               <div>
-                <p style="font-size: 14px; font-weight: 700; color: #1a0a2e; margin: 0 0 4px;">Public Holiday-Aware Rosters</p>
+                <p style="font-size: 14px; font-weight: 700; color: #0f172a; margin: 0 0 4px;">Public Holiday-Aware Rosters</p>
                 <p style="font-size: 13px; color: #6b7280; margin: 0;">Build weekly rosters with correct NDIS rates applied automatically, including public holidays by state.</p>
               </div>
             </div>
@@ -141,19 +141,19 @@ function buildFollowup2Email(email: string) {
     <!DOCTYPE html>
     <html>
     <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
-    <body style="margin: 0; padding: 0; background: #f4f0fa; font-family: Arial, Helvetica, sans-serif;">
+    <body style="margin: 0; padding: 0; background: #f1f5f9; font-family: Arial, Helvetica, sans-serif;">
       <div style="max-width: 600px; margin: 32px auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(26,10,46,0.12);">
         ${emailHeader("Still figuring things out?", "We're here to help")}
         <div style="padding: 32px;">
-          <p style="font-size: 16px; color: #1a0a2e; margin: 0 0 16px;">Hi ${displayName},</p>
+          <p style="font-size: 16px; color: #0f172a; margin: 0 0 16px;">Hi ${displayName},</p>
           <p style="font-size: 15px; color: #374151; line-height: 1.7; margin: 0 0 20px;">
             It's been a week since you joined Kevria Calc. If you haven't had a chance to properly try it yet — or if something's not clicking — reply to this email and I'll help you get set up personally.
           </p>
-          <div style="background: #1a0a2e; border-radius: 10px; padding: 24px 28px; margin: 24px 0; text-align: center;">
+          <div style="background: #ffffff; border-radius: 10px; padding: 24px 28px; margin: 24px 0; text-align: center;">
             <p style="font-size: 13px; font-weight: 700; color: #d4a843; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.5px;">Upgrade today</p>
-            <p style="font-size: 28px; font-weight: 800; color: #e8e0f0; margin: 0 0 4px;">$9.99<span style="font-size: 16px; font-weight: 400; color: #9880b8;">/month</span></p>
-            <p style="font-size: 13px; color: #9880b8; margin: 0 0 16px;">or $79/year — save 34%</p>
-            <a href="${UPGRADE_URL}" style="display: inline-block; background: #d4a843; color: #1a0a2e; font-weight: 700; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 14px;">Unlock Full Access →</a>
+            <p style="font-size: 28px; font-weight: 800; color: #0f172a; margin: 0 0 4px;">$9.99<span style="font-size: 16px; font-weight: 400; color: #64748b;">/month</span></p>
+            <p style="font-size: 13px; color: #64748b; margin: 0 0 16px;">or $79/year — save 34%</p>
+            <a href="${UPGRADE_URL}" style="display: inline-block; background: #2d1b69; color: #ffffff; font-weight: 700; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 14px;">Unlock Full Access →</a>
           </div>
           <p style="font-size: 14px; color: #374151; line-height: 1.7; margin: 0 0 8px;">Kevria Calc is used by support coordinators across Australia to:</p>
           <p style="font-size: 14px; color: #6b7280; margin: 0 0 4px;">✓ Stay on top of participant budgets in real time</p>

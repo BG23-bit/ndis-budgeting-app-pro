@@ -1,17 +1,17 @@
 export default function PrivacyPolicy() {
   const updated = "27 February 2026";
   return (
-    <div style={{ fontFamily: "'Segoe UI', sans-serif", background: "#0f0a30", color: "white", minHeight: "100vh" }}>
-      <nav style={{ background: "#1a1150", padding: "20px 40px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-        <a href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none", color: "white", width: "fit-content" }}>
+    <div style={{ fontFamily: "'Segoe UI', sans-serif", background: "#ffffff", color: "#0f172a", minHeight: "100vh" }}>
+      <nav style={{ background: "#f8fafc", padding: "20px 40px", borderBottom: "1px solid rgba(15,23,42,0.05)" }}>
+        <a href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none", color: "#0f172a", width: "fit-content" }}>
           <span style={{ fontSize: "1.5rem", color: "#d4a843" }}>✦</span>
-          <span style={{ fontSize: "1.1rem", fontWeight: "600" }}>Kevria Calc</span>
+          <span style={{ fontSize: "1.1rem", fontWeight: "600", color: "#2d1b69" }}>Kevria Calc</span>
         </a>
       </nav>
 
       <main style={{ maxWidth: "760px", margin: "0 auto", padding: "60px 24px" }}>
-        <h1 style={{ fontSize: "2rem", fontWeight: "800", marginBottom: "8px" }}>Privacy Policy</h1>
-        <p style={{ color: "#6060a0", fontSize: "0.9rem", marginBottom: "40px" }}>Last updated: {updated}</p>
+        <h1 style={{ fontSize: "2rem", fontWeight: "800", marginBottom: "8px", color: "#2d1b69" }}>Privacy Policy</h1>
+        <p style={{ color: "#64748b", fontSize: "0.9rem", marginBottom: "40px" }}>Last updated: {updated}</p>
 
         {[
           {
@@ -101,19 +101,19 @@ Website: kevria.com.au`,
             <h2 style={{ fontSize: "1.1rem", fontWeight: "700", color: "#d4a843", marginBottom: "12px" }}>
               {section.heading}
             </h2>
-            <p style={{ color: "#b0a0d0", lineHeight: "1.8", fontSize: "0.95rem", whiteSpace: "pre-line" }}>
+            <p style={{ color: "#334155", lineHeight: "1.8", fontSize: "0.95rem", whiteSpace: "pre-line" }}>
               {section.body}
             </p>
           </div>
         ))}
       </main>
 
-      <footer style={{ background: "#0f0a30", borderTop: "1px solid rgba(255,255,255,0.05)", padding: "24px", textAlign: "center" }}>
-        <p style={{ color: "#404070", fontSize: "0.85rem" }}>
+      <footer style={{ background: "#ffffff", borderTop: "1px solid rgba(15,23,42,0.05)", padding: "24px", textAlign: "center" }}>
+        <p style={{ color: "#e2e8f0", fontSize: "0.85rem" }}>
           © {new Date().getFullYear()} Kevria. All rights reserved. —{" "}
-          <a href="/" style={{ color: "#6060a0", textDecoration: "none" }}>Back to home</a>
+          <a href="/" style={{ color: "#64748b", textDecoration: "none" }}>Back to home</a>
           {" "}—{" "}
-          <a href="/terms" style={{ color: "#6060a0", textDecoration: "none" }}>Terms of Service</a>
+          <a href="/terms" style={{ color: "#64748b", textDecoration: "none" }}>Terms of Service</a>
         </p>
       </footer>
     </div>

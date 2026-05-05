@@ -136,8 +136,8 @@ export default function AdminPage() {
   const s = {
     page: {
       minHeight: "100vh",
-      background: "#1a0a2e",
-      color: "#e8e0f0",
+      background: "#ffffff",
+      color: "#0f172a",
       fontFamily: "Arial, Helvetica, sans-serif",
       padding: "32px 24px",
     } as React.CSSProperties,
@@ -157,8 +157,8 @@ export default function AdminPage() {
     },
     backBtn: {
       background: "transparent",
-      border: "1px solid #4a3060",
-      color: "#c8b8e0",
+      border: "1px solid #e2e8f0",
+      color: "#334155",
       padding: "8px 16px",
       borderRadius: "8px",
       cursor: "pointer",
@@ -168,10 +168,10 @@ export default function AdminPage() {
       width: "100%",
       maxWidth: "400px",
       padding: "10px 14px",
-      background: "#2d1554",
-      border: "1px solid #4a3060",
+      background: "#f1f5f9",
+      border: "1px solid #e2e8f0",
       borderRadius: "8px",
-      color: "#e8e0f0",
+      color: "#0f172a",
       fontSize: "14px",
       marginBottom: "24px",
       outline: "none",
@@ -183,18 +183,18 @@ export default function AdminPage() {
       flexWrap: "wrap" as const,
     },
     statCard: {
-      background: "#2d1554",
-      border: "1px solid #4a3060",
+      background: "#f1f5f9",
+      border: "1px solid #e2e8f0",
       borderRadius: "10px",
       padding: "16px 24px",
       minWidth: "140px",
     },
-    statLabel: { fontSize: "12px", color: "#9880b8", marginBottom: "4px" },
+    statLabel: { fontSize: "12px", color: "#64748b", marginBottom: "4px" },
     statValue: { fontSize: "24px", fontWeight: 700, color: "#d4a843" },
     table: {
       width: "100%",
       borderCollapse: "collapse" as const,
-      background: "#2d1554",
+      background: "#f1f5f9",
       borderRadius: "12px",
       overflow: "hidden",
     },
@@ -202,17 +202,17 @@ export default function AdminPage() {
       padding: "14px 16px",
       textAlign: "left" as const,
       fontSize: "12px",
-      color: "#9880b8",
+      color: "#64748b",
       fontWeight: 600,
       textTransform: "uppercase" as const,
       letterSpacing: "0.05em",
-      borderBottom: "1px solid #4a3060",
-      background: "#241040",
+      borderBottom: "1px solid #e2e8f0",
+      background: "#ffffff",
     },
     td: {
       padding: "14px 16px",
       fontSize: "14px",
-      borderBottom: "1px solid #3a2060",
+      borderBottom: "1px solid #e2e8f0",
     },
     badge: (paid: boolean, status: string | null) => ({
       display: "inline-block",
@@ -220,9 +220,9 @@ export default function AdminPage() {
       borderRadius: "20px",
       fontSize: "12px",
       fontWeight: 600,
-      background: paid ? "#1a3a1a" : status === "staff" ? "#1a2a3a" : "#2a1a1a",
-      color: paid ? "#4caf50" : "#888",
-      border: `1px solid ${paid ? "#4caf50" : "#555"}`,
+      background: paid ? "#f0fdf4" : status === "staff" ? "#f1f5f9" : "#fef2f2",
+      color: paid ? "#4caf50" : "#94a3b8",
+      border: `1px solid ${paid ? "#4caf50" : "#64748b"}`,
     }),
     toggleBtn: (paid: boolean, disabled: boolean) => ({
       padding: "6px 14px",
@@ -232,8 +232,8 @@ export default function AdminPage() {
       fontSize: "13px",
       fontWeight: 600,
       opacity: disabled ? 0.5 : 1,
-      background: paid ? "#3a1a1a" : "#1a3a20",
-      color: paid ? "#f44" : "#4caf50",
+      background: paid ? "#fef2f2" : "#f0fdf4",
+      color: paid ? "#dc2626" : "#4caf50",
       transition: "opacity 0.2s",
     }),
   };
@@ -252,7 +252,7 @@ export default function AdminPage() {
       </div>
 
       {error && (
-        <div style={{ background: "#3a1a1a", border: "1px solid #f44", borderRadius: "8px", padding: "12px 16px", marginBottom: "24px", color: "#f88" }}>
+        <div style={{ background: "#fef2f2", border: "1px solid #dc2626", borderRadius: "8px", padding: "12px 16px", marginBottom: "24px", color: "#fca5a5" }}>
           {error}
         </div>
       )}
@@ -287,8 +287,8 @@ export default function AdminPage() {
           disabled={inviting}
           style={{
             padding: "10px 20px",
-            background: inviting ? "#3a2a60" : "#d4a843",
-            color: inviting ? "#9880b8" : "#1a0a2e",
+            background: inviting ? "#e2e8f0" : "#d4a843",
+            color: inviting ? "#64748b" : "#ffffff",
             border: "none",
             borderRadius: "8px",
             fontWeight: 700,
@@ -305,9 +305,9 @@ export default function AdminPage() {
           padding: "10px 16px",
           borderRadius: "8px",
           fontSize: "14px",
-          background: inviteMsg.type === "success" ? "#1a3a1a" : "#3a1a1a",
-          border: `1px solid ${inviteMsg.type === "success" ? "#4caf50" : "#f44"}`,
-          color: inviteMsg.type === "success" ? "#4caf50" : "#f88",
+          background: inviteMsg.type === "success" ? "#f0fdf4" : "#fef2f2",
+          border: `1px solid ${inviteMsg.type === "success" ? "#4caf50" : "#dc2626"}`,
+          color: inviteMsg.type === "success" ? "#4caf50" : "#fca5a5",
         }}>
           {inviteMsg.text}
         </div>
@@ -321,7 +321,7 @@ export default function AdminPage() {
       />
 
       {loading ? (
-        <div style={{ textAlign: "center", color: "#9880b8", padding: "48px" }}>Loading users...</div>
+        <div style={{ textAlign: "center", color: "#64748b", padding: "48px" }}>Loading users...</div>
       ) : (
         <table style={s.table}>
           <thead>
@@ -337,20 +337,20 @@ export default function AdminPage() {
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ ...s.td, textAlign: "center", color: "#9880b8", padding: "48px" }}>
+                <td colSpan={6} style={{ ...s.td, textAlign: "center", color: "#64748b", padding: "48px" }}>
                   No users found.
                 </td>
               </tr>
             ) : (
               filtered.map((u) => (
-                <tr key={u.id} style={{ background: u.email === ADMIN_EMAIL ? "#1e0e38" : "transparent" }}>
+                <tr key={u.id} style={{ background: u.email === ADMIN_EMAIL ? "#ffffff" : "transparent" }}>
                   <td style={s.td}>
-                    <span style={{ color: "#e8e0f0" }}>{u.email}</span>
+                    <span style={{ color: "#0f172a" }}>{u.email}</span>
                     {u.email === ADMIN_EMAIL && (
                       <span style={{ marginLeft: "8px", fontSize: "11px", color: "#d4a843", fontWeight: 600 }}>YOU</span>
                     )}
                   </td>
-                  <td style={{ ...s.td, color: "#9880b8" }}>
+                  <td style={{ ...s.td, color: "#64748b" }}>
                     {new Date(u.created_at).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}
                   </td>
                   <td style={s.td}>
@@ -358,12 +358,12 @@ export default function AdminPage() {
                       {u.paid ? "Paid" : "Free"}
                     </span>
                   </td>
-                  <td style={{ ...s.td, color: "#9880b8", fontSize: "13px" }}>
+                  <td style={{ ...s.td, color: "#64748b", fontSize: "13px" }}>
                     {u.subscription_status ?? "—"}
                   </td>
                   <td style={{ ...s.td, fontSize: "12px" }}>
                     {u.email === ADMIN_EMAIL ? (
-                      <span style={{ color: "#9880b8" }}>—</span>
+                      <span style={{ color: "#64748b" }}>—</span>
                     ) : (
                       <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                         {(["welcome", "followup1", "followup2"] as const).map((type) => {
@@ -372,15 +372,15 @@ export default function AdminPage() {
                           const isSending = sendingEmail === `${u.id}-${type}`;
                           return (
                             <div key={type} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                              <span style={{ color: sentAt ? "#4caf50" : "#555", width: "6px" }}>{sentAt ? "✓" : "·"}</span>
-                              <span style={{ color: sentAt ? "#9880b8" : "#e8e0f0", minWidth: "52px" }}>{label}</span>
+                              <span style={{ color: sentAt ? "#4caf50" : "#64748b", width: "6px" }}>{sentAt ? "✓" : "·"}</span>
+                              <span style={{ color: sentAt ? "#64748b" : "#0f172a", minWidth: "52px" }}>{label}</span>
                               <button
                                 onClick={() => sendEmail(u.id, type)}
                                 disabled={isSending}
                                 style={{
                                   padding: "2px 8px",
                                   background: "transparent",
-                                  border: "1px solid #4a3060",
+                                  border: "1px solid #e2e8f0",
                                   borderRadius: "4px",
                                   color: "#d4a843",
                                   cursor: isSending ? "not-allowed" : "pointer",
@@ -398,7 +398,7 @@ export default function AdminPage() {
                   </td>
                   <td style={s.td}>
                     {u.email === ADMIN_EMAIL ? (
-                      <span style={{ fontSize: "12px", color: "#9880b8" }}>—</span>
+                      <span style={{ fontSize: "12px", color: "#64748b" }}>—</span>
                     ) : (
                       <button
                         style={s.toggleBtn(u.paid, updating === u.id)}

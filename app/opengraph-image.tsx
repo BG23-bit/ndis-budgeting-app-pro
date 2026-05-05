@@ -10,7 +10,7 @@ export default function Image() {
     (
       <div
         style={{
-          background: "linear-gradient(135deg, #1a1150 0%, #2d1b69 50%, #1a1150 100%)",
+          background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #f8fafc 100%)",
           width: "100%",
           height: "100%",
           display: "flex",
@@ -23,14 +23,14 @@ export default function Image() {
       >
         {/* Background circles */}
         <div style={{ position: "absolute", top: 60, right: 120, width: 220, height: 220, borderRadius: "50%", background: "#d4a843", opacity: 0.12, display: "flex" }} />
-        <div style={{ position: "absolute", bottom: 40, left: 80, width: 160, height: 160, borderRadius: "50%", background: "#5b6abf", opacity: 0.18, display: "flex" }} />
+        <div style={{ position: "absolute", bottom: 40, left: 80, width: 160, height: 160, borderRadius: "50%", background: "#64748b", opacity: 0.18, display: "flex" }} />
 
         {/* Logo */}
         <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 32 }}>
           <span style={{ fontSize: 52, color: "#d4a843" }}>✦</span>
           <div style={{ display: "flex", flexDirection: "column" }}>
-            <span style={{ fontSize: 44, fontWeight: 800, color: "#ffffff", letterSpacing: "0.06em" }}>KEVRIA</span>
-            <span style={{ fontSize: 14, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.2em", marginTop: -4 }}>CALC</span>
+            <span style={{ fontSize: 44, fontWeight: 800, color: "#0f172a", letterSpacing: "0.06em" }}>KEVRIA</span>
+            <span style={{ fontSize: 14, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.2em", marginTop: -4 }}>CALC</span>
           </div>
         </div>
 
@@ -39,7 +39,7 @@ export default function Image() {
           style={{
             fontSize: 52,
             fontWeight: 800,
-            color: "#ffffff",
+            color: "#0f172a",
             textAlign: "center",
             maxWidth: 880,
             lineHeight: 1.15,
@@ -54,7 +54,7 @@ export default function Image() {
         </div>
 
         {/* Subheading */}
-        <div style={{ fontSize: 22, color: "#9090c0", textAlign: "center", maxWidth: 680, marginBottom: 44, display: "flex" }}>
+        <div style={{ fontSize: 22, color: "#475569", textAlign: "center", maxWidth: 680, marginBottom: 44, display: "flex" }}>
           Built by providers · For providers across Australia
         </div>
 

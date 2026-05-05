@@ -60,24 +60,25 @@ export default function LoginPage() {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      background: "#0f172a",
-      color: "white",
+      background: "#ffffff",
+      color: "#0f172a",
       fontFamily: "sans-serif",
     }}>
       <form onSubmit={handleSubmit} style={{
-        background: "#1e293b",
+        background: "#f8fafc",
+        border: "1px solid #e2e8f0",
         padding: "40px",
         borderRadius: "12px",
         width: "100%",
         maxWidth: "400px",
       }}>
-        <h2 style={{ marginBottom: "20px", textAlign: "center" }}>
+        <h2 style={{ marginBottom: "20px", textAlign: "center", color: "#2d1b69" }}>
           {isSignUp ? "Create Account" : "Log In"}
         </h2>
 
         {error && (
           <p style={{
-            color: error.includes("Check your email") ? "#22d3ee" : "#f87171",
+            color: error.includes("Check your email") ? "#16a34a" : "#dc2626",
             marginBottom: "15px",
             textAlign: "center",
           }}>
@@ -96,9 +97,9 @@ export default function LoginPage() {
             padding: "12px",
             marginBottom: "15px",
             borderRadius: "6px",
-            border: "1px solid #334155",
-            background: "#0f172a",
-            color: "white",
+            border: "1px solid #e2e8f0",
+            background: "#ffffff",
+            color: "#0f172a",
             fontSize: "1rem",
             boxSizing: "border-box",
           }}
@@ -115,9 +116,9 @@ export default function LoginPage() {
             padding: "12px",
             marginBottom: "20px",
             borderRadius: "6px",
-            border: "1px solid #334155",
-            background: "#0f172a",
-            color: "white",
+            border: "1px solid #e2e8f0",
+            background: "#ffffff",
+            color: "#0f172a",
             fontSize: "1rem",
             boxSizing: "border-box",
           }}
@@ -129,8 +130,8 @@ export default function LoginPage() {
           style={{
             width: "100%",
             padding: "12px",
-            backgroundColor: "#22d3ee",
-            color: "#0f172a",
+            backgroundColor: "#2d1b69",
+            color: "#ffffff",
             border: "none",
             borderRadius: "6px",
             cursor: "pointer",
@@ -146,7 +147,7 @@ export default function LoginPage() {
           style={{
             marginTop: "15px",
             textAlign: "center",
-            color: "#22d3ee",
+            color: "#2d1b69",
             cursor: "pointer",
           }}
         >
@@ -167,7 +168,7 @@ export default function LoginPage() {
             style={{
               marginTop: "10px",
               textAlign: "center",
-              color: "#8080a0",
+              color: "#64748b",
               cursor: "pointer",
               fontSize: "0.9rem",
             }}
