@@ -11,7 +11,7 @@ const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
 const DAY_DOW:{[k:string]:number}={mon:1,tue:2,wed:3,thu:4,fri:5,sat:6,sun:0};
 const DL: {[k:string]:string} = {mon:"Monday",tue:"Tuesday",wed:"Wednesday",thu:"Thursday",fri:"Friday",sat:"Saturday",sun:"Sunday"};
 const FREQ: {[k:string]:{label:string;multiplier:number}} = {"every":{label:"Every week",multiplier:1},"2nd":{label:"Every 2nd week",multiplier:0.5},"3rd":{label:"Every 3rd week",multiplier:0.333},"4th":{label:"Every 4th week",multiplier:0.25},"monthly":{label:"Monthly",multiplier:0.2308}};
-const RATIOS: {[k:string]:{label:string;divisor:number}} = {"1:1":{label:"1:1 (Full rate)",divisor:1},"1:2":{label:"1:2 (Half rate)",divisor:2},"1:3":{label:"1:3 (Third rate)",divisor:3},"1:4":{label:"1:4 (Quarter rate)",divisor:4}};
+const RATIOS: {[k:string]:{label:string;divisor:number}} = {"1:1":{label:"1:1 (Full rate)",divisor:1},"2:1":{label:"2:1 (Double rate)",divisor:0.5},"1:2":{label:"1:2 (Half rate)",divisor:2},"1:3":{label:"1:3 (Third rate)",divisor:3},"1:4":{label:"1:4 (Quarter rate)",divisor:4}};
 const STATES = [{value:"NSW",label:"New South Wales"},{value:"VIC",label:"Victoria"},{value:"QLD",label:"Queensland"},{value:"SA",label:"South Australia"},{value:"WA",label:"Western Australia"},{value:"TAS",label:"Tasmania"},{value:"NT",label:"Northern Territory"},{value:"ACT",label:"Australian Capital Territory"}];
 function defaultRoster():{[k:string]:DayRoster}{const r:{[k:string]:DayRoster}={};DAYS.forEach(d=>{r[d]={enabled:false,hours:0,nightHours:0,frequency:"every"}});return r}
 function formatDate(d:Date):string{return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
