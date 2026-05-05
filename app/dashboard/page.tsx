@@ -235,7 +235,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#ffffff", color: "#0f172a" }}>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f8fafc", color: "#0f172a" }}>
         Loading...
       </div>
     );
@@ -329,7 +329,7 @@ export default function DashboardPage() {
   }
   // Overview - all participants
   return (
-    <main className="min-h-screen" style={{ background: "#ffffff", color: "#0f172a" }}>
+    <main className="min-h-screen" style={{ background: "#f8fafc", color: "#0f172a" }}>
       <div className="mx-auto max-w-6xl p-6">
 
         <div className="flex items-center justify-between mb-2">
@@ -358,17 +358,17 @@ export default function DashboardPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-8">
-          <div className="rounded-2xl p-5" style={{ background: "rgba(241,245,249,0.4)", border: "1px solid rgba(212,168,67,0.15)" }}>
+          <div className="rounded-2xl p-5" style={{ background: "#ffffff", border: "1px solid rgba(212,168,67,0.45)" }}>
             <div className="text-sm" style={{ color: "#334155" }}>Total Participants</div>
             <div className="text-3xl font-bold" style={{ color: "#d4a843" }}>{participants.length}</div>
           </div>
-          <div className="rounded-2xl p-5" style={{ background: "rgba(241,245,249,0.4)", border: "1px solid rgba(212,168,67,0.15)" }}>
+          <div className="rounded-2xl p-5" style={{ background: "#ffffff", border: "1px solid rgba(212,168,67,0.45)" }}>
             <div className="text-sm" style={{ color: "#334155" }}>Total Funding</div>
             <div className="text-3xl font-bold" style={{ color: "#d4a843" }}>
               {money(participants.reduce((a, p) => a + getBudgetStatusFromStorage(p.id).totalFunding, 0))}
             </div>
           </div>
-          <div className="rounded-2xl p-5" style={{ background: "rgba(241,245,249,0.4)", border: "1px solid rgba(212,168,67,0.15)" }}>
+          <div className="rounded-2xl p-5" style={{ background: "#ffffff", border: "1px solid rgba(212,168,67,0.45)" }}>
             <div className="text-sm" style={{ color: "#334155" }}>Total Remaining</div>
             <div className="text-3xl font-bold" style={{
               color: participants.reduce((a, p) => a + getBudgetStatusFromStorage(p.id).remaining, 0) < 0 ? "#ef4444" : "#22c55e"
@@ -380,7 +380,7 @@ export default function DashboardPage() {
 
         {/* Participant Cards */}
         {participants.length === 0 ? (
-          <div className="rounded-2xl p-12 text-center" style={{ background: "rgba(241,245,249,0.4)", border: "1px solid rgba(212,168,67,0.15)" }}>
+          <div className="rounded-2xl p-12 text-center" style={{ background: "#ffffff", border: "1px solid rgba(212,168,67,0.45)" }}>
             <div style={{ fontSize: "3rem", marginBottom: "15px" }}>👤</div>
             <h2 className="text-xl font-semibold mb-2" style={{ color: "#2d1b69" }}>No Participants Yet</h2>
             <p className="mb-6" style={{ color: "#334155" }}>Add your first NDIS participant to get started.</p>
@@ -403,7 +403,7 @@ export default function DashboardPage() {
 
               return (
                 <div key={p.id} className="rounded-2xl p-5" style={{
-                  background: "rgba(241,245,249,0.4)", border: "1px solid " + statusColors.border,
+                  background: "#ffffff", border: "1px solid " + statusColors.border,
                   cursor: "pointer", transition: "all 0.2s",
                 }}
                   onClick={() => setActiveParticipant(p.id)}
@@ -496,7 +496,7 @@ export default function DashboardPage() {
                 <div className="text-sm mb-1" style={{ color: "#334155" }}>Participant Name *</div>
                 <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g. John Smith"
                   className="w-full rounded-lg px-3 py-2 outline-none"
-                  style={{ background: "rgba(248,250,252,0.6)", border: "1px solid rgba(212,168,67,0.2)", color: "#0f172a" }}
+                  style={{ background: "#ffffff", border: "1px solid rgba(212,168,67,0.45)", color: "#0f172a" }}
                 />
               </div>
 
@@ -504,7 +504,7 @@ export default function DashboardPage() {
                 <div className="text-sm mb-1" style={{ color: "#334155" }}>NDIS Number (optional)</div>
                 <input value={newNdis} onChange={(e) => setNewNdis(e.target.value)} placeholder="e.g. 431234567"
                   className="w-full rounded-lg px-3 py-2 outline-none"
-                  style={{ background: "rgba(248,250,252,0.6)", border: "1px solid rgba(212,168,67,0.2)", color: "#0f172a" }}
+                  style={{ background: "#ffffff", border: "1px solid rgba(212,168,67,0.45)", color: "#0f172a" }}
                 />
               </div>
 
@@ -538,7 +538,7 @@ export default function DashboardPage() {
                 <div className="text-sm mb-1" style={{ color: "#334155" }}>Participant Name *</div>
                 <input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="e.g. John Smith"
                   className="w-full rounded-lg px-3 py-2 outline-none"
-                  style={{ background: "rgba(248,250,252,0.6)", border: "1px solid rgba(212,168,67,0.2)", color: "#0f172a" }}
+                  style={{ background: "#ffffff", border: "1px solid rgba(212,168,67,0.45)", color: "#0f172a" }}
                 />
               </div>
 
@@ -546,7 +546,7 @@ export default function DashboardPage() {
                 <div className="text-sm mb-1" style={{ color: "#334155" }}>NDIS Number (optional)</div>
                 <input value={editNdis} onChange={(e) => setEditNdis(e.target.value)} placeholder="e.g. 431234567"
                   className="w-full rounded-lg px-3 py-2 outline-none"
-                  style={{ background: "rgba(248,250,252,0.6)", border: "1px solid rgba(212,168,67,0.2)", color: "#0f172a" }}
+                  style={{ background: "#ffffff", border: "1px solid rgba(212,168,67,0.45)", color: "#0f172a" }}
                 />
               </div>
 

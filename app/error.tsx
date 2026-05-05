@@ -10,7 +10,7 @@ export default function Error({ error, reset }: { error: Error; reset: () => voi
   return (
     <div style={{
       minHeight: "100vh",
-      background: "#ffffff",
+      background: "#f8fafc",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",

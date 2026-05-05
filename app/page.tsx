@@ -29,7 +29,7 @@ export default function LandingPage() {
         justifyContent: "space-between",
         alignItems: "center",
         padding: "18px 48px",
-        background: "rgba(248,250,252,0.95)",
+        background: "#ffffff",
         borderBottom: "1px solid rgba(212,168,67,0.12)",
         position: "sticky",
         top: 0,
@@ -137,8 +137,8 @@ export default function LandingPage() {
           {/* Right — product preview card */}
           <div style={{ position: "relative" }}>
             <div style={{
-              background: "rgba(241,245,249,0.7)",
-              border: "1px solid rgba(212,168,67,0.2)",
+              background: "#ffffff",
+              border: "1px solid rgba(212,168,67,0.45)",
               borderRadius: "20px",
               padding: "24px",
               backdropFilter: "blur(12px)",
@@ -235,7 +235,7 @@ export default function LandingPage() {
       </section>
 
       {/* FEATURES */}
-      <section id="features" style={{ background: "#f8fafc", padding: "100px 48px" }}>
+      <section id="features" style={{ background: "#f1f5f9", padding: "100px 48px" }}>
         <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: "60px" }}>
             <p style={{ fontSize: "0.78rem", color: "#d4a843", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: "12px" }}>What you get</p>
@@ -261,7 +261,7 @@ export default function LandingPage() {
             ].map((f) => (
               <div key={f.title} style={{
                 background: "rgba(212,168,67,0.05)",
-                border: "1px solid rgba(212,168,67,0.2)",
+                border: "1px solid rgba(212,168,67,0.45)",
                 borderRadius: "16px",
                 padding: "32px",
                 display: "flex",
@@ -343,7 +343,7 @@ export default function LandingPage() {
       </section>
 
       {/* PRICING */}
-      <section id="pricing" style={{ background: "#f8fafc", padding: "100px 48px" }}>
+      <section id="pricing" style={{ background: "#f1f5f9", padding: "100px 48px" }}>
         <div style={{ maxWidth: "800px", margin: "0 auto", textAlign: "center" }}>
           <p style={{ fontSize: "0.78rem", color: "#d4a843", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: "12px" }}>Pricing</p>
           <h2 style={{ fontSize: "2.4rem", fontWeight: "800", marginBottom: "12px", letterSpacing: "-0.02em", color: "#2d1b69" }}>Simple, transparent pricing</h2>
@@ -399,7 +399,7 @@ export default function LandingPage() {
             Adjust to match your caseload and see a breakdown of exactly where the time goes
           </p>
 
-          <div style={{ background: "rgba(241,245,249,0.6)", border: "1px solid rgba(212,168,67,0.15)", borderRadius: "24px", padding: "40px" }}>
+          <div style={{ background: "#ffffff", border: "1px solid rgba(212,168,67,0.45)", borderRadius: "24px", padding: "40px" }}>
             {/* Sliders */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "32px", marginBottom: "36px" }}>
               <div>
@@ -479,7 +479,7 @@ export default function LandingPage() {
       </section>
 
       {/* FAQ */}
-      <section id="faq" style={{ background: "#f8fafc", padding: "100px 48px" }}>
+      <section id="faq" style={{ background: "#f1f5f9", padding: "100px 48px" }}>
         <div style={{ maxWidth: "700px", margin: "0 auto" }}>
           <p style={{ fontSize: "0.78rem", color: "#d4a843", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: "12px", textAlign: "center" }}>FAQ</p>
           <h2 style={{ fontSize: "2.4rem", fontWeight: "800", marginBottom: "48px", textAlign: "center", letterSpacing: "-0.02em", color: "#2d1b69" }}>
@@ -532,7 +532,7 @@ export default function LandingPage() {
         <div style={{ maxWidth: "700px", margin: "0 auto" }}>
           <div style={{
             background: "linear-gradient(135deg, #f8fafc, #f1f5f9)",
-            border: "1px solid rgba(212,168,67,0.2)",
+            border: "1px solid rgba(212,168,67,0.45)",
             borderRadius: "24px",
             padding: "56px 48px",
             textAlign: "center",

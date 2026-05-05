@@ -136,7 +136,7 @@ export default function AdminPage() {
   const s = {
     page: {
       minHeight: "100vh",
-      background: "#ffffff",
+      background: "#f8fafc",
       color: "#0f172a",
       fontFamily: "Arial, Helvetica, sans-serif",
       padding: "32px 24px",
@@ -157,7 +157,7 @@ export default function AdminPage() {
     },
     backBtn: {
       background: "transparent",
-      border: "1px solid #e2e8f0",
+      border: "1px solid #cbd5e1",
       color: "#334155",
       padding: "8px 16px",
       borderRadius: "8px",
@@ -169,7 +169,7 @@ export default function AdminPage() {
       maxWidth: "400px",
       padding: "10px 14px",
       background: "#f1f5f9",
-      border: "1px solid #e2e8f0",
+      border: "1px solid #cbd5e1",
       borderRadius: "8px",
       color: "#0f172a",
       fontSize: "14px",
@@ -184,7 +184,7 @@ export default function AdminPage() {
     },
     statCard: {
       background: "#f1f5f9",
-      border: "1px solid #e2e8f0",
+      border: "1px solid #cbd5e1",
       borderRadius: "10px",
       padding: "16px 24px",
       minWidth: "140px",
@@ -207,7 +207,7 @@ export default function AdminPage() {
       textTransform: "uppercase" as const,
       letterSpacing: "0.05em",
       borderBottom: "1px solid #e2e8f0",
-      background: "#ffffff",
+      background: "#f8fafc",
     },
     td: {
       padding: "14px 16px",
@@ -380,7 +380,7 @@ export default function AdminPage() {
                                 style={{
                                   padding: "2px 8px",
                                   background: "transparent",
-                                  border: "1px solid #e2e8f0",
+                                  border: "1px solid #cbd5e1",
                                   borderRadius: "4px",
                                   color: "#d4a843",
                                   cursor: isSending ? "not-allowed" : "pointer",

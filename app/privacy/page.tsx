@@ -1,7 +1,7 @@
 export default function PrivacyPolicy() {
   const updated = "27 February 2026";
   return (
-    <div style={{ fontFamily: "'Segoe UI', sans-serif", background: "#ffffff", color: "#0f172a", minHeight: "100vh" }}>
+    <div style={{ fontFamily: "'Segoe UI', sans-serif", background: "#f8fafc", color: "#0f172a", minHeight: "100vh" }}>
       <nav style={{ background: "#f8fafc", padding: "20px 40px", borderBottom: "1px solid rgba(15,23,42,0.05)" }}>
         <a href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none", color: "#0f172a", width: "fit-content" }}>
           <span style={{ fontSize: "1.5rem", color: "#d4a843" }}>✦</span>
@@ -108,7 +108,7 @@ Website: kevria.com.au`,
         ))}
       </main>
 
-      <footer style={{ background: "#ffffff", borderTop: "1px solid rgba(15,23,42,0.05)", padding: "24px", textAlign: "center" }}>
+      <footer style={{ background: "#f8fafc", borderTop: "1px solid rgba(15,23,42,0.05)", padding: "24px", textAlign: "center" }}>
         <p style={{ color: "#e2e8f0", fontSize: "0.85rem" }}>
           © {new Date().getFullYear()} Kevria. All rights reserved. —{" "}
           <a href="/" style={{ color: "#64748b", textDecoration: "none" }}>Back to home</a>
