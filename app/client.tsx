@@ -1226,26 +1226,26 @@ return(
 </div>
 
 {calcMode===null&&(
-<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(15,23,42,0.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:"24px"}}>
-  <div style={{maxWidth:"660px",width:"100%",textAlign:"center"}}>
+<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(15,23,42,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:"24px"}}>
+  <div style={{maxWidth:"720px",width:"100%",textAlign:"center",background:"#ffffff",border:"1px solid #cbd5e1",borderRadius:"20px",padding:"40px 32px",boxShadow:"0 20px 50px rgba(15,23,42,0.25)"}}>
     <div style={{fontSize:"1.8rem",color:"#d4a843",marginBottom:"12px"}}>✦</div>
-    <h2 style={{fontSize:"1.5rem",fontWeight:800,color: "#0f172a",marginBottom:"8px"}}>What are you calculating for{participantName?" "+participantName:""}?</h2>
-    <p style={{color:"#64748b",fontSize:"0.88rem",marginBottom:"32px",lineHeight:1.6}}>Choose the type of support. This sets up the right calculator view.<br/>You can change it any time from the Plan Details section.</p>
+    <h2 style={{fontSize:"1.5rem",fontWeight:800,color: "#2d1b69",marginBottom:"8px"}}>What are you calculating for{participantName?" "+participantName:""}?</h2>
+    <p style={{color:"#475569",fontSize:"0.88rem",marginBottom:"32px",lineHeight:1.6}}>Choose the type of support. This sets up the right calculator view.<br/>You can change it any time from the Plan Details section.</p>
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"14px"}}>
-      <button onClick={()=>setCalcMode("sil")} style={{padding:"28px 16px",background:"rgba(212,168,67,0.07)",border:"2px solid rgba(212,168,67,0.25)",borderRadius:"16px",cursor:"pointer",textAlign:"center"}}>
+      <button onClick={()=>setCalcMode("sil")} style={{padding:"28px 16px",background:"rgba(212,168,67,0.08)",border:"2px solid rgba(212,168,67,0.5)",borderRadius:"16px",cursor:"pointer",textAlign:"center"}}>
         <div style={{fontSize:"2.2rem",marginBottom:"12px"}}>🏠</div>
-        <div style={{color:"#d4a843",fontWeight:700,fontSize:"1rem",marginBottom:"8px"}}>SIL / Core Supports</div>
-        <div style={{color:"#64748b",fontSize:"0.78rem",lineHeight:1.6}}>Roster-based with day, night, weekend &amp; public holiday rates</div>
+        <div style={{color:"#b8901a",fontWeight:700,fontSize:"1rem",marginBottom:"8px"}}>SIL / Core Supports</div>
+        <div style={{color:"#475569",fontSize:"0.78rem",lineHeight:1.6}}>Roster-based with day, night, weekend &amp; public holiday rates</div>
       </button>
-      <button onClick={()=>setCalcMode("clinical")} style={{padding:"28px 16px",background:"rgba(100,150,212,0.07)",border:"2px solid rgba(100,150,212,0.25)",borderRadius:"16px",cursor:"pointer",textAlign:"center"}}>
+      <button onClick={()=>setCalcMode("clinical")} style={{padding:"28px 16px",background:"rgba(100,150,212,0.08)",border:"2px solid rgba(100,150,212,0.5)",borderRadius:"16px",cursor:"pointer",textAlign:"center"}}>
         <div style={{fontSize:"2.2rem",marginBottom:"12px"}}>🏥</div>
         <div style={{color:"#1e40af",fontWeight:700,fontSize:"1rem",marginBottom:"8px"}}>Clinical / Therapy</div>
-        <div style={{color:"#64748b",fontSize:"0.78rem",lineHeight:1.6}}>Behaviour support, allied health, therapy — flat hourly packages</div>
+        <div style={{color:"#475569",fontSize:"0.78rem",lineHeight:1.6}}>Behaviour support, allied health, therapy — flat hourly packages</div>
       </button>
-      <button onClick={()=>setCalcMode("both")} style={{padding:"28px 16px",background:"rgba(100,200,130,0.07)",border:"2px solid rgba(100,200,130,0.25)",borderRadius:"16px",cursor:"pointer",textAlign:"center"}}>
+      <button onClick={()=>setCalcMode("both")} style={{padding:"28px 16px",background:"rgba(34,197,94,0.08)",border:"2px solid rgba(34,197,94,0.5)",borderRadius:"16px",cursor:"pointer",textAlign:"center"}}>
         <div style={{fontSize:"2.2rem",marginBottom:"12px"}}>📋</div>
-        <div style={{color:"#6dd68e",fontWeight:700,fontSize:"1rem",marginBottom:"8px"}}>Both</div>
-        <div style={{color:"#3d6050",fontSize:"0.78rem",lineHeight:1.6}}>Participant has roster supports and clinical services</div>
+        <div style={{color:"#16a34a",fontWeight:700,fontSize:"1rem",marginBottom:"8px"}}>Both</div>
+        <div style={{color:"#475569",fontSize:"0.78rem",lineHeight:1.6}}>Participant has roster supports and clinical services</div>
       </button>
     </div>
   </div>
