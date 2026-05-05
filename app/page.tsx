@@ -45,9 +45,9 @@ export default function LandingPage() {
             <a
               key={label}
               href={["#features", "#how", "#pricing", "#faq"][i]}
-              style={{ color: "rgba(15,23,42,0.55)", textDecoration: "none", fontSize: "0.9rem", fontWeight: "500", transition: "color 0.2s" }}
+              style={{ color: "#475569", textDecoration: "none", fontSize: "0.9rem", fontWeight: "500", transition: "color 0.2s" }}
               onMouseEnter={e => (e.currentTarget.style.color = "#2d1b69")}
-              onMouseLeave={e => (e.currentTarget.style.color = "rgba(15,23,42,0.55)")}
+              onMouseLeave={e => (e.currentTarget.style.color = "#475569")}
             >{label}</a>
           ))}
           <a href="https://kevria.com" target="_blank" rel="noopener noreferrer"
@@ -99,10 +99,10 @@ export default function LandingPage() {
               The smartest way to manage{" "}
               <span style={{ color: "#d4a843", position: "relative" }}>NDIS budgets</span>
             </h1>
-            <p style={{ fontSize: "1.1rem", color: "rgba(15,23,42,0.65)", lineHeight: "1.65", marginBottom: "14px", maxWidth: "500px" }}>
+            <p style={{ fontSize: "1.1rem", color: "#334155", lineHeight: "1.65", marginBottom: "14px", maxWidth: "500px" }}>
               Track funding, calculate rosters with public holidays, forecast plan spend, and generate Schedule of Supports — all in one tool.
             </p>
-            <p style={{ fontSize: "0.85rem", color: "rgba(15,23,42,0.35)", marginBottom: "36px" }}>
+            <p style={{ fontSize: "0.85rem", color: "#64748b", marginBottom: "36px" }}>
               SIL · Support Coordination · Community Access · Therapy · Plan Management · Respite
             </p>
             <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
@@ -123,7 +123,7 @@ export default function LandingPage() {
                 padding: "15px 28px",
                 fontSize: "1rem",
                 backgroundColor: "transparent",
-                color: "rgba(15,23,42,0.8)",
+                color: "#0f172a",
                 border: "1.5px solid rgba(15,23,42,0.2)",
                 borderRadius: "10px",
                 cursor: "pointer",
@@ -148,7 +148,7 @@ export default function LandingPage() {
               <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "20px", paddingBottom: "16px", borderBottom: "1px solid rgba(15,23,42,0.06)" }}>
                 <span style={{ color: "#d4a843", fontSize: "1rem" }}>✦</span>
                 <span style={{ fontSize: "0.85rem", fontWeight: "600", color: "#d4a843" }}>Kevria Calc</span>
-                <span style={{ marginLeft: "auto", fontSize: "0.75rem", color: "rgba(15,23,42,0.3)" }}>2025–26 rates loaded</span>
+                <span style={{ marginLeft: "auto", fontSize: "0.75rem", color: "#64748b" }}>2025–26 rates loaded</span>
               </div>
 
               {/* Budget summary */}
@@ -160,7 +160,7 @@ export default function LandingPage() {
                   { label: "Remaining", value: "$2,096", color: "#22c55e" },
                 ].map(s => (
                   <div key={s.label} style={{ background: "rgba(15,23,42,0.04)", borderRadius: "10px", padding: "12px 14px" }}>
-                    <div style={{ fontSize: "0.7rem", color: "rgba(15,23,42,0.4)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "4px" }}>{s.label}</div>
+                    <div style={{ fontSize: "0.7rem", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "4px" }}>{s.label}</div>
                     <div style={{ fontSize: "1.2rem", fontWeight: "700", color: s.color }}>{s.value}</div>
                   </div>
                 ))}
@@ -169,7 +169,7 @@ export default function LandingPage() {
               {/* Progress bar */}
               <div style={{ marginBottom: "20px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
-                  <span style={{ fontSize: "0.75rem", color: "rgba(15,23,42,0.4)" }}>Budget usage — 95.7% used</span>
+                  <span style={{ fontSize: "0.75rem", color: "#64748b" }}>Budget usage — 95.7% used</span>
                   <span style={{ fontSize: "0.72rem", background: "rgba(34,197,94,0.15)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.3)", padding: "2px 8px", borderRadius: "20px", fontWeight: "700" }}>ON TRACK</span>
                 </div>
                 <div style={{ background: "rgba(15,23,42,0.08)", borderRadius: "6px", height: "8px", overflow: "hidden" }}>
@@ -178,23 +178,23 @@ export default function LandingPage() {
               </div>
 
               {/* Roster rows */}
-              <div style={{ fontSize: "0.75rem", color: "rgba(15,23,42,0.3)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "10px" }}>Weekly Roster</div>
+              <div style={{ fontSize: "0.75rem", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "10px" }}>Weekly Roster</div>
               {[
                 { day: "Mon", hrs: "8h", rate: "$70.23/hr", cost: "$561.84" },
                 { day: "Sat", hrs: "6h", rate: "$98.83/hr", cost: "$592.98" },
                 { day: "Sun", hrs: "4h", rate: "$127.43/hr", cost: "$509.72" },
               ].map(r => (
                 <div key={r.day} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "7px 0", borderBottom: "1px solid rgba(15,23,42,0.04)" }}>
-                  <span style={{ width: "32px", fontSize: "0.8rem", color: "rgba(15,23,42,0.5)", fontWeight: "600" }}>{r.day}</span>
+                  <span style={{ width: "32px", fontSize: "0.8rem", color: "#475569", fontWeight: "600" }}>{r.day}</span>
                   <span style={{ background: "rgba(212,168,67,0.12)", color: "#d4a843", fontSize: "0.75rem", fontWeight: "700", padding: "2px 8px", borderRadius: "6px" }}>{r.hrs}</span>
-                  <span style={{ fontSize: "0.75rem", color: "rgba(15,23,42,0.3)", flex: 1 }}>{r.rate}</span>
-                  <span style={{ fontSize: "0.8rem", fontWeight: "600", color: "rgba(15,23,42,0.7)" }}>{r.cost}</span>
+                  <span style={{ fontSize: "0.75rem", color: "#64748b", flex: 1 }}>{r.rate}</span>
+                  <span style={{ fontSize: "0.8rem", fontWeight: "600", color: "#334155" }}>{r.cost}</span>
                 </div>
               ))}
 
               {/* PH badge */}
               <div style={{ marginTop: "14px", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "8px", padding: "8px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: "0.75rem", color: "rgba(15,23,42,0.4)" }}>🗓 Public holidays detected (VIC)</span>
+                <span style={{ fontSize: "0.75rem", color: "#64748b" }}>🗓 Public holidays detected (VIC)</span>
                 <span style={{ fontSize: "0.8rem", color: "#f87171", fontWeight: "600" }}>+$312.06</span>
               </div>
             </div>
@@ -240,7 +240,7 @@ export default function LandingPage() {
           <div style={{ textAlign: "center", marginBottom: "60px" }}>
             <p style={{ fontSize: "0.78rem", color: "#d4a843", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: "12px" }}>What you get</p>
             <h2 style={{ fontSize: "2.4rem", fontWeight: "800", marginBottom: "12px", letterSpacing: "-0.02em", color: "#2d1b69" }}>Everything you need</h2>
-            <p style={{ color: "rgba(15,23,42,0.45)", fontSize: "1.05rem", maxWidth: "520px", margin: "0 auto" }}>
+            <p style={{ color: "#475569", fontSize: "1.05rem", maxWidth: "520px", margin: "0 auto" }}>
               One tool to manage all your NDIS budget calculations — whatever type of support you deliver
             </p>
           </div>
@@ -271,7 +271,7 @@ export default function LandingPage() {
                 <div style={{ fontSize: "2rem", flexShrink: 0, marginTop: "2px" }}>{f.icon}</div>
                 <div>
                   <h3 style={{ fontSize: "1.05rem", fontWeight: "700", color: "#d4a843", marginBottom: "10px" }}>{f.title}</h3>
-                  <p style={{ color: "rgba(15,23,42,0.5)", lineHeight: "1.6", fontSize: "0.9rem" }}>{f.desc}</p>
+                  <p style={{ color: "#475569", lineHeight: "1.6", fontSize: "0.9rem" }}>{f.desc}</p>
                 </div>
               </div>
             ))}
@@ -298,8 +298,8 @@ export default function LandingPage() {
                 padding: "24px",
               }}>
                 <div style={{ fontSize: "1.6rem", marginBottom: "12px" }}>{f.icon}</div>
-                <h3 style={{ fontSize: "0.95rem", fontWeight: "700", marginBottom: "8px", color: "rgba(15,23,42,0.9)" }}>{f.title}</h3>
-                <p style={{ color: "rgba(15,23,42,0.4)", lineHeight: "1.55", fontSize: "0.85rem" }}>{f.desc}</p>
+                <h3 style={{ fontSize: "0.95rem", fontWeight: "700", marginBottom: "8px", color: "#0f172a" }}>{f.title}</h3>
+                <p style={{ color: "#64748b", lineHeight: "1.55", fontSize: "0.85rem" }}>{f.desc}</p>
               </div>
             ))}
           </div>
@@ -311,7 +311,7 @@ export default function LandingPage() {
         <div style={{ maxWidth: "1000px", margin: "0 auto", textAlign: "center" }}>
           <p style={{ fontSize: "0.78rem", color: "#d4a843", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: "12px" }}>Getting started</p>
           <h2 style={{ fontSize: "2.4rem", fontWeight: "800", marginBottom: "12px", letterSpacing: "-0.02em", color: "#2d1b69" }}>Up and running in 2 minutes</h2>
-          <p style={{ color: "rgba(15,23,42,0.4)", marginBottom: "64px", fontSize: "1.05rem" }}>No setup, no training required</p>
+          <p style={{ color: "#64748b", marginBottom: "64px", fontSize: "1.05rem" }}>No setup, no training required</p>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "40px 30px" }}>
             {[
@@ -335,7 +335,7 @@ export default function LandingPage() {
                   {s.step}
                 </div>
                 <h3 style={{ fontSize: "1rem", fontWeight: "700", marginBottom: "8px", color: s.step === "05" ? "#d4a843" : "#2d1b69" }}>{s.title}</h3>
-                <p style={{ color: "rgba(15,23,42,0.4)", fontSize: "0.88rem", lineHeight: "1.55" }}>{s.desc}</p>
+                <p style={{ color: "#64748b", fontSize: "0.88rem", lineHeight: "1.55" }}>{s.desc}</p>
               </div>
             ))}
           </div>
@@ -347,18 +347,18 @@ export default function LandingPage() {
         <div style={{ maxWidth: "800px", margin: "0 auto", textAlign: "center" }}>
           <p style={{ fontSize: "0.78rem", color: "#d4a843", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: "12px" }}>Pricing</p>
           <h2 style={{ fontSize: "2.4rem", fontWeight: "800", marginBottom: "12px", letterSpacing: "-0.02em", color: "#2d1b69" }}>Simple, transparent pricing</h2>
-          <p style={{ color: "rgba(15,23,42,0.4)", marginBottom: "48px", fontSize: "1.05rem" }}>No lock-in. Cancel anytime. All features included.</p>
+          <p style={{ color: "#64748b", marginBottom: "48px", fontSize: "1.05rem" }}>No lock-in. Cancel anytime. All features included.</p>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "20px", textAlign: "left" }}>
             {/* Monthly */}
             <div style={{ background: "rgba(15,23,42,0.03)", border: "1px solid rgba(15,23,42,0.1)", borderRadius: "20px", padding: "36px" }}>
-              <p style={{ fontSize: "0.78rem", color: "rgba(15,23,42,0.4)", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "10px" }}>Monthly</p>
+              <p style={{ fontSize: "0.78rem", color: "#64748b", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "10px" }}>Monthly</p>
               <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginBottom: "4px" }}>
                 <span style={{ fontSize: "2.8rem", fontWeight: "800" }}>$9.99</span>
               </div>
-              <p style={{ color: "rgba(15,23,42,0.35)", marginBottom: "28px", fontSize: "0.88rem" }}>AUD / month</p>
+              <p style={{ color: "#64748b", marginBottom: "28px", fontSize: "0.88rem" }}>AUD / month</p>
               {["Unlimited participants & support lines", "Schedule of Supports PDF generator", "100 PDF plan uploads / month", "Per-category rate presets (01–15)", "Public holiday auto-calc by state", "Plan pace tracking", "Claims & actual spend tracker", "CSV & PDF exports", "Cancel anytime"].map((item, i) => (
-                <div key={i} style={{ padding: "8px 0", borderBottom: i < 8 ? "1px solid rgba(15,23,42,0.05)" : "none", color: "rgba(15,23,42,0.65)", fontSize: "0.88rem", display: "flex", gap: "10px", alignItems: "center" }}>
+                <div key={i} style={{ padding: "8px 0", borderBottom: i < 8 ? "1px solid rgba(15,23,42,0.05)" : "none", color: "#334155", fontSize: "0.88rem", display: "flex", gap: "10px", alignItems: "center" }}>
                   <span style={{ color: "#22c55e", flexShrink: 0 }}>✓</span> {item}
                 </div>
               ))}
@@ -376,9 +376,9 @@ export default function LandingPage() {
               <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginBottom: "4px" }}>
                 <span style={{ fontSize: "2.8rem", fontWeight: "800" }}>$79</span>
               </div>
-              <p style={{ color: "rgba(15,23,42,0.35)", marginBottom: "28px", fontSize: "0.88rem" }}>AUD / year <span style={{ color: "#d4a843" }}>(≈$6.58/mo)</span></p>
+              <p style={{ color: "#64748b", marginBottom: "28px", fontSize: "0.88rem" }}>AUD / year <span style={{ color: "#d4a843" }}>(≈$6.58/mo)</span></p>
               {["Everything in Monthly", "2 months free vs monthly", "Priority support", "Cancel anytime"].map((item, i) => (
-                <div key={i} style={{ padding: "8px 0", borderBottom: i < 3 ? "1px solid rgba(15,23,42,0.05)" : "none", color: "rgba(15,23,42,0.65)", fontSize: "0.88rem", display: "flex", gap: "10px", alignItems: "center" }}>
+                <div key={i} style={{ padding: "8px 0", borderBottom: i < 3 ? "1px solid rgba(15,23,42,0.05)" : "none", color: "#334155", fontSize: "0.88rem", display: "flex", gap: "10px", alignItems: "center" }}>
                   <span style={{ color: "#22c55e", flexShrink: 0 }}>✓</span> {item}
                 </div>
               ))}
@@ -395,7 +395,7 @@ export default function LandingPage() {
         <div style={{ maxWidth: "780px", margin: "0 auto", textAlign: "center" }}>
           <p style={{ fontSize: "0.78rem", color: "#d4a843", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: "12px" }}>ROI Calculator</p>
           <h2 style={{ fontSize: "2.4rem", fontWeight: "800", marginBottom: "12px", letterSpacing: "-0.02em", color: "#2d1b69" }}>How much time will you save?</h2>
-          <p style={{ color: "rgba(15,23,42,0.4)", marginBottom: "48px", fontSize: "1.05rem" }}>
+          <p style={{ color: "#64748b", marginBottom: "48px", fontSize: "1.05rem" }}>
             Adjust to match your caseload and see a breakdown of exactly where the time goes
           </p>
 
@@ -403,22 +403,22 @@ export default function LandingPage() {
             {/* Sliders */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "32px", marginBottom: "36px" }}>
               <div>
-                <div style={{ fontSize: "0.95rem", color: "rgba(15,23,42,0.6)", marginBottom: "12px" }}>
+                <div style={{ fontSize: "0.95rem", color: "#334155", marginBottom: "12px" }}>
                   I manage <span style={{ color: "#d4a843", fontWeight: "800", fontSize: "1.35rem" }}>{participants}</span> participants
                 </div>
                 <input type="range" min={1} max={50} value={participants} onChange={(e) => setParticipants(Number(e.target.value))}
                   style={{ width: "100%", accentColor: "#d4a843", height: "6px", cursor: "pointer" }} />
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem", color: "rgba(15,23,42,0.25)", marginTop: "6px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem", color: "#64748b", marginTop: "6px" }}>
                   <span>1</span><span>25</span><span>50</span>
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: "0.95rem", color: "rgba(15,23,42,0.6)", marginBottom: "12px" }}>
+                <div style={{ fontSize: "0.95rem", color: "#334155", marginBottom: "12px" }}>
                   My time is worth <span style={{ color: "#d4a843", fontWeight: "800", fontSize: "1.35rem" }}>${hourlyRate}/hr</span>
                 </div>
                 <input type="range" min={50} max={200} step={10} value={hourlyRate} onChange={(e) => setHourlyRate(Number(e.target.value))}
                   style={{ width: "100%", accentColor: "#d4a843", height: "6px", cursor: "pointer" }} />
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem", color: "rgba(15,23,42,0.25)", marginTop: "6px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem", color: "#64748b", marginTop: "6px" }}>
                   <span>$50</span><span>$125</span><span>$200</span>
                 </div>
               </div>
@@ -433,14 +433,14 @@ export default function LandingPage() {
               ].map((stat) => (
                 <div key={stat.label} style={{ background: "rgba(15,23,42,0.04)", borderRadius: "14px", padding: "20px" }}>
                   <div style={{ fontSize: "1.8rem", fontWeight: "800", color: stat.color, marginBottom: "6px" }}>{stat.value}</div>
-                  <div style={{ fontSize: "0.8rem", color: "rgba(15,23,42,0.35)" }}>{stat.label}</div>
+                  <div style={{ fontSize: "0.8rem", color: "#64748b" }}>{stat.label}</div>
                 </div>
               ))}
             </div>
 
             {/* Breakdown */}
             <div style={{ background: "rgba(0,0,0,0.2)", borderRadius: "12px", padding: "20px", marginBottom: "24px", textAlign: "left" }}>
-              <div style={{ fontSize: "0.72rem", color: "rgba(15,23,42,0.3)", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "14px" }}>
+              <div style={{ fontSize: "0.72rem", color: "#64748b", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "14px" }}>
                 Where the time comes from — per participant per year
               </div>
               {[
@@ -452,19 +452,19 @@ export default function LandingPage() {
               ].map((row) => (
                 <div key={row.task} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "7px 0", borderBottom: "1px solid rgba(15,23,42,0.04)" }}>
                   <div>
-                    <span style={{ color: "rgba(15,23,42,0.75)", fontSize: "0.88rem", fontWeight: "500" }}>{row.task}</span>
-                    <span style={{ color: "rgba(15,23,42,0.25)", fontSize: "0.78rem", marginLeft: "10px" }}>{row.detail}</span>
+                    <span style={{ color: "#334155", fontSize: "0.88rem", fontWeight: "500" }}>{row.task}</span>
+                    <span style={{ color: "#64748b", fontSize: "0.78rem", marginLeft: "10px" }}>{row.detail}</span>
                   </div>
                   <span style={{ color: "#d4a843", fontWeight: "700", fontSize: "0.88rem", whiteSpace: "nowrap", marginLeft: "16px" }}>{row.hrs} hrs</span>
                 </div>
               ))}
               <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0 0 0" }}>
-                <span style={{ color: "rgba(15,23,42,0.35)", fontSize: "0.85rem", fontWeight: "600" }}>Total per participant per year</span>
+                <span style={{ color: "#64748b", fontSize: "0.85rem", fontWeight: "600" }}>Total per participant per year</span>
                 <span style={{ color: "#d4a843", fontWeight: "800", fontSize: "0.95rem" }}>{hrsPerParticipant} hrs</span>
               </div>
             </div>
 
-            <p style={{ color: "rgba(15,23,42,0.2)", fontSize: "0.75rem", marginBottom: "24px" }}>
+            <p style={{ color: "#64748b", fontSize: "0.75rem", marginBottom: "24px" }}>
               Time estimates are conservative averages based on typical provider workflows. Individual savings will vary.
             </p>
 
@@ -521,7 +521,7 @@ export default function LandingPage() {
           ].map((faq, i) => (
             <div key={i} style={{ borderBottom: "1px solid rgba(15,23,42,0.07)", padding: "22px 0" }}>
               <h3 style={{ fontSize: "1rem", fontWeight: "700", marginBottom: "10px", color: "#d4a843" }}>{faq.q}</h3>
-              <p style={{ color: "rgba(15,23,42,0.45)", lineHeight: "1.65", fontSize: "0.92rem" }}>{faq.a}</p>
+              <p style={{ color: "#475569", lineHeight: "1.65", fontSize: "0.92rem" }}>{faq.a}</p>
             </div>
           ))}
         </div>
@@ -545,7 +545,7 @@ export default function LandingPage() {
               <h2 style={{ fontSize: "2rem", fontWeight: "800", marginBottom: "12px", letterSpacing: "-0.02em", color: "#2d1b69" }}>
                 Let&apos;s take the spreadsheets out of NDIS budgets
               </h2>
-              <p style={{ color: "rgba(15,23,42,0.45)", marginBottom: "32px", fontSize: "1rem", lineHeight: "1.6" }}>
+              <p style={{ color: "#475569", marginBottom: "32px", fontSize: "1rem", lineHeight: "1.6" }}>
                 Join providers across Australia using Kevria Calc to manage participant budgets with confidence.
               </p>
               <button onClick={() => router.push("/login")} style={{
@@ -554,7 +554,7 @@ export default function LandingPage() {
               }}>
                 Get Started — $9.99/mo →
               </button>
-              <p style={{ color: "rgba(15,23,42,0.2)", fontSize: "0.8rem", marginTop: "14px" }}>Annual plan available at $79/yr · Cancel anytime</p>
+              <p style={{ color: "#64748b", fontSize: "0.8rem", marginTop: "14px" }}>Annual plan available at $79/yr · Cancel anytime</p>
             </div>
           </div>
         </div>
@@ -580,7 +580,7 @@ export default function LandingPage() {
                 { label: "support@kevria.com", href: "mailto:support@kevria.com" },
               ].map(l => (
                 <a key={l.label} href={l.href} target={l.external ? "_blank" : undefined} rel={l.external ? "noopener noreferrer" : undefined}
-                  style={{ color: "rgba(15,23,42,0.3)", fontSize: "0.82rem", textDecoration: "none" }}
+                  style={{ color: "#64748b", fontSize: "0.82rem", textDecoration: "none" }}
                   onMouseEnter={e => (e.currentTarget.style.color = "#d4a843")}
                   onMouseLeave={e => (e.currentTarget.style.color = "rgba(15,23,42,0.3)")}
                 >{l.label}</a>
@@ -588,10 +588,10 @@ export default function LandingPage() {
             </div>
           </div>
           <div style={{ borderTop: "1px solid rgba(15,23,42,0.04)", paddingTop: "20px", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
-            <p style={{ color: "rgba(15,23,42,0.2)", fontSize: "0.75rem" }}>
+            <p style={{ color: "#64748b", fontSize: "0.75rem" }}>
               © {new Date().getFullYear()} Kevria. All rights reserved. Powered by <a href="https://kevria.com" target="_blank" rel="noopener noreferrer" style={{ color: "#d4a843", textDecoration: "none" }}>Kevria</a>
             </p>
-            <p style={{ color: "rgba(15,23,42,0.15)", fontSize: "0.72rem", maxWidth: "500px", textAlign: "right" }}>
+            <p style={{ color: "#64748b", fontSize: "0.72rem", maxWidth: "500px", textAlign: "right" }}>
               Rates based on 2025–26 NDIS Price Guide. Not affiliated with NDIA. Not financial advice. Always verify with your plan manager.
             </p>
           </div>
