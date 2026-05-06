@@ -788,7 +788,7 @@ return(
 <div>Combined funding: <span className="font-semibold" style={{color:"#d4a843"}}>{money(totals.totalFunding)}</span></div>
 <div>Weekly cost: <span className="font-semibold">{money(totals.weekly)}</span></div>
 <div>PH adjustment: <span className="font-semibold" style={{color:totals.totalPH>0?"#ef4444":totals.totalPH<0?"#22c55e":"#334155"}}>{totals.totalPH>0?"+":""}{money(totals.totalPH)}</span></div>
-<div>Plan cost ({planWeeks.toFixed(1)} wks): <span className="font-semibold">{money(totals.planCost)}</span></div>
+<div>Plan cost: <span className="font-semibold">{money(totals.planCost)}</span></div>
 {totals.totalClaimed>0&&<div>Actual claimed: <span className="font-semibold" style={{color:"#22c55e"}}>{money(totals.totalClaimed)}</span> <span style={{color:"#64748b",fontSize:"0.85em"}}>({money(totals.actualRemaining)} remaining)</span></div>}
 </div>
 <div className="text-right"><div className="text-sm font-semibold px-3 py-1 rounded-full" style={{background:totalStatus.bg,color:totalStatus.color,border:"1px solid "+totalStatus.border}}>{totalStatus.label}</div></div>
