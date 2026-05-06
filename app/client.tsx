@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 type Rates = { weekdayOrd: number; weekdayNight: number; sat: number; sun: number; publicHoliday: number; activeSleepoverHourly: number; fixedSleepoverUnit: number; gstRate: number };
-type PlanDates = { start: string; end: string; state: string };
+type PlanDates = { start: string; end: string; state: string; serviceStart?: string; serviceEnd?: string };
 type DayRoster = { enabled: boolean; hours: number; nightHours: number; frequency: string };
 type Claim = { id: string; date: string; amount: number; note: string };
 type SupportLine = { id: string; code: string; description: string; totalFunding: number; ratio: string; excludedHolidays: string[]; roster: { [key: string]: DayRoster }; activeSleepoverHours: number; activeSleepoverFreq: string; fixedSleepovers: number; fixedSleepoverFreq: string; kmsPerWeek: number; kmRate: number; kmFreq: string; claims: Claim[]; lineRates: Rates };
@@ -109,8 +109,9 @@ useEffect(()=>{supabase.auth.getUser().then(({data})=>{setUserEmail(data.user?.e
 const[planDates,setPlanDates]=useState<PlanDates>({start:new Date().toISOString().slice(0,10),end:new Date(Date.now()+365*24*60*60*1000).toISOString().slice(0,10),state:"NSW"});
 const[rates,setRates]=useState<Rates>({weekdayOrd:70.23,weekdayNight:77.38,sat:98.83,sun:127.43,publicHoliday:156.03,activeSleepoverHourly:78.81,fixedSleepoverUnit:297.6,gstRate:0});
 const[lines,setLines]=useState<SupportLine[]>([{id:uid(),code:"01",description:"Core Supports",totalFunding:0,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:0.99,kmFreq:"every",claims:[],lineRates:NDIS_RATES_2025_26}]);
-const planWeeksCalc=useMemo(()=>getWeeksInPlan(planDates.start,planDates.end),[planDates.start,planDates.end]);const[weeksOverride,setWeeksOverride]=useState<number|null>(null);const planWeeks=weeksOverride!==null?weeksOverride:planWeeksCalc;
-const holidays=useMemo(()=>getHolidaysInRange(planDates.start,planDates.end,planDates.state),[planDates]);
+const srvStart=planDates.serviceStart||planDates.start;const srvEnd=planDates.serviceEnd||planDates.end;
+const planWeeksCalc=useMemo(()=>getWeeksInPlan(srvStart,srvEnd),[srvStart,srvEnd]);const[weeksOverride,setWeeksOverride]=useState<number|null>(null);const planWeeks=weeksOverride!==null?weeksOverride:planWeeksCalc;
+const holidays=useMemo(()=>getHolidaysInRange(srvStart,srvEnd,planDates.state),[srvStart,srvEnd,planDates.state]);
 useEffect(()=>{async function load(){const cloud=await loadFromCloud(STORAGE_KEY);const raw=cloud||(()=>{try{const r=localStorage.getItem(STORAGE_KEY);return r?JSON.parse(r):null}catch{return null}})();if(!raw){setLoaded(true);return;}if(raw?.rates)setRates((r:any)=>({...r,...raw.rates}));if(raw?.planDates)setPlanDates((p:any)=>({...p,...raw.planDates}));if(Array.isArray(raw?.lines)&&raw.lines.length>0)setLines(raw.lines.map((l:any)=>({...l,ratio:l.ratio||"1:1",excludedHolidays:l.excludedHolidays||[],roster:l.roster||defaultRoster(),activeSleepoverFreq:l.activeSleepoverFreq||"every",fixedSleepoverFreq:l.fixedSleepoverFreq||"every",kmsPerWeek:l.kmsPerWeek||0,kmRate:l.kmRate||0.99,kmFreq:l.kmFreq||"every",claims:l.claims||[],lineRates:l.lineRates||getPresetRates(l.code)})));if(raw?.weeksOverride!=null)setWeeksOverride(raw.weeksOverride);if(raw?.calcMode!==undefined)setCalcMode(raw.calcMode as any);else{const hasLines=Array.isArray(raw?.lines)&&raw.lines.some((l:any)=>(l?.totalFunding||0)>0);const hasClinical=Array.isArray(raw?.clinicalServices)&&raw.clinicalServices.length>0;if(hasLines&&hasClinical)setCalcMode("both");else if(hasClinical&&!hasLines)setCalcMode("clinical");else if(hasLines)setCalcMode("sil");}if(typeof raw?.clinicalFunding==="number")setClinicalFunding(raw.clinicalFunding);if(Array.isArray(raw?.clinicalServices))setClinicalServices(raw.clinicalServices);if(typeof raw?.clinicalBudgetLinked==="boolean")setClinicalBudgetLinked(raw.clinicalBudgetLinked);setLoaded(true);}load()},[]);
 const[calcMode,setCalcMode]=useState<"sil"|"clinical"|"both"|null>(null);
 const[loaded,setLoaded]=useState(false);
@@ -118,7 +119,7 @@ const[clinicalFunding,setClinicalFunding]=useState(0);
 const[clinicalServices,setClinicalServices]=useState<{id:string;code:string;description:string;hours:number;rate:number;note:string}[]>([]);
 const[clinicalBudgetLinked,setClinicalBudgetLinked]=useState(false);
 const saveData={rates,lines,planDates,weeksOverride,calcMode,clinicalFunding,clinicalServices,clinicalBudgetLinked};useEffect(()=>{try{localStorage.setItem(STORAGE_KEY,JSON.stringify(saveData))}catch{}},[rates,lines,planDates,weeksOverride,calcMode,clinicalFunding,clinicalServices,clinicalBudgetLinked]);useCloudSync(STORAGE_KEY,saveData);
-const perLine=useMemo(()=>{return lines.map(l=>{const lr=l.lineRates||rates;const wt=calcWeeklyCost(l,lr);const weeklyGST=wt*(lr.gstRate||0);const weeklyWithGST=wt+weeklyGST;const basePlanCost=calcDayCountPlanCost(l,planDates.start,planDates.end,planWeeks,lr)*(1+(lr.gstRate||0));const phImpact=calcPHImpact(l,holidays,lr);const phAdjustment=phImpact.extraCost-phImpact.savedCost;const planTotal=basePlanCost+phAdjustment;const remaining=l.totalFunding-planTotal;const totalClaimed=(l.claims||[]).reduce((a:number,c:Claim)=>a+c.amount,0);const actualRemaining=l.totalFunding-totalClaimed;return{...l,weeklyTotal:wt,weeklyGST,weeklyWithGST,basePlanCost,phImpact,phAdjustment,planTotal,remaining,totalClaimed,actualRemaining}})},[lines,rates,planWeeks,holidays]);
+const perLine=useMemo(()=>{return lines.map(l=>{const lr=l.lineRates||rates;const wt=calcWeeklyCost(l,lr);const weeklyGST=wt*(lr.gstRate||0);const weeklyWithGST=wt+weeklyGST;const basePlanCost=calcDayCountPlanCost(l,srvStart,srvEnd,planWeeks,lr)*(1+(lr.gstRate||0));const phImpact=calcPHImpact(l,holidays,lr);const phAdjustment=phImpact.extraCost-phImpact.savedCost;const planTotal=basePlanCost+phAdjustment;const remaining=l.totalFunding-planTotal;const totalClaimed=(l.claims||[]).reduce((a:number,c:Claim)=>a+c.amount,0);const actualRemaining=l.totalFunding-totalClaimed;return{...l,weeklyTotal:wt,weeklyGST,weeklyWithGST,basePlanCost,phImpact,phAdjustment,planTotal,remaining,totalClaimed,actualRemaining}})},[lines,rates,planWeeks,holidays]);
 const totals=useMemo(()=>{const totalFunding=perLine.reduce((a,l)=>a+l.totalFunding,0);const weekly=perLine.reduce((a,l)=>a+l.weeklyWithGST,0);const planCost=perLine.reduce((a,l)=>a+l.planTotal,0);const totalPH=perLine.reduce((a,l)=>a+l.phAdjustment,0);const remaining=totalFunding-planCost;const totalClaimed=perLine.reduce((a,l)=>a+(l as any).totalClaimed,0);const actualRemaining=totalFunding-totalClaimed;return{totalFunding,weekly,planCost,totalPH,remaining,totalClaimed,actualRemaining}},[perLine]);
 const saRows=useMemo(()=>perLine.flatMap((l:any)=>{
   const mode=getLineMode(l.code);const rows:{key:string;code:string;rateType:string;label:string}[]=[];
@@ -383,11 +384,11 @@ function generateScheduleOfSupports(){
     }
     const wkDays=["mon","tue","wed","thu","fri"];
     // Use countDayOccurrences (same as main calc) so SoS totals match exactly
-    const wkdOrdHrs=wkDays.reduce((s:number,d:string)=>{const r=l.roster[d];if(!r?.enabled||(r.hours||0)<=0)return s;const occ=countDayOccurrences(planDates.start,planDates.end,DAY_DOW[d])*(FREQ[r.frequency]?.multiplier||1);return s+(r.hours||0)*occ;},0);
-    const wkdNightHrs=wkDays.reduce((s:number,d:string)=>{const r=l.roster[d];if(!r?.enabled||(r.nightHours||0)<=0)return s;const occ=countDayOccurrences(planDates.start,planDates.end,DAY_DOW[d])*(FREQ[r.frequency]?.multiplier||1);return s+(r.nightHours||0)*occ;},0);
+    const wkdOrdHrs=wkDays.reduce((s:number,d:string)=>{const r=l.roster[d];if(!r?.enabled||(r.hours||0)<=0)return s;const occ=countDayOccurrences(srvStart,srvEnd,DAY_DOW[d])*(FREQ[r.frequency]?.multiplier||1);return s+(r.hours||0)*occ;},0);
+    const wkdNightHrs=wkDays.reduce((s:number,d:string)=>{const r=l.roster[d];if(!r?.enabled||(r.nightHours||0)<=0)return s;const occ=countDayOccurrences(srvStart,srvEnd,DAY_DOW[d])*(FREQ[r.frequency]?.multiplier||1);return s+(r.nightHours||0)*occ;},0);
     const satR=l.roster["sat"];const sunR=l.roster["sun"];
-    const satOcc=satR?.enabled?countDayOccurrences(planDates.start,planDates.end,6)*(FREQ[satR.frequency]?.multiplier||1):0;
-    const sunOcc=sunR?.enabled?countDayOccurrences(planDates.start,planDates.end,0)*(FREQ[sunR.frequency]?.multiplier||1):0;
+    const satOcc=satR?.enabled?countDayOccurrences(srvStart,srvEnd,6)*(FREQ[satR.frequency]?.multiplier||1):0;
+    const sunOcc=sunR?.enabled?countDayOccurrences(srvStart,srvEnd,0)*(FREQ[sunR.frequency]?.multiplier||1):0;
     const satHrs=satR?.enabled?(satR.hours||0)*satOcc:0;
     const satNightHrs=satR?.enabled?(satR.nightHours||0)*satOcc:0;
     const sunHrs=sunR?.enabled?(sunR.hours||0)*sunOcc:0;
@@ -493,7 +494,7 @@ tbody td{padding:9px 10px;vertical-align:top}
     <div class="det-col">
       <div class="det-label">Participant</div>
       <div class="det-name">${escapeHtml(pName)}</div>
-      <div class="det-info">${ndis!=="[NDIS Number]"?"NDIS Number: <strong>"+escapeHtml(ndis)+"</strong><br/>":""}Plan Period: <strong>${escapeHtml(planDates.start)}</strong> to <strong>${escapeHtml(planDates.end)}</strong><br/>State / Territory: ${escapeHtml(planDates.state)} &nbsp;|&nbsp; Duration: ${planWeeks.toFixed(1)} weeks</div>
+      <div class="det-info">${ndis!=="[NDIS Number]"?"NDIS Number: <strong>"+escapeHtml(ndis)+"</strong><br/>":""}Plan Period: <strong>${escapeHtml(planDates.start)}</strong> to <strong>${escapeHtml(planDates.end)}</strong><br/>${(planDates.serviceStart||planDates.serviceEnd)?`Service Period: <strong>${escapeHtml(srvStart)}</strong> to <strong>${escapeHtml(srvEnd)}</strong><br/>`:""}State / Territory: ${escapeHtml(planDates.state)} &nbsp;|&nbsp; Duration: ${planWeeks.toFixed(1)} weeks</div>
     </div>
     <div class="det-col">
       <div class="det-label">Provider</div>
@@ -646,7 +647,7 @@ tbody td{padding:9px 10px;vertical-align:top}
     <div class="det-col">
       <div class="det-label">Participant</div>
       <div class="det-name">${escapeHtml(pName)}</div>
-      <div class="det-info">${ndis!=="[NDIS Number]"?"NDIS Number: <strong>"+escapeHtml(ndis)+"</strong><br/>":""}Plan Period: <strong>${escapeHtml(planDates.start)}</strong> to <strong>${escapeHtml(planDates.end)}</strong><br/>Total Hours: <strong>${escapeHtml(titleHours)} hrs</strong> &nbsp;|&nbsp; Total Cost: <strong>${escapeHtml(money(grandTotal))}</strong></div>
+      <div class="det-info">${ndis!=="[NDIS Number]"?"NDIS Number: <strong>"+escapeHtml(ndis)+"</strong><br/>":""}Plan Period: <strong>${escapeHtml(planDates.start)}</strong> to <strong>${escapeHtml(planDates.end)}</strong><br/>${(planDates.serviceStart||planDates.serviceEnd)?`Service Period: <strong>${escapeHtml(planDates.serviceStart||planDates.start)}</strong> to <strong>${escapeHtml(planDates.serviceEnd||planDates.end)}</strong><br/>`:""}Total Hours: <strong>${escapeHtml(titleHours)} hrs</strong> &nbsp;|&nbsp; Total Cost: <strong>${escapeHtml(money(grandTotal))}</strong></div>
     </div>
     <div class="det-col">
       <div class="det-label">Service Provider</div>
@@ -714,8 +715,8 @@ const clinicalTotal=clinicalServices.reduce((s,i)=>s+(i.hours||0)*(i.rate||0),0)
 const clinicalRemaining=clinicalFunding-clinicalTotal;
 const clinicalStatus=getBudgetStatus(clinicalRemaining,clinicalFunding);
 const pace=useMemo(()=>{
-  if(!planDates.start||!planDates.end||totals.totalFunding<=0)return null;
-  const today=new Date();const start=new Date(planDates.start);const end=new Date(planDates.end);
+  if(!srvStart||!srvEnd||totals.totalFunding<=0)return null;
+  const today=new Date();const start=new Date(srvStart);const end=new Date(srvEnd);
   if(today<start)return{status:"not_started",pctElapsed:0,weeksElapsed:0,expectedSpend:0,projectedSpendToDate:0,variance:0};
   const effective=today>end?end:today;
   const weeksElapsed=(effective.getTime()-start.getTime())/(7*24*60*60*1000);
@@ -727,7 +728,7 @@ const pace=useMemo(()=>{
   const ended=today>end;
   const status=ended?"ended":pctDiff>5?"over_pace":pctDiff<-5?"under_pace":"on_pace";
   return{status,pctElapsed,weeksElapsed,expectedSpend,projectedSpendToDate,variance,ended};
-},[planDates,planWeeks,totals.totalFunding,totals.weekly]);
+},[srvStart,srvEnd,planWeeks,totals.totalFunding,totals.weekly]);
 return(
 <main className="min-h-screen" style={{background:"#f8fafc",color: "#0f172a"}}>
 <div className="rounded-b-none" style={{background:"linear-gradient(135deg, #2d1b69 0%, #3d2787 50%, #2d1b69 100%)",padding:"28px 0",marginBottom:"24px"}}>
@@ -747,6 +748,18 @@ return(
 <DateField label="Plan Start Date" value={planDates.start} onChange={v=>setPlanDates(p=>({...p,start:v}))}/>
 <DateField label="Plan End Date" value={planDates.end} onChange={v=>setPlanDates(p=>({...p,end:v}))}/>
 <SelectField label="State / Territory" value={planDates.state} options={STATES.map(s=>({value:s.value,label:s.label}))} onChange={v=>setPlanDates(p=>({...p,state:v}))}/>
+</div>
+<div className="mt-4">
+<label className="flex items-center gap-2 cursor-pointer">
+<input type="checkbox" checked={!!(planDates.serviceStart||planDates.serviceEnd)} onChange={e=>{if(e.target.checked)setPlanDates(p=>({...p,serviceStart:p.start,serviceEnd:p.end}));else setPlanDates(p=>{const n={...p};delete n.serviceStart;delete n.serviceEnd;return n;});}} style={{accentColor:"#d4a843"}}/>
+<span className="text-sm" style={{color:"#334155"}}>Service period differs from plan period <span style={{color:"#94a3b8"}}>(coming in mid-plan)</span></span>
+</label>
+{(planDates.serviceStart!==undefined||planDates.serviceEnd!==undefined)&&(
+<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mt-3">
+<DateField label="Service Start Date" value={planDates.serviceStart||""} onChange={v=>setPlanDates(p=>({...p,serviceStart:v}))}/>
+<DateField label="Service End Date" value={planDates.serviceEnd||""} onChange={v=>setPlanDates(p=>({...p,serviceEnd:v}))}/>
+</div>
+)}
 </div>
 <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
 <div className="rounded-xl p-3" style={{background:"rgba(212,168,67,0.1)",border:"1px solid rgba(212,168,67,0.45)"}}><div className="text-xs flex items-center justify-between" style={{color:"#334155"}}><span>Weeks of Support</span>{weeksOverride!==null&&<button onClick={()=>setWeeksOverride(null)} style={{color:"#d4a843",fontSize:"0.7rem",background:"none",border:"none",cursor:"pointer",padding:0}}>↺ reset</button>}</div><div className="flex items-center gap-2 mt-1"><input type="number" step="0.5" min="0.5" value={planWeeks} onChange={e=>{const v=num(e.target.value);if(v>=0.5)setWeeksOverride(v)}} onFocus={e=>e.target.select()} className="rounded px-2 py-0 outline-none text-lg font-bold w-20" style={{background: "#ffffff",border:"1px solid rgba(212,168,67,0.3)",color:"#d4a843"}}/><span className="text-lg font-bold" style={{color:"#d4a843"}}>wks</span></div>{weeksOverride!==null&&<div className="text-xs mt-1" style={{color:"#64748b"}}>From dates: {planWeeksCalc.toFixed(1)} wks</div>}</div>
