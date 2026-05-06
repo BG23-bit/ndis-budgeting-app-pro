@@ -801,13 +801,13 @@ return(
 <button onClick={addLine} className="rounded-xl px-4 py-2 font-semibold" style={{background:"rgba(212,168,67,0.15)",border:"1px solid rgba(212,168,67,0.3)",color:"#d4a843"}}>+ Add support line</button>
 <button onClick={exportCSV} className="rounded-xl px-4 py-2" style={{background:"rgba(15,23,42,0.05)",border:"1px solid rgba(15,23,42,0.1)",color:"#334155"}}>Export CSV</button>
 <button onClick={exportPDF} className="rounded-xl px-4 py-2" style={{background:"rgba(15,23,42,0.05)",border:"1px solid rgba(15,23,42,0.1)",color:"#334155"}}>Export PDF</button>
-<button onClick={()=>setShowSAModal(true)} style={{padding:"10px 14px",background:"rgba(212,168,67,0.1)",border:"1px solid rgba(212,168,67,0.35)",borderRadius:"12px",cursor:"pointer",textAlign:"left"}}>
-  <span style={{display:"block",color:"#d4a843",fontWeight:700,fontSize:"0.88rem"}}>📋 Roster / SIL / Core SoS</span>
-  <span style={{display:"block",color:"#64748b",fontSize:"0.72rem",marginTop:"2px"}}>Hourly roster — day, night, weekend rates</span>
+<button onClick={()=>setShowSAModal(true)} style={{padding:"10px 14px",background:"#fdf6e3",border:"2px solid #d4a843",borderRadius:"12px",cursor:"pointer",textAlign:"left",boxShadow:"0 1px 3px rgba(15,23,42,0.08)"}}>
+  <span style={{display:"block",color:"#b8901a",fontWeight:700,fontSize:"0.9rem"}}>📋 Roster / SIL / Core SoS</span>
+  <span style={{display:"block",color:"#475569",fontSize:"0.74rem",marginTop:"2px"}}>Hourly roster — day, night, weekend rates</span>
 </button>
-<button onClick={()=>setShowClinicalModal(true)} style={{padding:"10px 14px",background:"rgba(100,150,212,0.1)",border:"1px solid rgba(100,150,212,0.35)",borderRadius:"12px",cursor:"pointer",textAlign:"left"}}>
-  <span style={{display:"block",color:"#1e40af",fontWeight:700,fontSize:"0.88rem"}}>🏥 Clinical / Therapy SoS</span>
-  <span style={{display:"block",color:"#64748b",fontSize:"0.72rem",marginTop:"2px"}}>Behaviour support, allied health, therapy packages</span>
+<button onClick={()=>setShowClinicalModal(true)} style={{padding:"10px 14px",background:"#eff6ff",border:"2px solid #3b82f6",borderRadius:"12px",cursor:"pointer",textAlign:"left",boxShadow:"0 1px 3px rgba(15,23,42,0.08)"}}>
+  <span style={{display:"block",color:"#1e40af",fontWeight:700,fontSize:"0.9rem"}}>🏥 Clinical / Therapy SoS</span>
+  <span style={{display:"block",color:"#475569",fontSize:"0.74rem",marginTop:"2px"}}>Behaviour support, allied health, therapy packages</span>
 </button>
 </div></div>
 
