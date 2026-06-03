@@ -301,7 +301,7 @@ function exportPDF(){
   const claimsHtml=claimLines.length>0
     ?"<div class=\"section-title\">Claims &amp; Actual Spend</div>"
       +claimLines.map((l:any)=>"<div style=\"margin-bottom:20px\">"
-        +"<div style=\"font-weight:600;font-size:13px;margin-bottom:8px;color:#f8fafc\">"+escapeHtml(l.description)
+        +"<div style=\"font-weight:600;font-size:13px;margin-bottom:8px;color:#0f172a\">"+escapeHtml(l.description)
         +" <span style=\"color:#94a3b8;font-weight:400;font-size:12px\">("+escapeHtml(l.code)+")</span>"
         +"<span style=\"float:right;font-size:12px;color:#475569\">Claimed: <strong>"+escapeHtml(money((l as any).totalClaimed))+"</strong>"
         +" &nbsp;|&nbsp; Remaining: <strong style=\"color:"+((l as any).actualRemaining<0?"#dc2626":"#16a34a")+"\">"+escapeHtml(money((l as any).actualRemaining))+"</strong></span></div>"
@@ -320,11 +320,11 @@ function exportPDF(){
   const phAdj=totals.totalPH!==0?"<span>PH Adj: "+(totals.totalPH>0?"+":"")+escapeHtml(money(totals.totalPH))+"</span>":"";
   const claimedBar=totals.totalClaimed>0?"<span>Claimed: "+escapeHtml(money(totals.totalClaimed))+"</span>":"";
   const html=`<!doctype html><html><head><meta charset="utf-8"/><title>NDIS Budget Report${p?" - "+escapeHtml(p):""}</title>
-<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;background:#f8fafc;color:#1e293b;font-size:13px}.header{background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%);color:white;padding:28px 40px;display:flex;justify-content:space-between;align-items:flex-start}.brand{display:flex;align-items:center;gap:8px;margin-bottom:6px}.brand-mark{font-size:20px;color:#d4a843}.brand-name{font-size:13px;color:#d4a843;font-weight:700;letter-spacing:.08em}.report-title{font-size:22px;font-weight:800;color:white}.header-right{text-align:right;font-size:11px;color:rgba(15,23,42,.55);line-height:1.6}.info-bar{background:white;border-bottom:3px solid #d4a843;padding:14px 40px;display:flex;flex-wrap:wrap;gap:32px}.info-item .lbl{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:#94a3b8;margin-bottom:2px}.info-item .val{font-size:13px;font-weight:700;color:#1e293b}.content{padding:28px 40px}.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}.kpi-card{background:white;border-radius:10px;padding:16px;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,.06)}.kpi-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:#94a3b8;margin-bottom:5px}.kpi-val{font-size:19px;font-weight:800}.progress-card{background:white;border-radius:10px;padding:18px;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,.06);margin-bottom:20px}.progress-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.progress-lbl{font-size:12px;font-weight:600;color:#475569}.badge{padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700}.bar-bg{background:#f1f5f9;border-radius:6px;height:12px;overflow:hidden}.bar-fill{height:100%;border-radius:6px}.bar-meta{display:flex;justify-content:space-between;margin-top:5px;font-size:10px;color:#94a3b8}.section-title{font-size:14px;font-weight:700;color:#f8fafc;margin:22px 0 10px;padding-bottom:6px;border-bottom:2px solid #e2e8f0}table{width:100%;border-collapse:collapse;font-size:12px;background:white;border-radius:10px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,.06);margin-bottom:4px}th{background:#f8fafc;color:white;padding:9px 12px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}td{padding:9px 12px;border-bottom:1px solid #f1f5f9;vertical-align:middle}tr:last-child td{border-bottom:none}tr:nth-child(even) td{background:#fafafa}.footer{margin-top:32px;background:#f8fafc;color:rgba(15,23,42,.45);font-size:10px;padding:18px 40px;display:flex;justify-content:space-between;align-items:center;gap:20px}.footer a{color:#d4a843;text-decoration:none}@media print{body{background:white}.content{padding:16px}}</style>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;background:#f8fafc;color:#1e293b;font-size:13px}.header{background:linear-gradient(135deg,#2d1b69 0%,#3d2787 100%);color:white;padding:28px 40px;display:flex;justify-content:space-between;align-items:flex-start}.brand{display:flex;align-items:center;gap:8px;margin-bottom:6px}.brand-mark{font-size:20px;color:#d4a843}.brand-name{font-size:13px;color:#d4a843;font-weight:700;letter-spacing:.08em}.report-title{font-size:22px;font-weight:800;color:white}.header-right{text-align:right;font-size:11px;color:rgba(255,255,255,.7);line-height:1.6}.info-bar{background:white;border-bottom:3px solid #d4a843;padding:14px 40px;display:flex;flex-wrap:wrap;gap:32px}.info-item .lbl{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:#94a3b8;margin-bottom:2px}.info-item .val{font-size:13px;font-weight:700;color:#1e293b}.content{padding:28px 40px}.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}.kpi-card{background:white;border-radius:10px;padding:16px;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,.06)}.kpi-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:#94a3b8;margin-bottom:5px}.kpi-val{font-size:19px;font-weight:800}.progress-card{background:white;border-radius:10px;padding:18px;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,.06);margin-bottom:20px}.progress-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.progress-lbl{font-size:12px;font-weight:600;color:#475569}.badge{padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700}.bar-bg{background:#f1f5f9;border-radius:6px;height:12px;overflow:hidden}.bar-fill{height:100%;border-radius:6px}.bar-meta{display:flex;justify-content:space-between;margin-top:5px;font-size:10px;color:#94a3b8}.section-title{font-size:14px;font-weight:700;color:#2d1b69;margin:22px 0 10px;padding-bottom:6px;border-bottom:2px solid #d4a843}table{width:100%;border-collapse:collapse;font-size:12px;background:white;border-radius:10px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,.06);margin-bottom:4px}th{background:#2d1b69;color:white;padding:9px 12px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}td{padding:9px 12px;border-bottom:1px solid #f1f5f9;vertical-align:middle}tr:last-child td{border-bottom:none}tr:nth-child(even) td{background:#fafafa}.footer{margin-top:32px;background:#f8fafc;color:rgba(15,23,42,.45);font-size:10px;padding:18px 40px;display:flex;justify-content:space-between;align-items:center;gap:20px}.footer a{color:#d4a843;text-decoration:none}@media print{body{background:white}.content{padding:16px}.header{-webkit-print-color-adjust:exact;print-color-adjust:exact}th{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style>
 </head><body>
 <div class="header">
   <div><div class="brand"><span class="brand-mark">&#10022;</span><span class="brand-name">KEVRIA</span></div><div class="report-title">NDIS Budget Report</div></div>
-  <div class="header-right"><div>Generated: ${escapeHtml(dt)}</div><div style="margin-top:4px;color:rgba(15,23,42,.3)">Rates: 2025&#8211;26 NDIS Price Guide</div></div>
+  <div class="header-right"><div>Generated: ${escapeHtml(dt)}</div><div style="margin-top:4px;color:rgba(255,255,255,.55)">Rates: 2025&#8211;26 NDIS Price Guide</div></div>
 </div>
 <div class="info-bar">
   ${infoExtra}<div class="info-item"><div class="lbl">Plan Start</div><div class="val">${escapeHtml(planDates.start)}</div></div>
@@ -336,7 +336,7 @@ function exportPDF(){
 <div class="content">
   <div class="kpi-grid">
     <div class="kpi-card"><div class="kpi-lbl">Total Funding</div><div class="kpi-val" style="color:#d4a843">${escapeHtml(money(totals.totalFunding))}</div></div>
-    <div class="kpi-card"><div class="kpi-lbl">Plan Cost</div><div class="kpi-val" style="color:#f8fafc">${escapeHtml(money(totals.planCost))}</div></div>
+    <div class="kpi-card"><div class="kpi-lbl">Plan Cost</div><div class="kpi-val" style="color:#0f172a">${escapeHtml(money(totals.planCost))}</div></div>
     <div class="kpi-card"><div class="kpi-lbl">Remaining</div><div class="kpi-val" style="color:${rc}">${escapeHtml(money(totals.remaining))}</div></div>
     <div class="kpi-card"><div class="kpi-lbl">Weekly Cost</div><div class="kpi-val" style="color:#475569">${escapeHtml(money(totals.weekly))}</div></div>
   </div>
@@ -424,14 +424,14 @@ function generateScheduleOfSupports(){
     +"<td style=\"vertical-align:top\">"+r.category+"</td>"
     +"<td style=\"vertical-align:top;color:#475569;font-size:8.5pt\">"+(itemNum?"NDIS Item Number<br/>"+escapeHtml(itemNum):"<span style=\"color:#cbd5e1\">_______________</span>")+"</td>"
     +"<td style=\"text-align:right;vertical-align:top;white-space:nowrap\">"+(r.hours!==null?(r.hours+(r.price!==null?" @ "+escapeHtml(money(r.price))+(r.rateType==="km"?"/km":r.rateType==="fixedSleepover"?"/night":"/hr"):"")):"&mdash;")+"</td>"
-    +"<td style=\"text-align:right;vertical-align:top;white-space:nowrap;font-weight:700;color:#f8fafc\">"+(r.total!==null?escapeHtml(money(r.total)):"&mdash;")+"</td>"
+    +"<td style=\"text-align:right;vertical-align:top;white-space:nowrap;font-weight:700;color:#0f172a\">"+(r.total!==null?escapeHtml(money(r.total)):"&mdash;")+"</td>"
     +"</tr>";
   }).join("");
 
   const sreqs=saSpecificReqs;
   const specReqHtml=`<div style="margin-bottom:18px">
-  <div style="font-size:8.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#f8fafc;padding-bottom:5px;border-bottom:2px solid #f8fafc;margin-bottom:10px">Specific Requirements</div>
-  <table style="border:1.5px solid #f8fafc;border-radius:6px;overflow:hidden;font-size:9pt;margin-bottom:0">
+  <div style="font-size:8.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#2d1b69;padding-bottom:5px;border-bottom:2px solid #d4a843;margin-bottom:10px">Specific Requirements</div>
+  <table style="border:1.5px solid #e2e8f0;border-radius:6px;overflow:hidden;font-size:9pt;margin-bottom:0">
     <tbody>
       <tr><td style="padding:7px 12px;border-bottom:1px solid #e2e8f0;width:60%">Behaviours of Concern</td><td style="padding:7px 12px;border-bottom:1px solid #e2e8f0">${sreqs.behavioursOfConcern?"&#9745; Yes &nbsp;&nbsp;&#9744; No":"&#9744; Yes &nbsp;&nbsp;&#9745; No"}</td></tr>
       <tr><td style="padding:7px 12px;border-bottom:1px solid #e2e8f0">Regulated Restrictive Practice</td><td style="padding:7px 12px;border-bottom:1px solid #e2e8f0">${sreqs.regulatedRestrictivePractice?"&#9745; Yes &nbsp;&nbsp;&#9744; No":"&#9744; Yes &nbsp;&nbsp;&#9745; No"}</td></tr>
@@ -440,9 +440,9 @@ function generateScheduleOfSupports(){
   </table>
   </div>`;
 
-  const estFeeHtml=estFee>0?`<div style="margin-bottom:18px;padding:12px 14px;border:1.5px solid #f8fafc;border-radius:6px;display:flex;justify-content:space-between;align-items:center">
+  const estFeeHtml=estFee>0?`<div style="margin-bottom:18px;padding:12px 14px;border:1.5px solid #e2e8f0;border-radius:6px;display:flex;justify-content:space-between;align-items:center">
   <div style="font-size:9pt;color:#475569">The following establishment fee will be payable if completing +20 hours per week in services</div>
-  <div style="font-size:12pt;font-weight:700;color:#f8fafc;white-space:nowrap;margin-left:16px">${escapeHtml(money(estFee))}</div>
+  <div style="font-size:12pt;font-weight:700;color:#0f172a;white-space:nowrap;margin-left:16px">${escapeHtml(money(estFee))}</div>
   </div>`:"";
 
   const grandTotal=supRows.reduce((s,r)=>s+(r.total||0),0)+(estFee||0);
@@ -450,28 +450,28 @@ function generateScheduleOfSupports(){
   const html=`<!doctype html><html><head><meta charset="utf-8"/><title>Schedule of Supports - ${escapeHtml(pName)}</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial,Helvetica,sans-serif;color:#1e293b;background:white;font-size:10pt;line-height:1.5}
-.header{background:#f8fafc;color:white;padding:14px 40px;display:flex;justify-content:space-between;align-items:center}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;color:#1e293b;background:white;font-size:10pt;line-height:1.5}
+.header{background:#2d1b69;color:white;padding:14px 40px;display:flex;justify-content:space-between;align-items:center}
 .brand{color:#d4a843;font-size:16px;font-weight:bold;letter-spacing:.05em}
-.doc-label{font-size:9px;color:rgba(15,23,42,.5);text-transform:uppercase;letter-spacing:.12em;margin-top:2px}
+.doc-label{font-size:9px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.12em;margin-top:2px}
 .content{padding:24px 40px}
-.doc-title{font-size:14pt;font-weight:700;color:#f8fafc;text-align:center;margin-bottom:3px;text-transform:uppercase;letter-spacing:.06em}
+.doc-title{font-size:14pt;font-weight:700;color:#2d1b69;text-align:center;margin-bottom:3px;text-transform:uppercase;letter-spacing:.06em}
 .doc-ref{text-align:center;font-size:9pt;color:#64748b;margin-bottom:18px}
-.details-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-bottom:18px;border:1.5px solid #f8fafc;border-radius:6px;overflow:hidden}
+.details-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-bottom:18px;border:1.5px solid #e2e8f0;border-radius:6px;overflow:hidden}
 .det-col{padding:14px 18px}
-.det-col+.det-col{border-left:1.5px solid #f8fafc}
+.det-col+.det-col{border-left:1.5px solid #e2e8f0}
 .det-label{font-size:7.5pt;text-transform:uppercase;letter-spacing:.12em;color:#94a3b8;margin-bottom:3px}
-.det-name{font-size:11.5pt;font-weight:700;color:#f8fafc;margin-bottom:4px}
+.det-name{font-size:11.5pt;font-weight:700;color:#0f172a;margin-bottom:4px}
 .det-info{font-size:9pt;color:#475569;line-height:1.6}
-.section-heading{font-size:8.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#f8fafc;margin-bottom:8px;padding-bottom:5px;border-bottom:2px solid #f8fafc}
+.section-heading{font-size:8.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#2d1b69;margin-bottom:8px;padding-bottom:5px;border-bottom:2px solid #d4a843}
 table{width:100%;border-collapse:collapse;font-size:9.5pt;margin-bottom:10px}
-thead tr{background:#f8fafc}
+thead tr{background:#2d1b69}
 thead th{color:white;padding:8px 10px;text-align:left;font-size:8pt;text-transform:uppercase;letter-spacing:.07em;font-weight:600}
 tbody tr{border-bottom:1px solid #e2e8f0}
 tbody tr:nth-child(even){background:#f8fafc}
 tbody td{padding:9px 10px;vertical-align:top}
-.total-row{background:#f1f5f9!important;border-top:2px solid #f8fafc}
-.total-row td{font-weight:700;padding:10px;font-size:10pt;color:#f8fafc}
+.total-row{background:#f1f5f9!important;border-top:2px solid #2d1b69}
+.total-row td{font-weight:700;padding:10px;font-size:10pt;color:#0f172a}
 .note{font-size:8pt;color:#94a3b8;margin-bottom:18px;line-height:1.5;border-left:3px solid #e2e8f0;padding-left:10px}
 .sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:10px}
 .sig-name{font-weight:700;font-size:10pt;margin-bottom:1px}
@@ -484,7 +484,7 @@ tbody td{padding:9px 10px;vertical-align:top}
 </head><body>
 <div class="header">
   <div><div class="brand">&#10022; KEVRIA</div><div class="doc-label">Kevria Calc</div></div>
-  <div style="text-align:right;font-size:9px;color:rgba(15,23,42,.55)"><div style="font-size:10.5px;color:white;font-weight:700;text-transform:uppercase;letter-spacing:.1em">Schedule of Supports</div><div style="margin-top:3px">Generated: ${escapeHtml(dt)}</div></div>
+  <div style="text-align:right;font-size:9px;color:rgba(255,255,255,.6)"><div style="font-size:10.5px;color:white;font-weight:700;text-transform:uppercase;letter-spacing:.1em">Schedule of Supports</div><div style="margin-top:3px">Generated: ${escapeHtml(dt)}</div></div>
 </div>
 <div class="content">
   <div class="doc-title">Schedule of Supports</div>
@@ -499,7 +499,7 @@ tbody td{padding:9px 10px;vertical-align:top}
     <div class="det-col">
       <div class="det-label">Provider</div>
       <div class="det-name">${escapeHtml(pd.orgName||"[Provider]")}</div>
-      <div class="det-info">${pd.abn?"ABN: "+escapeHtml(pd.abn)+"<br/>":""}${pd.registrationNumber?"NDIS Reg: "+escapeHtml(pd.registrationNumber)+"<br/>":""}${pd.contactName?escapeHtml(pd.contactName)+"<br/>":""}${pd.phone?escapeHtml(pd.phone)+" &nbsp;":""}${pd.email?"<a href='mailto:"+escapeHtml(pd.email)+"' style='color:#f8fafc'>"+escapeHtml(pd.email)+"</a>":""}</div>
+      <div class="det-info">${pd.abn?"ABN: "+escapeHtml(pd.abn)+"<br/>":""}${pd.registrationNumber?"NDIS Reg: "+escapeHtml(pd.registrationNumber)+"<br/>":""}${pd.contactName?escapeHtml(pd.contactName)+"<br/>":""}${pd.phone?escapeHtml(pd.phone)+" &nbsp;":""}${pd.email?"<a href='mailto:"+escapeHtml(pd.email)+"' style='color:#2d1b69'>"+escapeHtml(pd.email)+"</a>":""}</div>
     </div>
   </div>
 
@@ -599,32 +599,32 @@ function generateClinicalSoS(){
   const titleHours=totalHours%1===0?String(totalHours):totalHours.toFixed(1);
   const priceGuideRows=clinicalPriceItems.filter(p=>p.description.trim()||p.itemCode.trim()).map(p=>`<tr><td style="font-family:monospace;font-size:8.5pt">${escapeHtml(p.itemCode)}</td><td>${escapeHtml(p.description)}</td><td style="text-align:right;white-space:nowrap">${escapeHtml(money(p.rate))}/hr</td></tr>`).join("");
   const scheduleHtmlRows=activeItems.map(r=>{const rate=r.rate>0?r.rate:defaultRate;const total=(r.hours||0)*rate;return`<tr><td>${escapeHtml(r.description)}${r.note?`<div style="font-size:8pt;color:#94a3b8">${escapeHtml(r.note)}</div>`:""}</td><td style="text-align:center;white-space:nowrap">${r.hours%1===0?r.hours:r.hours.toFixed(1)}</td><td style="text-align:right;white-space:nowrap">${escapeHtml(money(total))}</td></tr>`;}).join("");
-  const overviewHtml=clinicalOverview.trim()?`<div style="margin-bottom:18px"><div style="font-size:8.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#f8fafc;padding-bottom:5px;border-bottom:2px solid #f8fafc;margin-bottom:12px">Overview</div><div style="font-size:9.5pt;color:#374151;line-height:1.7;white-space:pre-wrap">${escapeHtml(clinicalOverview.trim())}</div></div>`:"";
+  const overviewHtml=clinicalOverview.trim()?`<div style="margin-bottom:18px"><div style="font-size:8.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#2d1b69;padding-bottom:5px;border-bottom:2px solid #d4a843;margin-bottom:12px">Overview</div><div style="font-size:9.5pt;color:#374151;line-height:1.7;white-space:pre-wrap">${escapeHtml(clinicalOverview.trim())}</div></div>`:"";
   const html=`<!doctype html><html><head><meta charset="utf-8"/><title>Clinical Schedule of Supports - ${escapeHtml(pName)}</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial,Helvetica,sans-serif;color:#1e293b;background:white;font-size:10pt;line-height:1.5}
-.header{background:#f8fafc;color:white;padding:14px 40px;display:flex;justify-content:space-between;align-items:center}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;color:#1e293b;background:white;font-size:10pt;line-height:1.5}
+.header{background:#2d1b69;color:white;padding:14px 40px;display:flex;justify-content:space-between;align-items:center}
 .brand{color:#d4a843;font-size:16px;font-weight:bold;letter-spacing:.05em}
-.doc-label{font-size:9px;color:rgba(15,23,42,.5);text-transform:uppercase;letter-spacing:.12em;margin-top:2px}
+.doc-label{font-size:9px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.12em;margin-top:2px}
 .content{padding:24px 40px}
-.doc-title{font-size:14pt;font-weight:700;color:#f8fafc;text-align:center;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em}
+.doc-title{font-size:14pt;font-weight:700;color:#2d1b69;text-align:center;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em}
 .doc-sub{text-align:center;font-size:10.5pt;font-weight:600;color:#475569;margin-bottom:18px}
-.details-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-bottom:18px;border:1.5px solid #f8fafc;border-radius:6px;overflow:hidden}
+.details-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-bottom:18px;border:1.5px solid #e2e8f0;border-radius:6px;overflow:hidden}
 .det-col{padding:14px 18px}
-.det-col+.det-col{border-left:1.5px solid #f8fafc}
+.det-col+.det-col{border-left:1.5px solid #e2e8f0}
 .det-label{font-size:7.5pt;text-transform:uppercase;letter-spacing:.12em;color:#94a3b8;margin-bottom:3px}
-.det-name{font-size:11.5pt;font-weight:700;color:#f8fafc;margin-bottom:4px}
+.det-name{font-size:11.5pt;font-weight:700;color:#0f172a;margin-bottom:4px}
 .det-info{font-size:9pt;color:#475569;line-height:1.6}
-.section-heading{font-size:8.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#f8fafc;margin-bottom:8px;padding-bottom:5px;border-bottom:2px solid #f8fafc}
+.section-heading{font-size:8.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#2d1b69;margin-bottom:8px;padding-bottom:5px;border-bottom:2px solid #d4a843}
 table{width:100%;border-collapse:collapse;font-size:9.5pt;margin-bottom:10px}
-thead tr{background:#f8fafc}
+thead tr{background:#2d1b69}
 thead th{color:white;padding:8px 10px;text-align:left;font-size:8pt;text-transform:uppercase;letter-spacing:.07em;font-weight:600}
 tbody tr{border-bottom:1px solid #e2e8f0}
 tbody tr:nth-child(even){background:#f8fafc}
 tbody td{padding:9px 10px;vertical-align:top}
-.total-row{background:#f1f5f9!important;border-top:2px solid #f8fafc}
-.total-row td{font-weight:700;padding:10px;font-size:10pt;color:#f8fafc}
+.total-row{background:#f1f5f9!important;border-top:2px solid #2d1b69}
+.total-row td{font-weight:700;padding:10px;font-size:10pt;color:#0f172a}
 .note{font-size:8pt;color:#94a3b8;margin-bottom:18px;line-height:1.5;border-left:3px solid #e2e8f0;padding-left:10px}
 .sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:10px}
 .sig-name{font-weight:700;font-size:10pt;margin-bottom:1px}
@@ -637,7 +637,7 @@ tbody td{padding:9px 10px;vertical-align:top}
 </head><body>
 <div class="header">
   <div><div class="brand">&#10022; KEVRIA</div><div class="doc-label">Kevria Calc</div></div>
-  <div style="text-align:right;font-size:9px;color:rgba(15,23,42,.55)"><div style="font-size:10.5px;color:white;font-weight:700;text-transform:uppercase;letter-spacing:.1em">Clinical Schedule of Supports</div><div style="margin-top:3px">Generated: ${escapeHtml(dt)}</div></div>
+  <div style="text-align:right;font-size:9px;color:rgba(255,255,255,.6)"><div style="font-size:10.5px;color:white;font-weight:700;text-transform:uppercase;letter-spacing:.1em">Clinical Schedule of Supports</div><div style="margin-top:3px">Generated: ${escapeHtml(dt)}</div></div>
 </div>
 <div class="content">
   <div class="doc-title">Schedule of Supports</div>
@@ -652,7 +652,7 @@ tbody td{padding:9px 10px;vertical-align:top}
     <div class="det-col">
       <div class="det-label">Service Provider</div>
       <div class="det-name">${escapeHtml(cp.org||providerDetails.orgName||"[Provider]")}</div>
-      <div class="det-info">${cp.name?"Practitioner: <strong>"+escapeHtml(cp.name)+"</strong><br/>":""}${cp.title?escapeHtml(cp.title)+"<br/>":""}${cp.phone?escapeHtml(cp.phone)+" &nbsp;":""}${cp.email?"<a href='mailto:"+escapeHtml(cp.email)+"' style='color:#f8fafc'>"+escapeHtml(cp.email)+"</a>":""}</div>
+      <div class="det-info">${cp.name?"Practitioner: <strong>"+escapeHtml(cp.name)+"</strong><br/>":""}${cp.title?escapeHtml(cp.title)+"<br/>":""}${cp.phone?escapeHtml(cp.phone)+" &nbsp;":""}${cp.email?"<a href='mailto:"+escapeHtml(cp.email)+"' style='color:#2d1b69'>"+escapeHtml(cp.email)+"</a>":""}</div>
     </div>
   </div>
 
@@ -676,10 +676,10 @@ tbody td{padding:9px 10px;vertical-align:top}
 
   <div class="section-heading" style="margin-top:16px">Practitioner Details &amp; Signatures</div>
   <div style="margin-bottom:18px">
-    <div style="font-size:11pt;font-weight:700;color:#f8fafc">${escapeHtml(cp.name||"[Practitioner Name]")}</div>
+    <div style="font-size:11pt;font-weight:700;color:#0f172a">${escapeHtml(cp.name||"[Practitioner Name]")}</div>
     ${cp.title?`<div style="font-size:9.5pt;color:#475569">${escapeHtml(cp.title)}</div>`:""}
     ${cp.qualifications?`<div style="font-size:9pt;color:#64748b;font-style:italic;margin-top:2px">${escapeHtml(cp.qualifications)}</div>`:""}
-    <div style="font-size:9pt;color:#475569;margin-top:4px">${escapeHtml(cp.org||providerDetails.orgName||"")}${cp.phone?" &nbsp;|&nbsp; "+escapeHtml(cp.phone):""}${cp.email?" &nbsp;|&nbsp; <a href='mailto:"+escapeHtml(cp.email)+"' style='color:#f8fafc'>"+escapeHtml(cp.email)+"</a>":""}</div>
+    <div style="font-size:9pt;color:#475569;margin-top:4px">${escapeHtml(cp.org||providerDetails.orgName||"")}${cp.phone?" &nbsp;|&nbsp; "+escapeHtml(cp.phone):""}${cp.email?" &nbsp;|&nbsp; <a href='mailto:"+escapeHtml(cp.email)+"' style='color:#2d1b69'>"+escapeHtml(cp.email)+"</a>":""}</div>
   </div>
   <div class="sig-grid">
     <div>
