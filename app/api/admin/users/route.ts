@@ -41,7 +41,9 @@ export async function GET(req: Request) {
       welcome_sent_at: profile?.welcome_sent_at ?? null,
       followup1_sent_at: profile?.followup1_sent_at ?? null,
       followup2_sent_at: profile?.followup2_sent_at ?? null,
-      last_active_at: profile?.last_active_at ?? null,
+      // Prefer our own app-activity stamp; fall back to Supabase Auth's last
+      // sign-in so existing users show real history instead of "Never".
+      last_active_at: profile?.last_active_at ?? u.last_sign_in_at ?? null,
     };
   });
 
