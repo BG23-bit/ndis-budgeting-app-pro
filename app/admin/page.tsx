@@ -16,6 +16,7 @@ type User = {
   followup1_sent_at: string | null;
   followup2_sent_at: string | null;
   last_active_at: string | null;
+  last_sign_in_at: string | null;
 };
 
 function timeAgo(iso: string | null): string {
@@ -258,6 +259,7 @@ export default function AdminPage() {
   const staffUsers = users.filter((u) => u.subscription_status === "staff").length;
   const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
   const activeUsers = users.filter((u) => u.last_active_at && new Date(u.last_active_at).getTime() >= weekAgo).length;
+  const recordedUsers = users.filter((u) => u.last_active_at).length;
 
   return (
     <div style={s.page}>
@@ -288,8 +290,9 @@ export default function AdminPage() {
           <div style={s.statValue}>{staffUsers}</div>
         </div>
         <div style={s.statCard}>
-          <div style={s.statLabel}>Active (last 7d)</div>
+          <div style={s.statLabel}>Active in app (last 7d)</div>
           <div style={s.statValue}>{activeUsers}</div>
+          <div style={{ fontSize: "11px", color: "#94a3b8", marginTop: "2px" }}>{recordedUsers} of {totalUsers} tracked so far</div>
         </div>
       </div>
 
@@ -372,17 +375,32 @@ export default function AdminPage() {
                       <span style={{ marginLeft: "8px", fontSize: "11px", color: "#d4a843", fontWeight: 600 }}>YOU</span>
                     )}
                   </td>
-                  <td
-                    style={{
-                      ...s.td,
-                      fontSize: "13px",
-                      fontWeight: u.last_active_at && new Date(u.last_active_at).getTime() >= weekAgo ? 600 : 400,
-                      color: !u.last_active_at ? "#94a3b8" : new Date(u.last_active_at).getTime() >= weekAgo ? "#4caf50" : "#64748b",
-                    }}
-                    title={u.last_active_at ? new Date(u.last_active_at).toLocaleString("en-AU") : "Never opened the app"}
-                  >
-                    {timeAgo(u.last_active_at)}
-                  </td>
+                  {(() => {
+                    // Prefer real in-app activity; only fall back to sign-in, clearly tagged.
+                    const isReal = !!u.last_active_at;
+                    const ts = u.last_active_at ?? u.last_sign_in_at;
+                    const recent = ts ? new Date(ts).getTime() >= weekAgo : false;
+                    return (
+                      <td
+                        style={{
+                          ...s.td,
+                          fontSize: "13px",
+                          fontWeight: isReal && recent ? 600 : 400,
+                          color: !ts ? "#94a3b8" : isReal ? (recent ? "#4caf50" : "#64748b") : "#94a3b8",
+                        }}
+                        title={
+                          ts
+                            ? `${isReal ? "Last opened the app" : "Last fresh sign-in (Supabase Auth — not updated on silent session refresh, so may understate activity)"}: ${new Date(ts).toLocaleString("en-AU")}`
+                            : "No activity or sign-in recorded"
+                        }
+                      >
+                        {ts ? timeAgo(ts) : "Never"}
+                        {ts && !isReal && (
+                          <span style={{ marginLeft: "6px", fontSize: "11px", color: "#cbd5e1", fontStyle: "italic" }}>login</span>
+                        )}
+                      </td>
+                    );
+                  })()}
                   <td style={{ ...s.td, color: "#64748b" }}>
                     {new Date(u.created_at).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}
                   </td>

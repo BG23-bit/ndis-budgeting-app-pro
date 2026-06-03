@@ -41,18 +41,21 @@ export async function GET(req: Request) {
       welcome_sent_at: profile?.welcome_sent_at ?? null,
       followup1_sent_at: profile?.followup1_sent_at ?? null,
       followup2_sent_at: profile?.followup2_sent_at ?? null,
-      // Prefer our own app-activity stamp; fall back to Supabase Auth's last
-      // sign-in so existing users show real history instead of "Never".
-      last_active_at: profile?.last_active_at ?? u.last_sign_in_at ?? null,
+      // Real per-app-open activity (precise). Null until the user opens the
+      // app after this feature shipped.
+      last_active_at: profile?.last_active_at ?? null,
+      // Supabase Auth's last *fresh* sign-in. Shown as a fallback, but it does
+      // NOT update on silent token refresh, so it understates active users.
+      last_sign_in_at: u.last_sign_in_at ?? null,
     };
   });
 
-  // Most recently active first, so you can see who's actually using the app.
+  // Sort by the best signal we have for each user (real activity, else sign-in).
+  const signal = (u: { last_active_at: string | null; last_sign_in_at: string | null }) =>
+    u.last_active_at ? new Date(u.last_active_at).getTime() : u.last_sign_in_at ? new Date(u.last_sign_in_at).getTime() : 0;
   users.sort((a, b) => {
-    const at = a.last_active_at ? new Date(a.last_active_at).getTime() : 0;
-    const bt = b.last_active_at ? new Date(b.last_active_at).getTime() : 0;
-    if (at !== bt) return bt - at;
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    const d = signal(b) - signal(a);
+    return d !== 0 ? d : new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
 
   return NextResponse.json({ users });
