@@ -103,6 +103,11 @@ export default function DashboardPage() {
       if (profile?.paid) setPaid(true);
       if (profile?.stripe_customer_id) setStripeCustomerId(profile.stripe_customer_id);
       setLoading(false);
+      // Record activity (fire-and-forget) so /admin can see who is actively using the app.
+      fetch("/api/activity", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      }).catch(() => {});
     };
     checkUser();
   }, [router]);

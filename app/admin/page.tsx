@@ -15,7 +15,22 @@ type User = {
   welcome_sent_at: string | null;
   followup1_sent_at: string | null;
   followup2_sent_at: string | null;
+  last_active_at: string | null;
 };
+
+function timeAgo(iso: string | null): string {
+  if (!iso) return "Never";
+  const then = new Date(iso).getTime();
+  const mins = Math.floor((Date.now() - then) / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  return `${months}mo ago`;
+}
 
 export default function AdminPage() {
   const router = useRouter();
@@ -241,6 +256,8 @@ export default function AdminPage() {
   const totalUsers = users.length;
   const paidUsers = users.filter((u) => u.paid).length;
   const staffUsers = users.filter((u) => u.subscription_status === "staff").length;
+  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const activeUsers = users.filter((u) => u.last_active_at && new Date(u.last_active_at).getTime() >= weekAgo).length;
 
   return (
     <div style={s.page}>
@@ -269,6 +286,10 @@ export default function AdminPage() {
         <div style={s.statCard}>
           <div style={s.statLabel}>Staff Accounts</div>
           <div style={s.statValue}>{staffUsers}</div>
+        </div>
+        <div style={s.statCard}>
+          <div style={s.statLabel}>Active (last 7d)</div>
+          <div style={s.statValue}>{activeUsers}</div>
         </div>
       </div>
 
@@ -327,6 +348,7 @@ export default function AdminPage() {
           <thead>
             <tr>
               <th style={s.th}>Email</th>
+              <th style={s.th}>Last Active</th>
               <th style={s.th}>Joined</th>
               <th style={s.th}>Status</th>
               <th style={s.th}>Subscription</th>
@@ -337,7 +359,7 @@ export default function AdminPage() {
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ ...s.td, textAlign: "center", color: "#64748b", padding: "48px" }}>
+                <td colSpan={7} style={{ ...s.td, textAlign: "center", color: "#64748b", padding: "48px" }}>
                   No users found.
                 </td>
               </tr>
@@ -349,6 +371,17 @@ export default function AdminPage() {
                     {u.email === ADMIN_EMAIL && (
                       <span style={{ marginLeft: "8px", fontSize: "11px", color: "#d4a843", fontWeight: 600 }}>YOU</span>
                     )}
+                  </td>
+                  <td
+                    style={{
+                      ...s.td,
+                      fontSize: "13px",
+                      fontWeight: u.last_active_at && new Date(u.last_active_at).getTime() >= weekAgo ? 600 : 400,
+                      color: !u.last_active_at ? "#94a3b8" : new Date(u.last_active_at).getTime() >= weekAgo ? "#4caf50" : "#64748b",
+                    }}
+                    title={u.last_active_at ? new Date(u.last_active_at).toLocaleString("en-AU") : "Never opened the app"}
+                  >
+                    {timeAgo(u.last_active_at)}
                   </td>
                   <td style={{ ...s.td, color: "#64748b" }}>
                     {new Date(u.created_at).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}

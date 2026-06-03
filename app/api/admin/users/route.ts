@@ -27,7 +27,7 @@ export async function GET(req: Request) {
   const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
   if (authError) return NextResponse.json({ error: authError.message }, { status: 500 });
 
-  const { data: profiles } = await supabase.from("profiles").select("id, paid, subscription_status, welcome_sent_at, followup1_sent_at, followup2_sent_at");
+  const { data: profiles } = await supabase.from("profiles").select("id, paid, subscription_status, welcome_sent_at, followup1_sent_at, followup2_sent_at, last_active_at");
   const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
 
   const users = authUsers.users.map((u) => {
@@ -41,10 +41,17 @@ export async function GET(req: Request) {
       welcome_sent_at: profile?.welcome_sent_at ?? null,
       followup1_sent_at: profile?.followup1_sent_at ?? null,
       followup2_sent_at: profile?.followup2_sent_at ?? null,
+      last_active_at: profile?.last_active_at ?? null,
     };
   });
 
-  users.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  // Most recently active first, so you can see who's actually using the app.
+  users.sort((a, b) => {
+    const at = a.last_active_at ? new Date(a.last_active_at).getTime() : 0;
+    const bt = b.last_active_at ? new Date(b.last_active_at).getTime() : 0;
+    if (at !== bt) return bt - at;
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
 
   return NextResponse.json({ users });
 }
