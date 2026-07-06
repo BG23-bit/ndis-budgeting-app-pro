@@ -9,6 +9,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -27,6 +29,7 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setNotice("");
     setLoading(true);
 
     if (isSignUp) {
@@ -38,7 +41,7 @@ export default function LoginPage() {
       if (error) {
         setError(error.message);
       } else {
-        setError("Check your email to confirm your account!");
+        setNotice("Check your email to confirm your account!");
       }
     } else {
       const { error } = await supabase.auth.signInWithPassword({
@@ -77,12 +80,13 @@ export default function LoginPage() {
         </h2>
 
         {error && (
-          <p style={{
-            color: error.includes("Check your email") ? "#16a34a" : "#dc2626",
-            marginBottom: "15px",
-            textAlign: "center",
-          }}>
+          <p style={{ color: "#dc2626", marginBottom: "15px", textAlign: "center" }}>
             {error}
+          </p>
+        )}
+        {notice && (
+          <p style={{ color: "#16a34a", marginBottom: "15px", textAlign: "center" }}>
+            {notice}
           </p>
         )}
 
@@ -105,24 +109,37 @@ export default function LoginPage() {
           }}
         />
 
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          style={{
-            width: "100%",
-            padding: "12px",
-            marginBottom: "20px",
-            borderRadius: "6px",
-            border: "1px solid #cbd5e1",
-            background: "#f8fafc",
-            color: "#0f172a",
-            fontSize: "1rem",
-            boxSizing: "border-box",
-          }}
-        />
+        <div style={{ position: "relative", marginBottom: "20px" }}>
+          <input
+            type={showPassword ? "text" : "password"}
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            style={{
+              width: "100%",
+              padding: "12px",
+              paddingRight: "60px",
+              borderRadius: "6px",
+              border: "1px solid #cbd5e1",
+              background: "#f8fafc",
+              color: "#0f172a",
+              fontSize: "1rem",
+              boxSizing: "border-box",
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            style={{
+              position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)",
+              background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: "0.8rem",
+            }}
+          >
+            {showPassword ? "Hide" : "Show"}
+          </button>
+        </div>
 
         <button
           type="submit"
@@ -157,12 +174,14 @@ export default function LoginPage() {
           <p
             onClick={async () => {
               if (!email) { setError("Enter your email first"); return; }
+              setError("");
+              setNotice("");
               setLoading(true);
               const { error } = await supabase.auth.resetPasswordForEmail(email, {
                 redirectTo: window.location.origin + "/reset-password",
               });
               if (error) setError(error.message);
-              else setError("Password reset link sent! Check your email.");
+              else setNotice("Password reset link sent! Check your email.");
               setLoading(false);
             }}
             style={{

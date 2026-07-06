@@ -909,7 +909,7 @@ return(
 <div className="grid gap-2">
 {rosterDays.map(d=>{const r=l.roster[d];return(
 <div key={d} className="flex flex-wrap items-center gap-2 py-1" style={{borderBottom:"1px solid rgba(15,23,42,0.03)"}}>
-<div onClick={()=>updateRosterDay(l.id,d,{enabled:!r.enabled})} style={{width:"22px",height:"22px",borderRadius:"4px",flexShrink:0,background:r.enabled?"#22c55e":"rgba(239,68,68,0.2)",border:"1px solid "+(r.enabled?"#22c55e":"rgba(239,68,68,0.4)"),display:"flex",alignItems:"center",justifyContent:"center",color: "#0f172a",fontSize:"12px",cursor:"pointer"}}>{r.enabled?"✓":""}</div>
+<button type="button" onClick={()=>updateRosterDay(l.id,d,{enabled:!r.enabled})} role="checkbox" aria-checked={r.enabled} aria-label={"Include "+DL[d]+" in roster"} style={{width:"22px",height:"22px",borderRadius:"4px",flexShrink:0,padding:0,background:r.enabled?"#22c55e":"rgba(239,68,68,0.2)",border:"1px solid "+(r.enabled?"#22c55e":"rgba(239,68,68,0.4)"),display:"flex",alignItems:"center",justifyContent:"center",color: "#0f172a",fontSize:"12px",cursor:"pointer"}}>{r.enabled?"✓":""}</button>
 <div style={{width:"80px",color:r.enabled?"#d4a843":"#64748b",fontWeight:"600",fontSize:"0.85rem"}}>{DL[d]}</div>
 <div className="flex items-center gap-1"><span className="text-xs" style={{color:"#475569"}}>Hrs:</span><SmallField value={r.hours} onChange={v=>updateRosterDay(l.id,d,{hours:v})} disabled={!r.enabled}/></div>
 {lineMode==="full"&&<div className="flex items-center gap-1"><span className="text-xs" style={{color:"#475569"}}>Night:</span><SmallField value={r.nightHours} onChange={v=>updateRosterDay(l.id,d,{nightHours:v})} disabled={!r.enabled}/></div>}
@@ -990,11 +990,11 @@ return(
 </div></div>
 <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
 {l.phImpact.details.map((d:any,i:number)=>(
-<div key={i} onClick={()=>toggleHoliday(l.id,d.date)} className="flex items-center gap-2 text-sm py-2 px-3 rounded-lg cursor-pointer" style={{background:d.included?"rgba(34,197,94,0.05)":"rgba(239,68,68,0.05)",border:"1px solid "+(d.included?"rgba(34,197,94,0.15)":"rgba(239,68,68,0.15)")}}>
+<button type="button" key={i} onClick={()=>toggleHoliday(l.id,d.date)} role="checkbox" aria-checked={d.included} aria-label={(d.included?"Exclude ":"Include ")+d.name+" ("+d.date+")"} className="flex items-center gap-2 text-sm py-2 px-3 rounded-lg cursor-pointer w-full" style={{background:d.included?"rgba(34,197,94,0.05)":"rgba(239,68,68,0.05)",border:"1px solid "+(d.included?"rgba(34,197,94,0.15)":"rgba(239,68,68,0.15)"),textAlign:"left"}}>
 <div style={{width:"20px",height:"20px",borderRadius:"4px",flexShrink:0,background:d.included?"#22c55e":"rgba(239,68,68,0.2)",border:"1px solid "+(d.included?"#22c55e":"rgba(239,68,68,0.4)"),display:"flex",alignItems:"center",justifyContent:"center",color: "#0f172a",fontSize:"12px"}}>{d.included?"✓":""}</div>
 <div style={{flex:1}}><span style={{color:"#334155"}}>{d.date}</span> <span style={{color:"#475569"}}>({d.day})</span> <span style={{color:d.included?"#1e293b":"#64748b"}}>{d.name}</span></div>
 <div style={{color:d.included?"#ef4444":"#22c55e",fontWeight:"600",fontSize:"0.85rem"}}>{d.included?"+"+money(d.impact):"-"+money(d.impact)}</div>
-</div>))}
+</button>))}
 </div>
 <div className="flex justify-between mt-3 text-sm font-bold">
 <span style={{color:"#ef4444"}}>Extra: +{money(l.phImpact.extraCost)}</span>

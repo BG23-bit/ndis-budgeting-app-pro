@@ -355,8 +355,18 @@ export default function DashboardPage() {
   if (!paid) {
     return (
       <div style={{ position: "relative", minHeight: "100vh", overflow: "hidden" }}>
-        <div style={{ filter: "blur(6px)", pointerEvents: "none", userSelect: "none", opacity: 0.6 }}>
-          <Client storageKey="ndis_preview" />
+        {/* Static skeleton behind the paywall — cheaper than rendering the real calculator */}
+        <div aria-hidden style={{ filter: "blur(6px)", pointerEvents: "none", userSelect: "none", opacity: 0.6, minHeight: "100vh", background: "#f8fafc" }}>
+          <div style={{ background: "linear-gradient(135deg, #2d1b69 0%, #3d2787 100%)", height: "110px" }} />
+          <div style={{ maxWidth: "1152px", margin: "0 auto", padding: "24px" }}>
+            {[220, 160, 320].map((h, i) => (
+              <div key={i} style={{ background: "#ffffff", border: "1px solid rgba(212,168,67,0.45)", borderRadius: "16px", height: h + "px", marginBottom: "24px", padding: "24px" }}>
+                <div style={{ background: "rgba(212,168,67,0.25)", borderRadius: "8px", height: "18px", width: "180px", marginBottom: "16px" }} />
+                <div style={{ background: "rgba(15,23,42,0.06)", borderRadius: "8px", height: "12px", width: "70%", marginBottom: "10px" }} />
+                <div style={{ background: "rgba(15,23,42,0.06)", borderRadius: "8px", height: "12px", width: "50%" }} />
+              </div>
+            ))}
+          </div>
         </div>
         <div style={{
           position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
@@ -524,8 +534,12 @@ export default function DashboardPage() {
                   cursor: "pointer", transition: "all 0.2s",
                 }}
                   onClick={() => setActiveParticipant(p.id)}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={"Open " + p.name}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveParticipant(p.id); } }}
                   onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "rgba(241,245,249,0.6)"; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "rgba(241,245,249,0.4)"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#ffffff"; }}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-4">
