@@ -252,6 +252,7 @@ async function handlePlanUpload(file:File){
     const res=await fetch("/api/parse-plan",{method:"POST",body:fd,headers});
     const data=await res.json();
     if(data.error)throw new Error(data.error);
+    if(Array.isArray(data.supportLines))data.supportLines=data.supportLines.filter((l:any)=>(l?.totalFunding||0)>0);
     setPlanExtract(data);
   }catch(e:any){
     setPlanUploadError(e.message||"Failed to read plan. Please try again.");
@@ -268,6 +269,7 @@ function applyPlanExtract(){
     if(Array.isArray(planExtract.supportLines)&&planExtract.supportLines.length>0){
       const used=new Set<number>();
       for(const sl of planExtract.supportLines){
+        if((sl?.totalFunding||0)<=0)continue;
         const idx=updated.findIndex((_l:SupportLine,i:number)=>!used.has(i)&&_l.code===sl.code);
         if(idx>=0){updated[idx]={...updated[idx],totalFunding:sl.totalFunding,description:sl.description,lineRates:updated[idx].lineRates||getPresetRates(sl.code)};used.add(idx);}
         else{updated.push({id:uid(),code:sl.code,description:sl.description,totalFunding:sl.totalFunding,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:1.00,kmFreq:"every",claims:[],lineRates:getPresetRates(sl.code)});}
@@ -1177,13 +1179,31 @@ return(
 {planExtract.participantName&&<div style={{color:"#334155",marginBottom:"6px",fontSize:"0.9rem"}}>Participant: <span style={{color: "#0f172a",fontWeight:"600"}}>{planExtract.participantName}</span></div>}
 {Array.isArray(planExtract.supportLines)&&planExtract.supportLines.length>0&&(
 <div style={{marginTop:"16px"}}>
-<div style={{color:"#d4a843",fontWeight:"600",marginBottom:"8px",fontSize:"0.95rem"}}>Support line funding:</div>
+<div style={{color:"#b8901a",fontWeight:"600",marginBottom:"8px",fontSize:"0.95rem"}}>Support line funding:</div>
 {planExtract.supportLines.map((sl:any,i:number)=>(
-<div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",marginBottom:"6px",background:"rgba(212,168,67,0.05)",border:"1px solid rgba(212,168,67,0.45)",borderRadius:"8px"}}>
-<div><span style={{color:"#d4a843",fontWeight:"600",marginRight:"8px"}}>{sl.code}</span><span style={{color:"#1e293b",fontSize:"0.9rem"}}>{sl.description}</span></div>
-<div style={{color: "#0f172a",fontWeight:"700",flexShrink:0,marginLeft:"12px"}}>{money(sl.totalFunding)}</div>
+<div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",marginBottom:"6px",background:"rgba(212,168,67,0.05)",border:"1px solid rgba(212,168,67,0.35)",borderRadius:"8px"}}>
+<div><span className="kv-money" style={{color:"#b8901a",fontWeight:"600",marginRight:"8px"}}>{sl.code}</span><span style={{color:"#1e293b",fontSize:"0.9rem"}}>{sl.description}</span></div>
+<div className="flex items-center gap-2" style={{flexShrink:0,marginLeft:"12px"}}>
+<span className="kv-money" style={{color: "#0f172a",fontWeight:"700"}}>{money(sl.totalFunding)}</span>
+<button onClick={()=>setPlanExtract((p:any)=>({...p,supportLines:p.supportLines.filter((_:any,j:number)=>j!==i)}))} title="Remove this line" style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.25)",color:"#ef4444",borderRadius:"4px",cursor:"pointer",fontSize:"0.72rem",padding:"2px 6px"}}>✕</button>
+</div>
 </div>
 ))}
+{(()=>{
+const sum=planExtract.supportLines.reduce((s:number,x:any)=>s+(x.totalFunding||0),0);
+const pt=typeof planExtract.planTotal==="number"?planExtract.planTotal:null;
+return(<>
+<div className="kv-money" style={{display:"flex",justifyContent:"space-between",padding:"8px 12px",fontWeight:700,color:"#0f172a",borderTop:"1px solid rgba(15,23,42,0.1)"}}><span>Total extracted</span><span>{money(sum)}</span></div>
+{pt!==null&&pt>0&&Math.abs(sum-pt)>1&&(
+<div style={{marginTop:"6px",padding:"10px 12px",background:"rgba(239,68,68,0.07)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:"8px",fontSize:"0.85rem",color:"#dc2626"}}>
+⚠ The plan states total funding of <strong>{money(pt)}</strong>, but these lines add up to <strong>{money(sum)}</strong>. A flexible budget may have been read into more than one category — remove the duplicate line with ✕ before applying, or cancel and enter funding manually.
+</div>
+)}
+{pt!==null&&pt>0&&Math.abs(sum-pt)<=1&&(
+<div style={{marginTop:"6px",fontSize:"0.82rem",color:"#16a34a"}}>✓ Matches the plan&apos;s stated total funding ({money(pt)})</div>
+)}
+</>);
+})()}
 </div>
 )}
 {Array.isArray(planExtract.scheduleOfSupports)&&planExtract.scheduleOfSupports.length>0&&(
