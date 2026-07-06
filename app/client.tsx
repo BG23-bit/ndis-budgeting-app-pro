@@ -165,6 +165,21 @@ function updateClaim(lineId:string,claimId:string,patch:Partial<Claim>){setLines
 const[uploadingPlan,setUploadingPlan]=useState(false);
 const[planExtract,setPlanExtract]=useState<any>(null);
 const[planUploadError,setPlanUploadError]=useState<string|null>(null);
+const[removeOnApply,setRemoveOnApply]=useState<Set<string>>(new Set());
+// Existing lines the extraction would NOT update (mirrors applyPlanExtract's matching)
+function staleLinesForExtract(extract:any,cur:SupportLine[]):SupportLine[]{
+  if(!Array.isArray(extract?.supportLines)||extract.supportLines.length===0)return[];
+  const used=new Set<number>();
+  for(const sl of extract.supportLines){
+    if((sl?.totalFunding||0)<=0)continue;
+    const idx=cur.findIndex((l,i)=>!used.has(i)&&l.code===sl.code);
+    if(idx>=0)used.add(idx);
+  }
+  return cur.filter((_,i)=>!used.has(i));
+}
+function lineHasData(l:SupportLine):boolean{
+  return (l.claims||[]).length>0||Object.values(l.roster||{}).some((r:any)=>r?.enabled&&((r.hours||0)>0||(r.nightHours||0)>0))||(l.activeSleepoverHours||0)>0||(l.fixedSleepovers||0)>0;
+}
 const[providerDetails,setProviderDetails]=useState<ProviderDetails>({orgName:"",abn:"",contactName:"",email:"",phone:"",address:"",registrationNumber:""});
 const[showSAModal,setShowSAModal]=useState(false);
 const[saSpecificReqs,setSaSpecificReqs]=useState({behavioursOfConcern:false,regulatedRestrictivePractice:false,medicationManagement:false});
@@ -253,6 +268,9 @@ async function handlePlanUpload(file:File){
     const data=await res.json();
     if(data.error)throw new Error(data.error);
     if(Array.isArray(data.supportLines))data.supportLines=data.supportLines.filter((l:any)=>(l?.totalFunding||0)>0);
+    // Pre-tick removal for stale lines that hold no roster or claims (safe to drop)
+    const stale=staleLinesForExtract(data,lines);
+    setRemoveOnApply(new Set(stale.filter(l=>!lineHasData(l)).map(l=>l.id)));
     setPlanExtract(data);
   }catch(e:any){
     setPlanUploadError(e.message||"Failed to read plan. Please try again.");
@@ -265,7 +283,7 @@ function applyPlanExtract(){
   if(planExtract.state)setPlanDates(p=>({...p,state:planExtract.state}));
   const scheduleRateMap:{[k:string]:keyof Rates}={weekday:"weekdayOrd",weekdayNight:"weekdayNight",saturday:"sat",sunday:"sun",publicHoliday:"publicHoliday"};
   setLines(prev=>{
-    let updated=[...prev];
+    let updated=prev.filter(l=>!removeOnApply.has(l.id));
     if(Array.isArray(planExtract.supportLines)&&planExtract.supportLines.length>0){
       const used=new Set<number>();
       for(const sl of planExtract.supportLines){
@@ -1240,7 +1258,30 @@ return(<>
 {planExtract.establishmentFee?<div style={{color:"#1e293b",marginTop:"4px"}}>Establishment Fee: <span style={{color: "#0f172a",fontWeight:"600"}}>{money(planExtract.establishmentFee)}</span></div>:null}
 </div>
 )}
-<p style={{color:"#64748b",fontSize:"0.82rem",marginTop:"16px"}}>Existing roster and claims data will be preserved. Funding amounts and rates will be updated.</p>
+{(()=>{
+const stale=staleLinesForExtract(planExtract,lines);
+if(stale.length===0)return null;
+return(
+<div style={{marginTop:"16px",padding:"12px",background:"rgba(245,158,11,0.06)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:"8px"}}>
+<div style={{color:"#b45309",fontWeight:"600",fontSize:"0.9rem",marginBottom:"8px"}}>Existing lines not found in this plan</div>
+{stale.map(l=>{
+const hasData=lineHasData(l);
+const checked=removeOnApply.has(l.id);
+return(
+<label key={l.id} className="flex items-center gap-2 py-1 cursor-pointer" style={{fontSize:"0.85rem"}}>
+<input type="checkbox" checked={checked} onChange={()=>setRemoveOnApply(prev=>{const n=new Set(prev);n.has(l.id)?n.delete(l.id):n.add(l.id);return n;})} style={{accentColor:"#d4a843",width:"15px",height:"15px",flexShrink:0}}/>
+<span className="kv-money" style={{color:"#b8901a",fontWeight:600}}>{l.code}</span>
+<span style={{color:"#1e293b",flex:1}}>{l.description}</span>
+<span className="kv-money" style={{color:"#475569",fontWeight:600}}>{money(l.totalFunding)}</span>
+{hasData&&<span style={{color:"#b45309",fontSize:"0.72rem"}}>has roster/claims</span>}
+</label>
+);
+})}
+<div style={{color:"#92400e",fontSize:"0.78rem",marginTop:"6px"}}>Ticked lines will be <strong>removed</strong> when you apply — untick anything you want to keep. Lines with roster or claims data are kept by default.</div>
+</div>
+);
+})()}
+<p style={{color:"#64748b",fontSize:"0.82rem",marginTop:"16px"}}>Matched lines keep their roster and claims — only funding amounts, descriptions and rates are updated.</p>
 <div style={{display:"flex",gap:"12px",marginTop:"20px"}}>
 <button onClick={applyPlanExtract} style={{flex:1,padding:"12px",backgroundColor:"#d4a843",color:"#f8fafc",border:"none",borderRadius:"8px",cursor:"pointer",fontWeight:"700",fontSize:"1rem"}}>Apply to Calculator</button>
 <button onClick={()=>setPlanExtract(null)} style={{flex:1,padding:"12px",background:"rgba(15,23,42,0.05)",border:"1px solid rgba(15,23,42,0.1)",color:"#334155",borderRadius:"8px",cursor:"pointer"}}>Cancel</button>
