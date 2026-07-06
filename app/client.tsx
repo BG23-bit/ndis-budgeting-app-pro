@@ -14,34 +14,10 @@ const FREQ: {[k:string]:{label:string;multiplier:number}} = {"every":{label:"Eve
 const RATIOS: {[k:string]:{label:string;divisor:number}} = {"1:1":{label:"1:1 (Full rate)",divisor:1},"2:1":{label:"2:1 (Double rate)",divisor:0.5},"1:2":{label:"1:2 (Half rate)",divisor:2},"1:3":{label:"1:3 (Third rate)",divisor:3},"1:4":{label:"1:4 (Quarter rate)",divisor:4}};
 const STATES = [{value:"NSW",label:"New South Wales"},{value:"VIC",label:"Victoria"},{value:"QLD",label:"Queensland"},{value:"SA",label:"South Australia"},{value:"WA",label:"Western Australia"},{value:"TAS",label:"Tasmania"},{value:"NT",label:"Northern Territory"},{value:"ACT",label:"Australian Capital Territory"}];
 export function defaultRoster():{[k:string]:DayRoster}{const r:{[k:string]:DayRoster}={};DAYS.forEach(d=>{r[d]={enabled:false,hours:0,nightHours:0,frequency:"every"}});return r}
-function formatDate(d:Date):string{return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
-function getPublicHolidays(year:number,state:string):{date:string;name:string;dayOfWeek:number}[]{
-const h:{date:string;name:string;dayOfWeek:number}[]=[];
-function add(date:string,name:string){const d=new Date(date);h.push({date,name,dayOfWeek:d.getDay()})}
-add(year+"-01-01","New Year's Day");add(year+"-01-26","Australia Day");
-const a=year%19,b=Math.floor(year/100),c=year%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),hh=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-hh-k)%7,m=Math.floor((a+11*hh+22*l)/451),mo=Math.floor((hh+l-7*m+114)/31),da=((hh+l-7*m+114)%31)+1;
-const easter=new Date(year,mo-1,da);
-const gf=new Date(easter);gf.setDate(easter.getDate()-2);add(formatDate(gf),"Good Friday");
-const es=new Date(easter);es.setDate(easter.getDate()-1);add(formatDate(es),"Easter Saturday");
-add(formatDate(easter),"Easter Sunday");
-const em=new Date(easter);em.setDate(easter.getDate()+1);add(formatDate(em),"Easter Monday");
-add(year+"-04-25","ANZAC Day");
-const anzac=new Date(year+"-04-25");if(anzac.getDay()===0)add(year+"-04-26","ANZAC Day (observed)");if(anzac.getDay()===6)add(year+"-04-27","ANZAC Day (observed)");
-if(state==="ACT"){const x=new Date(year,2,1);add(formatDate(new Date(year,2,1+((8-x.getDay())%7)+7)),"Canberra Day")}
-if(state==="VIC"){const x=new Date(year,5,1);add(formatDate(new Date(year,5,1+((8-x.getDay())%7)+7)),"King's Birthday");const y=new Date(year,10,1);add(formatDate(new Date(year,10,1+((9-y.getDay())%7))),"Melbourne Cup")}
-if(state==="NSW"||state==="SA"||state==="TAS"||state==="ACT"){const x=new Date(year,5,1);add(formatDate(new Date(year,5,1+((8-x.getDay())%7)+7)),"King's Birthday")}
-if(state==="QLD"){const x=new Date(year,9,1);add(formatDate(new Date(year,9,1+((8-x.getDay())%7)+21)),"King's Birthday")}
-if(state==="WA"){const x=new Date(year,8,1);add(formatDate(new Date(year,8,1+((8-x.getDay())%7)+21)),"King's Birthday")}
-if(state==="NT"){const x=new Date(year,4,1);add(formatDate(new Date(year,4,1+((8-x.getDay())%7))),"May Day");const y=new Date(year,5,1);add(formatDate(new Date(year,5,1+((8-y.getDay())%7)+7)),"King's Birthday")}
-if(state==="SA"||state==="NSW"||state==="ACT"){const x=new Date(year,9,1);add(formatDate(new Date(year,9,1+((8-x.getDay())%7))),"Labour Day")}
-if(state==="TAS"){const x=new Date(year,10,1);add(formatDate(new Date(year,10,1+((8-x.getDay())%7))),"Recreation Day")}
-add(year+"-12-25","Christmas Day");add(year+"-12-26","Boxing Day");
-const xmas=new Date(year+"-12-25");if(xmas.getDay()===6)add(year+"-12-27","Christmas Day (observed)");if(xmas.getDay()===0)add(year+"-12-27","Christmas Day (observed)");
-const boxing=new Date(year+"-12-26");if(boxing.getDay()===6)add(year+"-12-28","Boxing Day (observed)");if(boxing.getDay()===0)add(year+"-12-27","Boxing Day (observed)");
-return h}
-export function getHolidaysInRange(start:string,end:string,state:string){if(!start||!end)return[];const sd=new Date(start),ed=new Date(end);const all:{date:string;name:string;dayOfWeek:number}[]=[];for(let y=sd.getFullYear();y<=ed.getFullYear();y++)all.push(...getPublicHolidays(y,state));return all.filter(h=>{const d=new Date(h.date);return d>=sd&&d<=ed}).sort((a,b)=>a.date.localeCompare(b.date))}
+import { getHolidaysInRange } from "@/lib/holidays";
+export { getHolidaysInRange };
 function getDayName(d:number):string{return["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][d]}
-export function getWeeksInPlan(s:string,e:string):number{if(!s||!e)return 52;return Math.max(1,(new Date(e).getTime()-new Date(s).getTime())/(7*24*60*60*1000))}
+export function getWeeksInPlan(s:string,e:string):number{if(!s||!e)return 52;return Math.max(1,(new Date(e).getTime()-new Date(s).getTime()+86400000)/(7*24*60*60*1000))}
 function countDayOccurrences(start:string,end:string,dow:number):number{if(!start||!end)return 0;const sd=new Date(start);const ed=new Date(end);const daysToFirst=(dow-sd.getDay()+7)%7;const first=new Date(sd.getTime()+daysToFirst*86400000);if(first>ed)return 0;return Math.floor((ed.getTime()-first.getTime())/604800000)+1}
 export function calcDayCountPlanCost(line:SupportLine,start:string,end:string,planWeeks:number,rates:Rates):number{if(!start||!end)return calcWeeklyCost(line,rates)*planWeeks;const divisor=RATIOS[line.ratio]?.divisor||1;let total=0;for(const d of DAYS){const r=line.roster[d];if(!r||!r.enabled)continue;const fm=FREQ[r.frequency]?.multiplier||1;const occ=countDayOccurrences(start,end,DAY_DOW[d])*fm;const isSat=d==="sat";const isSun=d==="sun";const dr=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayOrd/divisor;const nr=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayNight/divisor;total+=(r.hours*dr+r.nightHours*nr)*occ}const sf=FREQ[line.activeSleepoverFreq]?.multiplier||1;total+=line.activeSleepoverHours*(rates.activeSleepoverHourly/divisor)*sf*planWeeks;const ff=FREQ[line.fixedSleepoverFreq]?.multiplier||1;total+=line.fixedSleepovers*rates.fixedSleepoverUnit*ff*planWeeks;const kf=FREQ[line.kmFreq]?.multiplier||1;total+=line.kmsPerWeek*line.kmRate*kf*planWeeks;return total}
 function money(n:number):string{const v=Number.isFinite(n)?n:0;return v.toLocaleString("en-AU",{style:"currency",currency:"AUD"})}
@@ -160,10 +136,11 @@ function deleteLine(id:string){if(lines.length<=1)return;const l=lines.find(x=>x
 const[openClaimsLines,setOpenClaimsLines]=useState<Set<string>>(new Set());
 const[openRatesLines,setOpenRatesLines]=useState<Set<string>>(new Set());
 function toggleRates(id:string){setOpenRatesLines(prev=>{const n=new Set(prev);n.has(id)?n.delete(id):n.add(id);return n})}
-const[addClaimForm,setAddClaimForm]=useState<{lineId:string;date:string;amount:string;note:string}|null>(null);
+const[addClaimForm,setAddClaimForm]=useState<{lineId:string;claimId?:string;date:string;amount:string;note:string}|null>(null);
 function toggleClaims(id:string){setOpenClaimsLines(prev=>{const n=new Set(prev);n.has(id)?n.delete(id):n.add(id);return n})}
 function addClaim(lineId:string,date:string,amount:number,note:string){setLines(prev=>prev.map(l=>l.id!==lineId?l:{...l,claims:[...(l.claims||[]),{id:uid(),date,amount,note}]}))}
 function deleteClaim(lineId:string,claimId:string){setLines(prev=>prev.map(l=>l.id!==lineId?l:{...l,claims:(l.claims||[]).filter((c:Claim)=>c.id!==claimId)}))}
+function updateClaim(lineId:string,claimId:string,patch:Partial<Claim>){setLines(prev=>prev.map(l=>l.id!==lineId?l:{...l,claims:(l.claims||[]).map((c:Claim)=>c.id===claimId?{...c,...patch}:c)}))}
 const[uploadingPlan,setUploadingPlan]=useState(false);
 const[planExtract,setPlanExtract]=useState<any>(null);
 const[planUploadError,setPlanUploadError]=useState<string|null>(null);
@@ -1035,15 +1012,18 @@ return(
   {(l.claims||[]).length===0&&<div className="text-sm mb-3" style={{color:"#64748b"}}>No claims logged yet.</div>}
   {(l.claims||[]).length>0&&(
     <div className="mb-3">
-      <div className="grid text-xs mb-1 px-2" style={{gridTemplateColumns:"110px 1fr 100px 32px",color:"#475569",gap:"8px"}}>
+      <div className="grid text-xs mb-1 px-2" style={{gridTemplateColumns:"110px 1fr 100px 64px",color:"#475569",gap:"8px"}}>
         <span>Date</span><span>Note</span><span className="text-right">Amount</span><span></span>
       </div>
       {(l.claims||[]).map((c:Claim)=>(
-        <div key={c.id} className="grid items-center text-sm py-2 px-2 rounded mb-1" style={{gridTemplateColumns:"110px 1fr 100px 32px",gap:"8px",background:"rgba(34,197,94,0.04)",border:"1px solid rgba(34,197,94,0.1)"}}>
+        <div key={c.id} className="grid items-center text-sm py-2 px-2 rounded mb-1" style={{gridTemplateColumns:"110px 1fr 100px 64px",gap:"8px",background:"rgba(34,197,94,0.04)",border:"1px solid rgba(34,197,94,0.1)"}}>
           <span style={{color:"#334155"}}>{c.date}</span>
           <span style={{color:"#1e293b"}}>{c.note||"—"}</span>
           <span className="text-right font-semibold" style={{color:"#22c55e"}}>{money(c.amount)}</span>
-          <button onClick={()=>deleteClaim(l.id,c.id)} style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",color:"#ef4444",borderRadius:"4px",cursor:"pointer",fontSize:"0.75rem",padding:"2px 6px"}}>✕</button>
+          <div className="flex gap-1">
+          <button onClick={()=>setAddClaimForm({lineId:l.id,claimId:c.id,date:c.date,amount:String(c.amount),note:c.note||""})} title="Edit claim" style={{background:"rgba(212,168,67,0.1)",border:"1px solid rgba(212,168,67,0.3)",color:"#d4a843",borderRadius:"4px",cursor:"pointer",fontSize:"0.75rem",padding:"2px 6px"}}>✎</button>
+          <button onClick={()=>deleteClaim(l.id,c.id)} title="Delete claim" style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",color:"#ef4444",borderRadius:"4px",cursor:"pointer",fontSize:"0.75rem",padding:"2px 6px"}}>✕</button>
+          </div>
         </div>
       ))}
       <div className="text-right text-sm font-bold mt-2" style={{color:"#22c55e"}}>Total claimed: {money((l as any).totalClaimed)}</div>
@@ -1057,7 +1037,7 @@ return(
         <div><div className="text-xs mb-1" style={{color:"#334155"}}>Note (optional)</div><input value={addClaimForm!.note} onChange={e=>setAddClaimForm(f=>f?{...f,note:e.target.value}:f)} placeholder="e.g. Invoice #1234" className="w-full rounded-lg px-2 py-1 outline-none text-sm" style={{background: "#ffffff",border:"1px solid rgba(34,197,94,0.2)",color: "#0f172a"}}/></div>
       </div>
       <div className="flex gap-2">
-        <button onClick={()=>{const a=parseFloat(addClaimForm!.amount);if(!a||a<=0)return;addClaim(l.id,addClaimForm!.date,a,addClaimForm!.note);setAddClaimForm(null)}} style={{padding:"6px 16px",background:"rgba(34,197,94,0.2)",border:"1px solid rgba(34,197,94,0.4)",color:"#22c55e",borderRadius:"6px",cursor:"pointer",fontSize:"0.85rem",fontWeight:"600"}}>Save</button>
+        <button onClick={()=>{const f=addClaimForm!;const a=parseFloat(f.amount);if(!a||a<=0)return;if(f.claimId)updateClaim(l.id,f.claimId,{date:f.date,amount:a,note:f.note});else addClaim(l.id,f.date,a,f.note);setAddClaimForm(null)}} style={{padding:"6px 16px",background:"rgba(34,197,94,0.2)",border:"1px solid rgba(34,197,94,0.4)",color:"#22c55e",borderRadius:"6px",cursor:"pointer",fontSize:"0.85rem",fontWeight:"600"}}>{addClaimForm?.claimId?"Update claim":"Save"}</button>
         <button onClick={()=>setAddClaimForm(null)} style={{padding:"6px 16px",background:"rgba(15,23,42,0.05)",border:"1px solid rgba(15,23,42,0.1)",color:"#334155",borderRadius:"6px",cursor:"pointer",fontSize:"0.85rem"}}>Cancel</button>
       </div>
     </div>

@@ -258,6 +258,55 @@ export default function DashboardPage() {
     router.push("/");
   };
 
+  const loadSampleParticipant = () => {
+    const id = uid();
+    const today = new Date();
+    const claimDate = (daysAgo: number) => new Date(today.getTime() - daysAgo * 86400000).toISOString().slice(0, 10);
+    const mkRoster = (days: { [day: string]: { hours: number; nightHours?: number; frequency?: string } }) => {
+      const r = defaultRoster();
+      for (const [d, v] of Object.entries(days)) r[d] = { enabled: true, hours: v.hours, nightHours: v.nightHours || 0, frequency: v.frequency || "every" };
+      return r;
+    };
+    const line = (code: string, description: string, totalFunding: number, roster: any, extra: any = {}) => ({
+      id: uid(), code, description, totalFunding, ratio: "1:1", excludedHolidays: [], roster,
+      activeSleepoverHours: 0, activeSleepoverFreq: "every", fixedSleepovers: 0, fixedSleepoverFreq: "every",
+      kmsPerWeek: 0, kmRate: 1.00, kmFreq: "every", claims: [], lineRates: getPresetRates(code), ...extra,
+    });
+    const data = {
+      rates: NDIS_RATES_2026_27,
+      planDates: { start: "2026-07-01", end: "2027-06-30", state: "NSW" },
+      weeksOverride: null,
+      calcMode: "both",
+      clinicalFunding: 12000,
+      clinicalBudgetLinked: false,
+      clinicalServices: [
+        { id: uid(), code: "11", description: "Functional Behaviour Assessment", hours: 15, rate: 252.99, note: "" },
+        { id: uid(), code: "15", description: "OT — Assistive Technology Assessment", hours: 12, rate: 156.16, note: "" },
+      ],
+      lines: [
+        line("01", "Core Supports — Daily Living", 140000, mkRoster({
+          mon: { hours: 4 }, tue: { hours: 4 }, wed: { hours: 4 }, thu: { hours: 4 }, fri: { hours: 4 },
+          sat: { hours: 4 }, sun: { hours: 3 },
+        }), {
+          kmsPerWeek: 40,
+          claims: [
+            { id: uid(), date: claimDate(21), amount: 2340.50, note: "Roster week — invoice #2041" },
+            { id: uid(), date: claimDate(14), amount: 2298.75, note: "Roster week — invoice #2052" },
+            { id: uid(), date: claimDate(7), amount: 2412.10, note: "Roster week — invoice #2063" },
+          ],
+        }),
+        line("04", "Community Participation", 15000, mkRoster({
+          wed: { hours: 2 }, sat: { hours: 2, frequency: "2nd" },
+        })),
+        line("03", "Consumables", 2500, defaultRoster()),
+      ],
+    };
+    const p: Participant = { id, name: "Alex Sample (Demo)", ndisNumber: "430000001" };
+    try { localStorage.setItem("ndis_participant_" + id, JSON.stringify(data)); } catch {}
+    setParticipants((prev) => [...prev, p]);
+    setActiveParticipant(id);
+  };
+
   const addParticipant = () => {
     if (!newName.trim()) return;
     const p: Participant = { id: uid(), name: newName.trim(), ndisNumber: newNdis.trim() };
@@ -450,6 +499,12 @@ export default function DashboardPage() {
               background: "rgba(212,168,67,0.15)", border: "1px solid rgba(212,168,67,0.3)",
               color: "#d4a843", padding: "12px 32px", borderRadius: "8px", cursor: "pointer", fontWeight: "bold", fontSize: "1rem",
             }}>+ Add First Participant</button>
+            <div>
+              <button onClick={loadSampleParticipant} style={{
+                marginTop: "14px", background: "none", border: "none",
+                color: "#64748b", cursor: "pointer", fontSize: "0.9rem", textDecoration: "underline",
+              }}>or load a sample participant to explore</button>
+            </div>
           </div>
         ) : (
           <div className="grid gap-4">
@@ -539,6 +594,10 @@ export default function DashboardPage() {
               background: "rgba(212,168,67,0.05)", border: "2px dashed rgba(212,168,67,0.3)",
               color: "#d4a843", cursor: "pointer", fontSize: "1rem", fontWeight: "600", textAlign: "center",
             }}>+ Add New Participant</button>
+            <button onClick={loadSampleParticipant} style={{
+              background: "none", border: "none", color: "#64748b", cursor: "pointer",
+              fontSize: "0.82rem", textDecoration: "underline", textAlign: "center", padding: "2px",
+            }}>Load a sample participant</button>
           </div>
         )}
 

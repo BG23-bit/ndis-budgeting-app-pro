@@ -142,10 +142,23 @@ If a field is not present in the document use null. Convert dates to YYYY-MM-DD.
 
     const text = response.content[0].type === "text" ? response.content[0].text : "";
     const clean = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-    const parsed = JSON.parse(clean);
+    // The model can wrap the JSON in prose; extract the outermost object before parsing.
+    const start = clean.indexOf("{");
+    const end = clean.lastIndexOf("}");
+    let parsed;
+    try {
+      parsed = JSON.parse(start >= 0 && end > start ? clean.slice(start, end + 1) : clean);
+    } catch {
+      console.error("Plan parse error: model returned non-JSON output:", clean.slice(0, 500));
+      return Response.json({
+        error: "We couldn't read that PDF as an NDIS plan. Try a clearer copy, or enter the plan details manually below.",
+      }, { status: 422 });
+    }
     return Response.json(parsed);
   } catch (e: any) {
     console.error("Plan parse error:", e);
-    return Response.json({ error: e.message || "Failed to parse plan" }, { status: 500 });
+    return Response.json({
+      error: "Something went wrong reading the plan. Please try again, or enter the details manually below.",
+    }, { status: 500 });
   }
 }
