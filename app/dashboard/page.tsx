@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import Client from "../client";
+import Client, { defaultRoster, getHolidaysInRange, getWeeksInPlan, calcDayCountPlanCost, calcPHImpact, getPresetRates, NDIS_RATES_2025_26 } from "../client";
 
 type Participant = {
   id: string;
@@ -20,48 +20,61 @@ function money(n: number): string {
   return v.toLocaleString("en-AU", { style: "currency", currency: "AUD" });
 }
 
-function getBudgetStatusFromStorage(participantId: string) {
+type Budget = { totalFunding: number; planCost: number; remaining: number; status: string };
+const EMPTY_BUDGET: Budget = { totalFunding: 0, planCost: 0, remaining: 0, status: "empty" };
+
+// Mirrors the per-line maths in client.tsx (roster data model + line rates + PH adjustment)
+// so the overview cards match what the calculator shows inside.
+function computeBudget(raw: any): Budget {
   try {
-    const raw = localStorage.getItem("ndis_participant_" + participantId);
-    if (!raw) return { totalFunding: 0, planCost: 0, remaining: 0, status: "empty" };
-    const parsed = JSON.parse(raw);
-    const lines = parsed?.lines || [];
-    const rates = parsed?.rates || {};
-    const planDates = parsed?.planDates || {};
-
-    const start = planDates.start ? new Date(planDates.start) : new Date();
-    const end = planDates.end ? new Date(planDates.end) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
-    const planWeeks = Math.max(1, (end.getTime() - start.getTime()) / (7 * 24 * 60 * 60 * 1000));
-
-    const RATIOS: { [key: string]: number } = { "1:1": 1, "1:2": 2, "1:3": 3, "1:4": 4 };
+    if (!raw) return EMPTY_BUDGET;
+    const lines = Array.isArray(raw.lines) ? raw.lines : [];
+    const planDates = raw.planDates || {};
+    const start = planDates.serviceStart || planDates.start || "";
+    const end = planDates.serviceEnd || planDates.end || "";
+    const planWeeks = raw.weeksOverride != null ? raw.weeksOverride : getWeeksInPlan(start, end);
+    const holidays = getHolidaysInRange(start, end, planDates.state || "NSW");
+    const globalRates = { ...NDIS_RATES_2025_26, ...(raw.rates || {}) };
 
     let totalFunding = 0;
-    let totalPlanCost = 0;
-
+    let planCost = 0;
     for (const l of lines) {
-      totalFunding += l.totalFunding || 0;
-      const divisor = RATIOS[l.ratio] || 1;
-      const weeklyBase =
-        (l.hrsWeekdayOrd || 0) * ((rates.weekdayOrd || 70.23) / divisor) +
-        (l.hrsWeekdayNight || 0) * ((rates.weekdayNight || 77.38) / divisor) +
-        (l.hrsSat || 0) * ((rates.sat || 98.83) / divisor) +
-        (l.hrsSun || 0) * ((rates.sun || 127.43) / divisor) +
-        (l.activeSleepoverHours || 0) * ((rates.activeSleepoverHourly || 78.81) / divisor) +
-        (l.fixedSleepovers || 0) * (rates.fixedSleepoverUnit || 297.6);
-      const weeklyGST = weeklyBase * (rates.gstRate || 0);
-      const weeklyTotal = weeklyBase + weeklyGST;
-      totalPlanCost += weeklyTotal * planWeeks;
+      const line = {
+        ...l,
+        ratio: l.ratio || "1:1",
+        excludedHolidays: l.excludedHolidays || [],
+        roster: l.roster || defaultRoster(),
+        activeSleepoverHours: l.activeSleepoverHours || 0,
+        activeSleepoverFreq: l.activeSleepoverFreq || "every",
+        fixedSleepovers: l.fixedSleepovers || 0,
+        fixedSleepoverFreq: l.fixedSleepoverFreq || "every",
+        kmsPerWeek: l.kmsPerWeek || 0,
+        kmRate: l.kmRate || 0.99,
+        kmFreq: l.kmFreq || "every",
+      };
+      const lr = l.lineRates || getPresetRates(l.code) || globalRates;
+      totalFunding += line.totalFunding || 0;
+      const base = calcDayCountPlanCost(line, start, end, planWeeks, lr) * (1 + (lr.gstRate || 0));
+      const ph = calcPHImpact(line, holidays, lr);
+      planCost += base + ph.extraCost - ph.savedCost;
     }
 
-    const remaining = totalFunding - totalPlanCost;
-    const pct = totalFunding > 0 ? (remaining / totalFunding) * 100 : 0;
-    let status = "on_track";
-    if (remaining < 0) status = "over";
-    else if (pct < 10) status = "low";
+    // Standalone clinical budget (when not drawn from the plan lines above)
+    if (!raw.clinicalBudgetLinked) {
+      totalFunding += raw.clinicalFunding || 0;
+      const services = Array.isArray(raw.clinicalServices) ? raw.clinicalServices : [];
+      planCost += services.reduce((s: number, i: any) => s + (i.hours || 0) * (i.rate || 0), 0);
+    }
 
-    return { totalFunding, planCost: totalPlanCost, remaining, status };
+    const remaining = totalFunding - planCost;
+    let status = "on_track";
+    if (totalFunding <= 0 && planCost <= 0) status = "empty";
+    else if (remaining < 0) status = "over";
+    else if (totalFunding > 0 && (remaining / totalFunding) * 100 < 10) status = "low";
+
+    return { totalFunding, planCost, remaining, status };
   } catch {
-    return { totalFunding: 0, planCost: 0, remaining: 0, status: "empty" };
+    return EMPTY_BUDGET;
   }
 }
 
@@ -82,6 +95,7 @@ export default function DashboardPage() {
   const [editingParticipant, setEditingParticipant] = useState<Participant | null>(null);
   const [editName, setEditName] = useState("");
   const [editNdis, setEditNdis] = useState("");
+  const [budgets, setBudgets] = useState<{ [id: string]: Budget }>({});
   const hasLoadedRef = useRef(false);
   const skipNextSaveRef = useRef(false);
   const router = useRouter();
@@ -178,6 +192,41 @@ export default function DashboardPage() {
     save();
   }, [participants]);
 
+  // Compute overview budgets: cloud data first (works on any device), localStorage as fallback.
+  useEffect(() => {
+    if (activeParticipant || participants.length === 0) return;
+    let cancelled = false;
+    async function loadBudgets() {
+      const map: { [id: string]: Budget } = {};
+      for (const p of participants) {
+        try {
+          const raw = localStorage.getItem("ndis_participant_" + p.id);
+          if (raw) map[p.id] = computeBudget(JSON.parse(raw));
+        } catch {}
+      }
+      try {
+        const { data: d } = await supabase.auth.getUser();
+        if (d.user) {
+          const keys = participants.map((p) => "ndis_participant_" + p.id);
+          const { data: rows } = await supabase
+            .from("calculator_data")
+            .select("participant_id, data")
+            .eq("user_id", d.user.id)
+            .in("participant_id", keys);
+          for (const row of rows || []) {
+            const id = String(row.participant_id).replace(/^ndis_participant_/, "");
+            map[id] = computeBudget(row.data);
+          }
+        }
+      } catch {}
+      if (!cancelled) setBudgets(map);
+    }
+    loadBudgets();
+    return () => { cancelled = true; };
+  }, [participants, activeParticipant]);
+
+  const budgetFor = (id: string): Budget => budgets[id] || EMPTY_BUDGET;
+
   const handleCheckout = async () => {
     setCheckoutLoading(true);
     const res = await fetch("/api/checkout", {
@@ -261,7 +310,7 @@ export default function DashboardPage() {
             background: "#1e293b", padding: "40px", borderRadius: "16px",
             textAlign: "center", maxWidth: "480px", width: "90%", border: "1px solid #334155",
           }}>
-            <h2 style={{ fontSize: "1.8rem", color: "#2d1b69", marginBottom: "8px" }}>Unlock Kevria Calc</h2>
+            <h2 style={{ fontSize: "1.8rem", color: "#ffffff", marginBottom: "8px" }}>Unlock Kevria Calc</h2>
             <p style={{ color: "#94a3b8", marginBottom: "24px", fontSize: "0.95rem" }}>Cancel anytime. No lock-in.</p>
 
             {/* Plan picker */}
@@ -370,15 +419,15 @@ export default function DashboardPage() {
           <div className="rounded-2xl p-5" style={{ background: "#ffffff", border: "1px solid rgba(212,168,67,0.45)" }}>
             <div className="text-sm" style={{ color: "#334155" }}>Total Funding</div>
             <div className="text-3xl font-bold" style={{ color: "#d4a843" }}>
-              {money(participants.reduce((a, p) => a + getBudgetStatusFromStorage(p.id).totalFunding, 0))}
+              {money(participants.reduce((a, p) => a + budgetFor(p.id).totalFunding, 0))}
             </div>
           </div>
           <div className="rounded-2xl p-5" style={{ background: "#ffffff", border: "1px solid rgba(212,168,67,0.45)" }}>
             <div className="text-sm" style={{ color: "#334155" }}>Total Remaining</div>
             <div className="text-3xl font-bold" style={{
-              color: participants.reduce((a, p) => a + getBudgetStatusFromStorage(p.id).remaining, 0) < 0 ? "#ef4444" : "#22c55e"
+              color: participants.reduce((a, p) => a + budgetFor(p.id).remaining, 0) < 0 ? "#ef4444" : "#22c55e"
             }}>
-              {money(participants.reduce((a, p) => a + getBudgetStatusFromStorage(p.id).remaining, 0))}
+              {money(participants.reduce((a, p) => a + budgetFor(p.id).remaining, 0))}
             </div>
           </div>
         </div>
@@ -397,7 +446,7 @@ export default function DashboardPage() {
         ) : (
           <div className="grid gap-4">
             {participants.map((p) => {
-              const budget = getBudgetStatusFromStorage(p.id);
+              const budget = budgetFor(p.id);
               const statusColors = budget.status === "over"
                 ? { color: "#ef4444", bg: "rgba(239,68,68,0.1)", label: "OVER BUDGET", border: "rgba(239,68,68,0.3)" }
                 : budget.status === "low"
@@ -585,7 +634,7 @@ export default function DashboardPage() {
                 You&apos;re all set!
               </h2>
               <p style={{ color: "#334155", fontSize: "1rem", lineHeight: "1.6", marginBottom: "8px" }}>
-                Welcome to <span style={{ color: "#d4a843", fontWeight: "700" }}>Kevria Kevria Calc</span>.
+                Welcome to <span style={{ color: "#d4a843", fontWeight: "700" }}>Kevria Calc</span>.
               </p>
               <p style={{ color: "#475569", fontSize: "0.9rem", lineHeight: "1.6", marginBottom: "32px" }}>
                 Add your first participant to get started. Your data saves automatically and syncs across all your devices.

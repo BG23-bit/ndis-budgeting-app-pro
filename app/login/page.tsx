@@ -159,7 +159,7 @@ export default function LoginPage() {
               if (!email) { setError("Enter your email first"); return; }
               setLoading(true);
               const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: "https://kevriacalc.com/login",
+                redirectTo: window.location.origin + "/reset-password",
               });
               if (error) setError(error.message);
               else setError("Password reset link sent! Check your email.");

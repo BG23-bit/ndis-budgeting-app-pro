@@ -13,7 +13,7 @@ const DL: {[k:string]:string} = {mon:"Monday",tue:"Tuesday",wed:"Wednesday",thu:
 const FREQ: {[k:string]:{label:string;multiplier:number}} = {"every":{label:"Every week",multiplier:1},"2nd":{label:"Every 2nd week",multiplier:0.5},"3rd":{label:"Every 3rd week",multiplier:0.333},"4th":{label:"Every 4th week",multiplier:0.25},"monthly":{label:"Monthly",multiplier:0.2308}};
 const RATIOS: {[k:string]:{label:string;divisor:number}} = {"1:1":{label:"1:1 (Full rate)",divisor:1},"2:1":{label:"2:1 (Double rate)",divisor:0.5},"1:2":{label:"1:2 (Half rate)",divisor:2},"1:3":{label:"1:3 (Third rate)",divisor:3},"1:4":{label:"1:4 (Quarter rate)",divisor:4}};
 const STATES = [{value:"NSW",label:"New South Wales"},{value:"VIC",label:"Victoria"},{value:"QLD",label:"Queensland"},{value:"SA",label:"South Australia"},{value:"WA",label:"Western Australia"},{value:"TAS",label:"Tasmania"},{value:"NT",label:"Northern Territory"},{value:"ACT",label:"Australian Capital Territory"}];
-function defaultRoster():{[k:string]:DayRoster}{const r:{[k:string]:DayRoster}={};DAYS.forEach(d=>{r[d]={enabled:false,hours:0,nightHours:0,frequency:"every"}});return r}
+export function defaultRoster():{[k:string]:DayRoster}{const r:{[k:string]:DayRoster}={};DAYS.forEach(d=>{r[d]={enabled:false,hours:0,nightHours:0,frequency:"every"}});return r}
 function formatDate(d:Date):string{return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 function getPublicHolidays(year:number,state:string):{date:string;name:string;dayOfWeek:number}[]{
 const h:{date:string;name:string;dayOfWeek:number}[]=[];
@@ -39,29 +39,29 @@ add(year+"-12-25","Christmas Day");add(year+"-12-26","Boxing Day");
 const xmas=new Date(year+"-12-25");if(xmas.getDay()===6)add(year+"-12-27","Christmas Day (observed)");if(xmas.getDay()===0)add(year+"-12-27","Christmas Day (observed)");
 const boxing=new Date(year+"-12-26");if(boxing.getDay()===6)add(year+"-12-28","Boxing Day (observed)");if(boxing.getDay()===0)add(year+"-12-27","Boxing Day (observed)");
 return h}
-function getHolidaysInRange(start:string,end:string,state:string){if(!start||!end)return[];const sd=new Date(start),ed=new Date(end);const all:{date:string;name:string;dayOfWeek:number}[]=[];for(let y=sd.getFullYear();y<=ed.getFullYear();y++)all.push(...getPublicHolidays(y,state));return all.filter(h=>{const d=new Date(h.date);return d>=sd&&d<=ed}).sort((a,b)=>a.date.localeCompare(b.date))}
+export function getHolidaysInRange(start:string,end:string,state:string){if(!start||!end)return[];const sd=new Date(start),ed=new Date(end);const all:{date:string;name:string;dayOfWeek:number}[]=[];for(let y=sd.getFullYear();y<=ed.getFullYear();y++)all.push(...getPublicHolidays(y,state));return all.filter(h=>{const d=new Date(h.date);return d>=sd&&d<=ed}).sort((a,b)=>a.date.localeCompare(b.date))}
 function getDayName(d:number):string{return["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][d]}
-function getWeeksInPlan(s:string,e:string):number{if(!s||!e)return 52;return Math.max(1,(new Date(e).getTime()-new Date(s).getTime())/(7*24*60*60*1000))}
+export function getWeeksInPlan(s:string,e:string):number{if(!s||!e)return 52;return Math.max(1,(new Date(e).getTime()-new Date(s).getTime())/(7*24*60*60*1000))}
 function countDayOccurrences(start:string,end:string,dow:number):number{if(!start||!end)return 0;const sd=new Date(start);const ed=new Date(end);const daysToFirst=(dow-sd.getDay()+7)%7;const first=new Date(sd.getTime()+daysToFirst*86400000);if(first>ed)return 0;return Math.floor((ed.getTime()-first.getTime())/604800000)+1}
-function calcDayCountPlanCost(line:SupportLine,start:string,end:string,planWeeks:number,rates:Rates):number{if(!start||!end)return calcWeeklyCost(line,rates)*planWeeks;const divisor=RATIOS[line.ratio]?.divisor||1;let total=0;for(const d of DAYS){const r=line.roster[d];if(!r||!r.enabled)continue;const fm=FREQ[r.frequency]?.multiplier||1;const occ=countDayOccurrences(start,end,DAY_DOW[d])*fm;const isSat=d==="sat";const isSun=d==="sun";const dr=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayOrd/divisor;const nr=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayNight/divisor;total+=(r.hours*dr+r.nightHours*nr)*occ}const sf=FREQ[line.activeSleepoverFreq]?.multiplier||1;total+=line.activeSleepoverHours*(rates.activeSleepoverHourly/divisor)*sf*planWeeks;const ff=FREQ[line.fixedSleepoverFreq]?.multiplier||1;total+=line.fixedSleepovers*rates.fixedSleepoverUnit*ff*planWeeks;const kf=FREQ[line.kmFreq]?.multiplier||1;total+=line.kmsPerWeek*line.kmRate*kf*planWeeks;return total}
+export function calcDayCountPlanCost(line:SupportLine,start:string,end:string,planWeeks:number,rates:Rates):number{if(!start||!end)return calcWeeklyCost(line,rates)*planWeeks;const divisor=RATIOS[line.ratio]?.divisor||1;let total=0;for(const d of DAYS){const r=line.roster[d];if(!r||!r.enabled)continue;const fm=FREQ[r.frequency]?.multiplier||1;const occ=countDayOccurrences(start,end,DAY_DOW[d])*fm;const isSat=d==="sat";const isSun=d==="sun";const dr=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayOrd/divisor;const nr=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayNight/divisor;total+=(r.hours*dr+r.nightHours*nr)*occ}const sf=FREQ[line.activeSleepoverFreq]?.multiplier||1;total+=line.activeSleepoverHours*(rates.activeSleepoverHourly/divisor)*sf*planWeeks;const ff=FREQ[line.fixedSleepoverFreq]?.multiplier||1;total+=line.fixedSleepovers*rates.fixedSleepoverUnit*ff*planWeeks;const kf=FREQ[line.kmFreq]?.multiplier||1;total+=line.kmsPerWeek*line.kmRate*kf*planWeeks;return total}
 function money(n:number):string{const v=Number.isFinite(n)?n:0;return v.toLocaleString("en-AU",{style:"currency",currency:"AUD"})}
 function num(x:any):number{const v=Number(x);return Number.isFinite(v)?v:0}
 function uid():string{return Math.random().toString(16).slice(2)+Date.now().toString(16)}
-function escapeHtml(s:string){return s.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#1e40af;")}
+function escapeHtml(s:string){return s.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;")}
 function downloadTextFile(fn:string,text:string){const type=fn.endsWith(".csv")?"text/csv;charset=utf-8":"text/plain;charset=utf-8";const blob=new Blob([text],{type});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=fn;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url)}
 function Field(p:{label:string;value:number;step?:number;onChange:(v:number)=>void}){return(<label className="block"><div className="text-sm mb-1" style={{color:"#334155"}}>{p.label}</div><input type="number" step={p.step??1} value={Number.isFinite(p.value)?p.value:0} onChange={e=>p.onChange(num(e.target.value))} onFocus={e=>e.target.select()} className="w-full rounded-lg px-3 py-2 outline-none" style={{background: "#ffffff",border:"1px solid rgba(212,168,67,0.45)",color: "#0f172a"}}/></label>)}
 function SmallField(p:{value:number;step?:number;onChange:(v:number)=>void;disabled?:boolean}){return(<input type="number" step={p.step??0.25} value={p.value||""} placeholder="0" onChange={e=>p.onChange(num(e.target.value))} onFocus={e=>e.target.select()} disabled={p.disabled} className="rounded-lg px-2 py-1 outline-none w-16 text-center" style={{background:p.disabled?"rgba(241,245,249,0.3)":"rgba(241,245,249,0.6)",border:"1px solid rgba(212,168,67,0.45)",color:p.disabled?"#64748b":"#0f172a",fontSize:"0.85rem"}}/>)}
 function TextField(p:{label:string;value:string;onChange:(v:string)=>void}){return(<label className="block"><div className="text-sm mb-1" style={{color:"#334155"}}>{p.label}</div><input value={p.value} onChange={e=>p.onChange(e.target.value)} className="w-full rounded-lg px-3 py-2 outline-none" style={{background: "#ffffff",border:"1px solid rgba(212,168,67,0.45)",color: "#0f172a"}}/></label>)}
 function DateField(p:{label:string;value:string;onChange:(v:string)=>void}){return(<label className="block"><div className="text-sm mb-1" style={{color:"#334155"}}>{p.label}</div><input type="date" value={p.value} onChange={e=>p.onChange(e.target.value)} className="w-full rounded-lg px-3 py-2 outline-none" style={{background: "#ffffff",border:"1px solid rgba(212,168,67,0.45)",color: "#0f172a"}}/></label>)}
 function SelectField(p:{label:string;value:string;options:{value:string;label:string}[];onChange:(v:string)=>void}){return(<label className="block"><div className="text-sm mb-1" style={{color:"#334155"}}>{p.label}</div><select value={p.value} onChange={e=>p.onChange(e.target.value)} className="w-full rounded-lg px-3 py-2 outline-none" style={{background: "#ffffff",border:"1px solid rgba(212,168,67,0.45)",color: "#0f172a"}}>{p.options.map(o=>(<option key={o.value} value={o.value}>{o.label}</option>))}</select></label>)}
-function SmallSelect(p:{value:string;options:{value:string;label:string}[];onChange:(v:string)=>void;disabled?:boolean}){return(<select value={p.value} onChange={e=>p.onChange(e.target.value)} disabled={p.disabled} className="rounded-lg px-2 py-1 outline-none" style={{background:p.disabled?"rgba(241,245,249,0.3)":"rgba(241,245,249,0.6)",border:"1px solid rgba(212,168,67,0.45)",color:p.disabled?"#64748b":"white",fontSize:"0.8rem"}}>{p.options.map(o=>(<option key={o.value} value={o.value}>{o.label}</option>))}</select>)}
+function SmallSelect(p:{value:string;options:{value:string;label:string}[];onChange:(v:string)=>void;disabled?:boolean}){return(<select value={p.value} onChange={e=>p.onChange(e.target.value)} disabled={p.disabled} className="rounded-lg px-2 py-1 outline-none" style={{background:p.disabled?"rgba(241,245,249,0.3)":"rgba(241,245,249,0.6)",border:"1px solid rgba(212,168,67,0.45)",color:p.disabled?"#64748b":"#0f172a",fontSize:"0.8rem"}}>{p.options.map(o=>(<option key={o.value} value={o.value}>{o.label}</option>))}</select>)}
 function getBudgetStatus(remaining:number,totalFunding:number){const pct=totalFunding>0?(remaining/totalFunding)*100:0;if(remaining<0)return{color:"#ef4444",bg:"rgba(239,68,68,0.1)",label:"OVER BUDGET",border:"rgba(239,68,68,0.3)"};if(pct<10)return{color:"#f59e0b",bg:"rgba(245,158,11,0.1)",label:"LOW BUDGET",border:"rgba(245,158,11,0.3)"};return{color:"#22c55e",bg:"rgba(34,197,94,0.1)",label:"ON TRACK",border:"rgba(34,197,94,0.3)"}}
 function calcWeeklyCost(line:SupportLine,rates:Rates){const divisor=RATIOS[line.ratio]?.divisor||1;let wt=0;for(const d of DAYS){const r=line.roster[d];if(!r||!r.enabled)continue;const fm=FREQ[r.frequency]?.multiplier||1;const isSat=d==="sat";const isSun=d==="sun";const dr=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayOrd/divisor;const nr=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayNight/divisor;wt+=(r.hours*dr+r.nightHours*nr)*fm}const sf=FREQ[line.activeSleepoverFreq]?.multiplier||1;wt+=line.activeSleepoverHours*(rates.activeSleepoverHourly/divisor)*sf;const ff=FREQ[line.fixedSleepoverFreq]?.multiplier||1;wt+=line.fixedSleepovers*rates.fixedSleepoverUnit*ff;const kf=FREQ[line.kmFreq]?.multiplier||1;wt+=line.kmsPerWeek*line.kmRate*kf;return wt}
-function calcPHImpact(line:SupportLine,holidays:{date:string;name:string;dayOfWeek:number}[],rates:Rates){const divisor=RATIOS[line.ratio]?.divisor||1;let extraCost=0,savedCost=0;const dm:{[k:number]:string}={0:"sun",1:"mon",2:"tue",3:"wed",4:"thu",5:"fri",6:"sat"};const details:{name:string;date:string;day:string;impact:number;included:boolean}[]=[];for(const h of holidays){const isExcluded=line.excludedHolidays.includes(h.date);const rd=dm[h.dayOfWeek];const r=line.roster[rd];if(!r||!r.enabled){details.push({name:h.name,date:h.date,day:getDayName(h.dayOfWeek),impact:0,included:!isExcluded});continue}const isSat=rd==="sat";const isSun=rd==="sun";const normalDayRate=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayOrd/divisor;const normalNightRate=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayNight/divisor;const phRate=rates.publicHoliday/divisor;if(!isExcluded){const extra=(phRate-normalDayRate)*r.hours+(phRate-normalNightRate)*r.nightHours;extraCost+=extra;details.push({name:h.name,date:h.date,day:getDayName(h.dayOfWeek),impact:extra,included:true})}else{const saved=normalDayRate*r.hours+normalNightRate*r.nightHours;savedCost+=saved;details.push({name:h.name,date:h.date,day:getDayName(h.dayOfWeek),impact:saved,included:false})}}return{extraCost,savedCost,details}}
+export function calcPHImpact(line:SupportLine,holidays:{date:string;name:string;dayOfWeek:number}[],rates:Rates){const divisor=RATIOS[line.ratio]?.divisor||1;let extraCost=0,savedCost=0;const dm:{[k:number]:string}={0:"sun",1:"mon",2:"tue",3:"wed",4:"thu",5:"fri",6:"sat"};const details:{name:string;date:string;day:string;impact:number;included:boolean}[]=[];for(const h of holidays){const isExcluded=line.excludedHolidays.includes(h.date);const rd=dm[h.dayOfWeek];const r=line.roster[rd];if(!r||!r.enabled){details.push({name:h.name,date:h.date,day:getDayName(h.dayOfWeek),impact:0,included:!isExcluded});continue}const isSat=rd==="sat";const isSun=rd==="sun";const normalDayRate=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayOrd/divisor;const normalNightRate=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayNight/divisor;const phRate=rates.publicHoliday/divisor;if(!isExcluded){const extra=(phRate-normalDayRate)*r.hours+(phRate-normalNightRate)*r.nightHours;extraCost+=extra;details.push({name:h.name,date:h.date,day:getDayName(h.dayOfWeek),impact:extra,included:true})}else{const saved=normalDayRate*r.hours+normalNightRate*r.nightHours;savedCost+=saved;details.push({name:h.name,date:h.date,day:getDayName(h.dayOfWeek),impact:saved,included:false})}}return{extraCost,savedCost,details}}
 function getSuggestions(line:any,rates:Rates){if(line.remaining>=0)return[];const suggestions:string[]=[];const roster=line.roster||{};if(roster.sun?.enabled&&roster.sun.hours>0){const s=rates.sun-rates.weekdayOrd;suggestions.push("Reduce Sunday hours - saves "+money(s*roster.sun.hours*52)+"/yr")}if(roster.sat?.enabled&&roster.sat.hours>0){const s=rates.sat-rates.weekdayOrd;suggestions.push("Reduce Saturday hours - saves "+money(s*roster.sat.hours*52)+"/yr")}if(line.fixedSleepovers>0){suggestions.push("Remove 1 fixed sleepover/wk - saves "+money(rates.fixedSleepoverUnit*52)+"/yr")}if(line.kmsPerWeek>0){suggestions.push("Reduce KMs - currently "+money(line.kmsPerWeek*line.kmRate*52)+"/yr")}return suggestions.slice(0,3)}
 function useCloudSync(key:string,data:any){const[userId,setUserId]=useState<string|null>(null);const timerRef=React.useRef<any>(null);useEffect(()=>{supabase.auth.getUser().then(({data:d})=>{setUserId(d.user?.id??null)})},[]);useEffect(()=>{if(!userId||!key)return;if(timerRef.current)clearTimeout(timerRef.current);timerRef.current=setTimeout(async()=>{try{await supabase.from("calculator_data").upsert({user_id:userId,participant_id:key,data:data,updated_at:new Date().toISOString()},{onConflict:"user_id,participant_id"})}catch(e){console.error("Cloud save error:",e)}},2000);return()=>{if(timerRef.current)clearTimeout(timerRef.current)}},[userId,key,data])}
 async function loadFromCloud(key:string):Promise<any>{try{const{data:d}=await supabase.auth.getUser();if(!d.user)return null;const{data:row}=await supabase.from("calculator_data").select("data").eq("user_id",d.user.id).eq("participant_id",key).single();return row?.data||null}catch{return null}}
-const NDIS_RATES_2025_26:Rates={weekdayOrd:70.23,weekdayNight:77.38,sat:98.83,sun:127.43,publicHoliday:156.03,activeSleepoverHourly:78.81,fixedSleepoverUnit:297.6,gstRate:0};
+export const NDIS_RATES_2025_26:Rates={weekdayOrd:70.23,weekdayNight:77.38,sat:98.83,sun:127.43,publicHoliday:156.03,activeSleepoverHourly:78.81,fixedSleepoverUnit:297.6,gstRate:0};
 const CATEGORY_PRESETS:{[code:string]:{name:string;rates:Rates}}={
   "01":{name:"Assistance with Daily Life",rates:{weekdayOrd:70.23,weekdayNight:77.38,sat:98.83,sun:127.43,publicHoliday:156.03,activeSleepoverHourly:78.81,fixedSleepoverUnit:297.6,gstRate:0}},
   "02":{name:"Transport",rates:{weekdayOrd:0,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
@@ -85,7 +85,7 @@ const CATEGORY_PRESETS:{[code:string]:{name:string;rates:Rates}}={
   "20":{name:"Behaviour Support",rates:{weekdayOrd:193.99,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
   "21":{name:"YPIRAC",rates:{weekdayOrd:70.23,weekdayNight:77.38,sat:98.83,sun:127.43,publicHoliday:156.03,activeSleepoverHourly:78.81,fixedSleepoverUnit:297.6,gstRate:0}},
 };
-function getPresetRates(code:string):Rates{return CATEGORY_PRESETS[code]?.rates||NDIS_RATES_2025_26}
+export function getPresetRates(code:string):Rates{return CATEGORY_PRESETS[code]?.rates||NDIS_RATES_2025_26}
 const NDIS_ITEM_DEFAULTS:{[code:string]:{[rateType:string]:string}}={
   "01":{weekday:"01_011_0107_1_1",weekdayNight:"01_012_0107_1_1",sat:"01_013_0107_1_1",satNight:"01_013_0107_1_1",sun:"01_014_0107_1_1",sunNight:"01_014_0107_1_1",publicHoliday:"01_015_0107_1_1",activeSleepover:"01_010_0107_1_1",fixedSleepover:"01_799_0104_1_1",lump:"01_821_0115_1_1"},
   "04":{weekday:"04_104_0125_6_1",weekdayNight:"04_104_0125_6_1",sat:"04_105_0125_6_1",satNight:"04_105_0125_6_1",sun:"04_106_0125_6_1",sunNight:"04_106_0125_6_1",publicHoliday:"04_117_0125_6_1",activeSleepover:"04_010_0125_6_1"},
@@ -232,7 +232,7 @@ function exportCSV(){
   out.push(row("NDIS Number",n));
   out.push(row("Plan Period",planDates.start+" to "+planDates.end+" ("+planWeeks.toFixed(1)+" weeks)"));
   out.push(row("State / Territory",planDates.state));
-  out.push(row("Generated by","Kevria Kevria Calc | kevria.com"));
+  out.push(row("Generated by","Kevria Calc | kevriacalc.com"));
   out.push("");
   out.push("=== PLAN SUMMARY ===");
   out.push(row("Total Funding",money(totals.totalFunding)));
@@ -269,7 +269,7 @@ function exportCSV(){
     for(const h of holidays){out.push(row(h.date,getDayName(h.dayOfWeek),h.name))}
     out.push("");
   }
-  out.push("Generated by Kevria Kevria Calc | kevria.com");
+  out.push("Generated by Kevria Calc | kevriacalc.com");
   const fname="ndis-budget-"+(p!=="Unknown"?p.replace(/[^a-z0-9]/gi,"-").toLowerCase()+"-":"")+new Date().toISOString().slice(0,10)+".csv";
   downloadTextFile(fname,out.join("\n"));
 }
@@ -354,7 +354,7 @@ function exportPDF(){
   ${holidayHtml}
 </div>
 <div class="footer">
-  <div>Powered by <a href="https://kevria.com"><strong>Kevria</strong></a> Kevria Calc</div>
+  <div>Generated by <a href="https://kevriacalc.com"><strong>Kevria Calc</strong></a></div>
   <div>Rates based on 2025&#8211;26 NDIS Price Guide. Verify with your plan manager before quoting. Not financial advice.</div>
 </div>
 <script>window.onload=function(){window.focus();window.print()}</script>
@@ -530,7 +530,7 @@ tbody td{padding:9px 10px;vertical-align:top}
         const r=l.roster[d];
         if(!r?.enabled)return`<td style="text-align:center;color:#cbd5e1;font-size:8.5pt">—</td>`;
         const dh=r.hours||0,nh=r.nightHours||0;
-        const freq=r.frequency&&r.frequency!=="every"?`<div style="color:#94a3b8;font-size:7pt;margin-top:1px">${r.frequency==="fortnightly"?"ftn":"mth"}</div>`:"";
+        const freq=r.frequency&&r.frequency!=="every"?`<div style="color:#94a3b8;font-size:7pt;margin-top:1px">${({"2nd":"ftn","3rd":"3rd wk","4th":"4th wk","monthly":"mth"} as {[k:string]:string})[r.frequency]||r.frequency}</div>`:"";
         const isSat=d==="sat",isSun=d==="sun";
         const dayColour=isSat?"#1e40af":isSun?"#d4a843":"inherit";
         let inner="";
@@ -556,7 +556,7 @@ tbody td{padding:9px 10px;vertical-align:top}
     <thead><tr><th style="width:22%;text-align:left">Support Category</th>${headCells}<th style="width:9%;text-align:right">Weekly Hrs</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>
-  <div class="note" style="margin-top:6px">h = daytime hours &nbsp;|&nbsp; n = night hours &nbsp;|&nbsp; ftn = fortnightly &nbsp;|&nbsp; mth = monthly. Sat shown in blue, Sun in purple.</div>`;
+  <div class="note" style="margin-top:6px">h = daytime hours &nbsp;|&nbsp; n = night hours &nbsp;|&nbsp; ftn = fortnightly &nbsp;|&nbsp; mth = monthly. Sat shown in blue, Sun in gold.</div>`;
   })()}
 
   <div class="section-heading" style="margin-top:16px">Signatures</div>
@@ -979,7 +979,7 @@ return(
             onChange={e=>updateLine(l.id,{lineRates:{...l.lineRates,[key]:num(e.target.value)}})}
             onFocus={e=>e.target.select()}
             className="w-full rounded-lg px-3 py-2 outline-none"
-            style={{background: "#ffffff",border:"1px solid "+(warn?"rgba(245,158,11,0.4)":"rgba(212,168,67,0.2)"),color:warn?"#f59e0b":"white"}}
+            style={{background: "#ffffff",border:"1px solid "+(warn?"rgba(245,158,11,0.4)":"rgba(212,168,67,0.2)"),color:warn?"#f59e0b":"#0f172a"}}
           />
         </label>
       );
@@ -1043,7 +1043,7 @@ return(
       <div className="grid gap-2 sm:grid-cols-3 mb-2">
         <div><div className="text-xs mb-1" style={{color:"#334155"}}>Date</div><input type="date" value={addClaimForm!.date} onChange={e=>setAddClaimForm(f=>f?{...f,date:e.target.value}:f)} className="w-full rounded-lg px-2 py-1 outline-none text-sm" style={{background: "#ffffff",border:"1px solid rgba(34,197,94,0.2)",color: "#0f172a"}}/></div>
         <div><div className="text-xs mb-1" style={{color:"#334155"}}>Amount ($)</div><input type="number" step="0.01" value={addClaimForm!.amount} onChange={e=>setAddClaimForm(f=>f?{...f,amount:e.target.value}:f)} onFocus={e=>e.target.select()} placeholder="0.00" className="w-full rounded-lg px-2 py-1 outline-none text-sm" style={{background: "#ffffff",border:"1px solid rgba(34,197,94,0.2)",color: "#0f172a"}}/></div>
-        <div><div className="text-xs mb-1" style={{color:"#334155"}}>Note (optional)</div><input value={addClaimForm!.note} onChange={e=>setAddClaimForm(f=>f?{...f,note:e.target.value}:f)} placeholder="e.g. Invoice #1e293b" className="w-full rounded-lg px-2 py-1 outline-none text-sm" style={{background: "#ffffff",border:"1px solid rgba(34,197,94,0.2)",color: "#0f172a"}}/></div>
+        <div><div className="text-xs mb-1" style={{color:"#334155"}}>Note (optional)</div><input value={addClaimForm!.note} onChange={e=>setAddClaimForm(f=>f?{...f,note:e.target.value}:f)} placeholder="e.g. Invoice #1234" className="w-full rounded-lg px-2 py-1 outline-none text-sm" style={{background: "#ffffff",border:"1px solid rgba(34,197,94,0.2)",color: "#0f172a"}}/></div>
       </div>
       <div className="flex gap-2">
         <button onClick={()=>{const a=parseFloat(addClaimForm!.amount);if(!a||a<=0)return;addClaim(l.id,addClaimForm!.date,a,addClaimForm!.note);setAddClaimForm(null)}} style={{padding:"6px 16px",background:"rgba(34,197,94,0.2)",border:"1px solid rgba(34,197,94,0.4)",color:"#22c55e",borderRadius:"6px",cursor:"pointer",fontSize:"0.85rem",fontWeight:"600"}}>Save</button>
@@ -1455,7 +1455,7 @@ return(
 
   <div className="flex gap-3">
     <button onClick={()=>{setShowClinicalModal(false);generateClinicalSoS()}} disabled={!clinicalPractitioner.name.trim()}
-      style={{flex:1,padding:"13px",backgroundColor:clinicalPractitioner.name.trim()?"#1e40af":"#dbeafe",color:clinicalPractitioner.name.trim()?"#0a1628":"#94a3b8",border:"none",borderRadius:"10px",cursor:clinicalPractitioner.name.trim()?"pointer":"not-allowed",fontWeight:"bold",fontSize:"1rem"}}>
+      style={{flex:1,padding:"13px",backgroundColor:clinicalPractitioner.name.trim()?"#1e40af":"#dbeafe",color:clinicalPractitioner.name.trim()?"#ffffff":"#94a3b8",border:"none",borderRadius:"10px",cursor:clinicalPractitioner.name.trim()?"pointer":"not-allowed",fontWeight:"bold",fontSize:"1rem"}}>
       Generate Clinical PDF →
     </button>
     <button onClick={()=>setShowClinicalModal(false)} style={{padding:"13px 20px",background:"rgba(15,23,42,0.05)",border:"1px solid rgba(15,23,42,0.1)",color:"#334155",borderRadius:"10px",cursor:"pointer"}}>

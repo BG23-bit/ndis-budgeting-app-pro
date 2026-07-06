@@ -16,7 +16,7 @@ export default function TermsOfService() {
         {[
           {
             heading: "1. Agreement to these terms",
-            body: `By creating an account or using the Kevria Kevria Calc ("the Service"), you agree to be bound by these Terms of Service. If you do not agree, do not use the Service.
+            body: `By creating an account or using Kevria Calc ("the Service"), you agree to be bound by these Terms of Service. If you do not agree, do not use the Service.
 
 The Service is operated by Kevria, an Australian business (kevria.com). References to "we", "us", or "our" refer to Kevria.`,
           },
