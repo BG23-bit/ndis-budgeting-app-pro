@@ -28,11 +28,11 @@ const em=new Date(easter);em.setDate(easter.getDate()+1);add(formatDate(em),"Eas
 add(year+"-04-25","ANZAC Day");
 const anzac=new Date(year+"-04-25");if(anzac.getDay()===0)add(year+"-04-26","ANZAC Day (observed)");if(anzac.getDay()===6)add(year+"-04-27","ANZAC Day (observed)");
 if(state==="ACT"){const x=new Date(year,2,1);add(formatDate(new Date(year,2,1+((8-x.getDay())%7)+7)),"Canberra Day")}
-if(state==="VIC"){const x=new Date(year,5,1);add(formatDate(new Date(year,5,1+((8-x.getDay())%7)+7)),"Queen's Birthday");const y=new Date(year,10,1);add(formatDate(new Date(year,10,1+((9-y.getDay())%7))),"Melbourne Cup")}
-if(state==="NSW"||state==="SA"||state==="TAS"||state==="ACT"){const x=new Date(year,5,1);add(formatDate(new Date(year,5,1+((8-x.getDay())%7)+7)),"Queen's Birthday")}
-if(state==="QLD"){const x=new Date(year,9,1);add(formatDate(new Date(year,9,1+((8-x.getDay())%7)+21)),"Queen's Birthday")}
-if(state==="WA"){const x=new Date(year,8,1);add(formatDate(new Date(year,8,1+((8-x.getDay())%7)+21)),"Queen's Birthday")}
-if(state==="NT"){const x=new Date(year,4,1);add(formatDate(new Date(year,4,1+((8-x.getDay())%7))),"May Day");const y=new Date(year,5,1);add(formatDate(new Date(year,5,1+((8-y.getDay())%7)+7)),"Queen's Birthday")}
+if(state==="VIC"){const x=new Date(year,5,1);add(formatDate(new Date(year,5,1+((8-x.getDay())%7)+7)),"King's Birthday");const y=new Date(year,10,1);add(formatDate(new Date(year,10,1+((9-y.getDay())%7))),"Melbourne Cup")}
+if(state==="NSW"||state==="SA"||state==="TAS"||state==="ACT"){const x=new Date(year,5,1);add(formatDate(new Date(year,5,1+((8-x.getDay())%7)+7)),"King's Birthday")}
+if(state==="QLD"){const x=new Date(year,9,1);add(formatDate(new Date(year,9,1+((8-x.getDay())%7)+21)),"King's Birthday")}
+if(state==="WA"){const x=new Date(year,8,1);add(formatDate(new Date(year,8,1+((8-x.getDay())%7)+21)),"King's Birthday")}
+if(state==="NT"){const x=new Date(year,4,1);add(formatDate(new Date(year,4,1+((8-x.getDay())%7))),"May Day");const y=new Date(year,5,1);add(formatDate(new Date(year,5,1+((8-y.getDay())%7)+7)),"King's Birthday")}
 if(state==="SA"||state==="NSW"||state==="ACT"){const x=new Date(year,9,1);add(formatDate(new Date(year,9,1+((8-x.getDay())%7))),"Labour Day")}
 if(state==="TAS"){const x=new Date(year,10,1);add(formatDate(new Date(year,10,1+((8-x.getDay())%7))),"Recreation Day")}
 add(year+"-12-25","Christmas Day");add(year+"-12-26","Boxing Day");
@@ -59,7 +59,17 @@ function getBudgetStatus(remaining:number,totalFunding:number){const pct=totalFu
 function calcWeeklyCost(line:SupportLine,rates:Rates){const divisor=RATIOS[line.ratio]?.divisor||1;let wt=0;for(const d of DAYS){const r=line.roster[d];if(!r||!r.enabled)continue;const fm=FREQ[r.frequency]?.multiplier||1;const isSat=d==="sat";const isSun=d==="sun";const dr=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayOrd/divisor;const nr=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayNight/divisor;wt+=(r.hours*dr+r.nightHours*nr)*fm}const sf=FREQ[line.activeSleepoverFreq]?.multiplier||1;wt+=line.activeSleepoverHours*(rates.activeSleepoverHourly/divisor)*sf;const ff=FREQ[line.fixedSleepoverFreq]?.multiplier||1;wt+=line.fixedSleepovers*rates.fixedSleepoverUnit*ff;const kf=FREQ[line.kmFreq]?.multiplier||1;wt+=line.kmsPerWeek*line.kmRate*kf;return wt}
 export function calcPHImpact(line:SupportLine,holidays:{date:string;name:string;dayOfWeek:number}[],rates:Rates){const divisor=RATIOS[line.ratio]?.divisor||1;let extraCost=0,savedCost=0;const dm:{[k:number]:string}={0:"sun",1:"mon",2:"tue",3:"wed",4:"thu",5:"fri",6:"sat"};const details:{name:string;date:string;day:string;impact:number;included:boolean}[]=[];for(const h of holidays){const isExcluded=line.excludedHolidays.includes(h.date);const rd=dm[h.dayOfWeek];const r=line.roster[rd];if(!r||!r.enabled){details.push({name:h.name,date:h.date,day:getDayName(h.dayOfWeek),impact:0,included:!isExcluded});continue}const isSat=rd==="sat";const isSun=rd==="sun";const normalDayRate=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayOrd/divisor;const normalNightRate=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayNight/divisor;const phRate=rates.publicHoliday/divisor;if(!isExcluded){const extra=(phRate-normalDayRate)*r.hours+(phRate-normalNightRate)*r.nightHours;extraCost+=extra;details.push({name:h.name,date:h.date,day:getDayName(h.dayOfWeek),impact:extra,included:true})}else{const saved=normalDayRate*r.hours+normalNightRate*r.nightHours;savedCost+=saved;details.push({name:h.name,date:h.date,day:getDayName(h.dayOfWeek),impact:saved,included:false})}}return{extraCost,savedCost,details}}
 function getSuggestions(line:any,rates:Rates){if(line.remaining>=0)return[];const suggestions:string[]=[];const roster=line.roster||{};if(roster.sun?.enabled&&roster.sun.hours>0){const s=rates.sun-rates.weekdayOrd;suggestions.push("Reduce Sunday hours - saves "+money(s*roster.sun.hours*52)+"/yr")}if(roster.sat?.enabled&&roster.sat.hours>0){const s=rates.sat-rates.weekdayOrd;suggestions.push("Reduce Saturday hours - saves "+money(s*roster.sat.hours*52)+"/yr")}if(line.fixedSleepovers>0){suggestions.push("Remove 1 fixed sleepover/wk - saves "+money(rates.fixedSleepoverUnit*52)+"/yr")}if(line.kmsPerWeek>0){suggestions.push("Reduce KMs - currently "+money(line.kmsPerWeek*line.kmRate*52)+"/yr")}return suggestions.slice(0,3)}
-function useCloudSync(key:string,data:any){const[userId,setUserId]=useState<string|null>(null);const timerRef=React.useRef<any>(null);useEffect(()=>{supabase.auth.getUser().then(({data:d})=>{setUserId(d.user?.id??null)})},[]);useEffect(()=>{if(!userId||!key)return;if(timerRef.current)clearTimeout(timerRef.current);timerRef.current=setTimeout(async()=>{try{await supabase.from("calculator_data").upsert({user_id:userId,participant_id:key,data:data,updated_at:new Date().toISOString()},{onConflict:"user_id,participant_id"})}catch(e){console.error("Cloud save error:",e)}},2000);return()=>{if(timerRef.current)clearTimeout(timerRef.current)}},[userId,key,data])}
+function useCloudSync(key:string,data:any){
+const[userId,setUserId]=useState<string|null>(null);
+const[saveState,setSaveState]=useState<"idle"|"saving"|"saved">("idle");
+const timerRef=React.useRef<any>(null);
+const pendingRef=React.useRef<any>(null);
+useEffect(()=>{supabase.auth.getUser().then(({data:d})=>{setUserId(d.user?.id??null)})},[]);
+const doSave=React.useCallback(async(uid:string,k:string,payload:any)=>{setSaveState("saving");try{await supabase.from("calculator_data").upsert({user_id:uid,participant_id:k,data:payload,updated_at:new Date().toISOString()},{onConflict:"user_id,participant_id"});pendingRef.current=null;setSaveState("saved")}catch(e){console.error("Cloud save error:",e);setSaveState("idle")}},[]);
+useEffect(()=>{if(!userId||!key)return;pendingRef.current=data;if(timerRef.current)clearTimeout(timerRef.current);timerRef.current=setTimeout(()=>{doSave(userId,key,data)},2000);return()=>{if(timerRef.current)clearTimeout(timerRef.current)}},[userId,key,data,doSave]);
+// Flush pending edits when the tab is hidden or closing so a quick edit-then-close isn't lost to the debounce.
+useEffect(()=>{if(!userId||!key)return;const flush=()=>{if(pendingRef.current!=null){if(timerRef.current)clearTimeout(timerRef.current);doSave(userId,key,pendingRef.current)}};const onVis=()=>{if(document.visibilityState==="hidden")flush()};window.addEventListener("pagehide",flush);document.addEventListener("visibilitychange",onVis);return()=>{window.removeEventListener("pagehide",flush);document.removeEventListener("visibilitychange",onVis)}},[userId,key,doSave]);
+return saveState}
 async function loadFromCloud(key:string):Promise<any>{try{const{data:d}=await supabase.auth.getUser();if(!d.user)return null;const{data:row}=await supabase.from("calculator_data").select("data").eq("user_id",d.user.id).eq("participant_id",key).single();return row?.data||null}catch{return null}}
 export const NDIS_RATES_2025_26:Rates={weekdayOrd:70.23,weekdayNight:77.38,sat:98.83,sun:127.43,publicHoliday:156.03,activeSleepoverHourly:78.81,fixedSleepoverUnit:297.6,gstRate:0};
 const CATEGORY_PRESETS:{[code:string]:{name:string;rates:Rates}}={
@@ -118,7 +128,7 @@ const[loaded,setLoaded]=useState(false);
 const[clinicalFunding,setClinicalFunding]=useState(0);
 const[clinicalServices,setClinicalServices]=useState<{id:string;code:string;description:string;hours:number;rate:number;note:string}[]>([]);
 const[clinicalBudgetLinked,setClinicalBudgetLinked]=useState(false);
-const saveData={rates,lines,planDates,weeksOverride,calcMode,clinicalFunding,clinicalServices,clinicalBudgetLinked};useEffect(()=>{try{localStorage.setItem(STORAGE_KEY,JSON.stringify(saveData))}catch{}},[rates,lines,planDates,weeksOverride,calcMode,clinicalFunding,clinicalServices,clinicalBudgetLinked]);useCloudSync(STORAGE_KEY,saveData);
+const saveData={rates,lines,planDates,weeksOverride,calcMode,clinicalFunding,clinicalServices,clinicalBudgetLinked};useEffect(()=>{try{localStorage.setItem(STORAGE_KEY,JSON.stringify(saveData))}catch{}},[rates,lines,planDates,weeksOverride,calcMode,clinicalFunding,clinicalServices,clinicalBudgetLinked]);const saveState=useCloudSync(STORAGE_KEY,saveData);
 const perLine=useMemo(()=>{return lines.map(l=>{const lr=l.lineRates||rates;const wt=calcWeeklyCost(l,lr);const weeklyGST=wt*(lr.gstRate||0);const weeklyWithGST=wt+weeklyGST;const basePlanCost=calcDayCountPlanCost(l,srvStart,srvEnd,planWeeks,lr)*(1+(lr.gstRate||0));const phImpact=calcPHImpact(l,holidays,lr);const phAdjustment=phImpact.extraCost-phImpact.savedCost;const planTotal=basePlanCost+phAdjustment;const remaining=l.totalFunding-planTotal;const totalClaimed=(l.claims||[]).reduce((a:number,c:Claim)=>a+c.amount,0);const actualRemaining=l.totalFunding-totalClaimed;return{...l,weeklyTotal:wt,weeklyGST,weeklyWithGST,basePlanCost,phImpact,phAdjustment,planTotal,remaining,totalClaimed,actualRemaining}})},[lines,rates,planWeeks,holidays]);
 const totals=useMemo(()=>{const totalFunding=perLine.reduce((a,l)=>a+l.totalFunding,0);const weekly=perLine.reduce((a,l)=>a+l.weeklyWithGST,0);const planCost=perLine.reduce((a,l)=>a+l.planTotal,0);const totalPH=perLine.reduce((a,l)=>a+l.phAdjustment,0);const remaining=totalFunding-planCost;const totalClaimed=perLine.reduce((a,l)=>a+(l as any).totalClaimed,0);const actualRemaining=totalFunding-totalClaimed;return{totalFunding,weekly,planCost,totalPH,remaining,totalClaimed,actualRemaining}},[perLine]);
 const saRows=useMemo(()=>perLine.flatMap((l:any)=>{
@@ -147,7 +157,7 @@ function toggleHoliday(lineId:string,date:string){setLines(prev=>prev.map(l=>{if
 function setAllHolidays(lineId:string,include:boolean){setLines(prev=>prev.map(l=>l.id!==lineId?l:{...l,excludedHolidays:include?[]:holidays.map(h=>h.date)}))}
 function addLine(){setLines(prev=>[...prev,{id:uid(),code:"01",description:"New Support Line",totalFunding:0,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:0.99,kmFreq:"every",claims:[],lineRates:NDIS_RATES_2025_26}])}
 function updateLineCode(id:string,code:string){setLines(prev=>prev.map(l=>l.id!==id?l:{...l,code,lineRates:getPresetRates(code)}))}
-function deleteLine(id:string){setLines(prev=>(prev.length<=1?prev:prev.filter(l=>l.id!==id)))}
+function deleteLine(id:string){if(lines.length<=1)return;const l=lines.find(x=>x.id===id);const claimCount=l?.claims?.length||0;const msg='Delete support line "'+(l?.description||l?.code||"")+'"'+(claimCount>0?" and its "+claimCount+" logged claim"+(claimCount===1?"":"s"):"")+"? This cannot be undone.";if(!confirm(msg))return;setLines(prev=>(prev.length<=1?prev:prev.filter(x=>x.id!==id)))}
 const[openClaimsLines,setOpenClaimsLines]=useState<Set<string>>(new Set());
 const[openRatesLines,setOpenRatesLines]=useState<Set<string>>(new Set());
 function toggleRates(id:string){setOpenRatesLines(prev=>{const n=new Set(prev);n.has(id)?n.delete(id):n.add(id);return n})}
@@ -717,18 +727,20 @@ const clinicalStatus=getBudgetStatus(clinicalRemaining,clinicalFunding);
 const pace=useMemo(()=>{
   if(!srvStart||!srvEnd||totals.totalFunding<=0)return null;
   const today=new Date();const start=new Date(srvStart);const end=new Date(srvEnd);
-  if(today<start)return{status:"not_started",pctElapsed:0,weeksElapsed:0,expectedSpend:0,projectedSpendToDate:0,variance:0};
+  if(today<start)return{status:"not_started",pctElapsed:0,weeksElapsed:0,expectedSpend:0,projectedSpendToDate:0,variance:0,usingClaims:false};
   const effective=today>end?end:today;
   const weeksElapsed=(effective.getTime()-start.getTime())/(7*24*60*60*1000);
   const pctElapsed=Math.min(100,planWeeks>0?(weeksElapsed/planWeeks)*100:0);
   const expectedSpend=totals.totalFunding*(pctElapsed/100);
-  const projectedSpendToDate=totals.weekly*weeksElapsed;
+  // Prefer actual logged claims over the roster projection when the user tracks claims.
+  const usingClaims=totals.totalClaimed>0;
+  const projectedSpendToDate=usingClaims?totals.totalClaimed:totals.weekly*weeksElapsed;
   const variance=projectedSpendToDate-expectedSpend;
   const pctDiff=expectedSpend>0?(variance/expectedSpend)*100:0;
   const ended=today>end;
   const status=ended?"ended":pctDiff>5?"over_pace":pctDiff<-5?"under_pace":"on_pace";
-  return{status,pctElapsed,weeksElapsed,expectedSpend,projectedSpendToDate,variance,ended};
-},[srvStart,srvEnd,planWeeks,totals.totalFunding,totals.weekly]);
+  return{status,pctElapsed,weeksElapsed,expectedSpend,projectedSpendToDate,variance,ended,usingClaims};
+},[srvStart,srvEnd,planWeeks,totals.totalFunding,totals.weekly,totals.totalClaimed]);
 return(
 <main className="min-h-screen" style={{background:"#f8fafc",color: "#0f172a"}}>
 <div className="rounded-b-none" style={{background:"linear-gradient(135deg, #2d1b69 0%, #3d2787 50%, #2d1b69 100%)",padding:"28px 0",marginBottom:"24px"}}>
@@ -837,10 +849,10 @@ return(
           <div className="text-xs" style={{color:"#64748b"}}>based on time elapsed</div>
         </div>
         <div className="rounded-xl p-3" style={{background: "#ffffff",border:"1px solid rgba(212,168,67,0.35)"}}>
-          <div className="text-xs mb-1" style={{color:"#334155"}}>Projected spend to date</div>
+          <div className="text-xs mb-1" style={{color:"#334155"}}>{pace.usingClaims?"Actual claimed to date":"Projected spend to date"}</div>
           <div className="text-lg font-bold" style={{color:pc.color}}>{money(pace.projectedSpendToDate)}</div>
           <div className="text-xs" style={{color:"#64748b"}}>
-            {pace.variance>0?"+":""}{money(pace.variance)} vs expected
+            {pace.usingClaims?"from logged claims — ":""}{pace.variance>0?"+":""}{money(pace.variance)} vs expected
           </div>
         </div>
       </div>
@@ -852,8 +864,8 @@ return(
       <div style={{background:"rgba(15,23,42,0.08)",borderRadius:"6px",height:"10px",overflow:"hidden"}}>
         <div style={{width:Math.min(100,totals.totalFunding>0?(pace.projectedSpendToDate/totals.totalFunding)*100:0)+"%",height:"100%",borderRadius:"6px",background:"linear-gradient(90deg,"+pc.color+","+pc.color+"99)",transition:"width 0.3s"}}/>
       </div>
-      {pace.status==="over_pace"&&<div className="mt-3 text-sm" style={{color:"#ef4444"}}>Your roster is costing more than expected for this point in the plan. At this rate the budget will run out before the plan ends.</div>}
-      {pace.status==="under_pace"&&<div className="mt-3 text-sm" style={{color:"#f59e0b"}}>Spend is tracking below pace. This may indicate supports aren't being fully delivered — check if hours are being utilised.</div>}
+      {pace.status==="over_pace"&&<div className="mt-3 text-sm" style={{color:"#ef4444"}}>{pace.usingClaims?"Claims are running ahead of expected spend for this point in the plan. At this rate the budget will run out before the plan ends.":"Your roster is costing more than expected for this point in the plan. At this rate the budget will run out before the plan ends."}</div>}
+      {pace.status==="under_pace"&&<div className="mt-3 text-sm" style={{color:"#f59e0b"}}>{pace.usingClaims?"Claims are tracking below pace. This may indicate supports aren't being fully delivered — check if hours are being utilised.":"Spend is tracking below pace. This may indicate supports aren't being fully delivered — check if hours are being utilised."}</div>}
     </div>
   );
 })()}
@@ -920,7 +932,7 @@ return(
 <div className="text-sm mb-3 font-semibold" style={{color:"#d4a843"}}>Weekly Roster{lineMode==="weekday"&&<span style={{color:"#64748b",fontWeight:"normal",fontSize:"0.8rem",marginLeft:"8px"}}>Weekdays only</span>}</div>
 <div className="grid gap-2">
 {rosterDays.map(d=>{const r=l.roster[d];return(
-<div key={d} className="flex items-center gap-2 py-1" style={{borderBottom:"1px solid rgba(15,23,42,0.03)"}}>
+<div key={d} className="flex flex-wrap items-center gap-2 py-1" style={{borderBottom:"1px solid rgba(15,23,42,0.03)"}}>
 <div onClick={()=>updateRosterDay(l.id,d,{enabled:!r.enabled})} style={{width:"22px",height:"22px",borderRadius:"4px",flexShrink:0,background:r.enabled?"#22c55e":"rgba(239,68,68,0.2)",border:"1px solid "+(r.enabled?"#22c55e":"rgba(239,68,68,0.4)"),display:"flex",alignItems:"center",justifyContent:"center",color: "#0f172a",fontSize:"12px",cursor:"pointer"}}>{r.enabled?"✓":""}</div>
 <div style={{width:"80px",color:r.enabled?"#d4a843":"#64748b",fontWeight:"600",fontSize:"0.85rem"}}>{DL[d]}</div>
 <div className="flex items-center gap-1"><span className="text-xs" style={{color:"#475569"}}>Hrs:</span><SmallField value={r.hours} onChange={v=>updateRosterDay(l.id,d,{hours:v})} disabled={!r.enabled}/></div>
@@ -1179,8 +1191,8 @@ return(
     <button onClick={()=>setClinicalServices(p=>[...p,{id:uid(),code:"15",description:"",hours:0,rate:CATEGORY_PRESETS["15"].rates.weekdayOrd,note:""}])} style={{background:"rgba(100,150,212,0.12)",border:"1px solid rgba(100,150,212,0.3)",color:"#1e40af",padding:"5px 12px",borderRadius:"8px",cursor:"pointer",fontSize:"0.8rem",fontWeight:600}}>+ Add service</button>
   </div>
 
-  <div className="rounded-xl mb-5" style={{border:"1px solid rgba(100,150,212,0.15)",overflow:"hidden"}}>
-    <div className="grid px-3 py-2" style={{gridTemplateColumns:"1.8fr 2.5fr 1fr 1.3fr 1.5fr auto",gap:"8px",background:"rgba(100,150,212,0.07)"}}>
+  <div className="rounded-xl mb-5" style={{border:"1px solid rgba(100,150,212,0.15)",overflowX:"auto"}}>
+    <div className="grid px-3 py-2" style={{gridTemplateColumns:"1.8fr 2.5fr 1fr 1.3fr 1.5fr auto",gap:"8px",background:"rgba(100,150,212,0.07)",minWidth:"640px"}}>
       <div className="text-xs font-semibold" style={{color:"#64748b"}}>Category</div>
       <div className="text-xs font-semibold" style={{color:"#64748b"}}>Service Description</div>
       <div className="text-xs font-semibold" style={{color:"#64748b"}}>Hours</div>
@@ -1189,7 +1201,7 @@ return(
       <div/>
     </div>
     {clinicalServices.map((si,idx)=>(
-      <div key={si.id} className="grid px-3 py-2" style={{gridTemplateColumns:"1.8fr 2.5fr 1fr 1.3fr 1.5fr auto",gap:"8px",alignItems:"center",borderTop:"1px solid rgba(100,150,212,0.1)"}}>
+      <div key={si.id} className="grid px-3 py-2" style={{gridTemplateColumns:"1.8fr 2.5fr 1fr 1.3fr 1.5fr auto",gap:"8px",alignItems:"center",borderTop:"1px solid rgba(100,150,212,0.1)",minWidth:"640px"}}>
         <select value={si.code||"15"} onChange={e=>{const i=idx;const c=e.target.value;const preset=CATEGORY_PRESETS[c]?.rates.weekdayOrd||0;setClinicalServices(p=>p.map((x,j)=>j===i?{...x,code:c,rate:preset,description:x.description||CATEGORY_PRESETS[c]?.name||""}:x))}}
           className="rounded px-2 py-1 text-xs outline-none" style={{background: "#ffffff",border:"1px solid rgba(100,150,212,0.15)",color: "#0f172a"}}>
           {["07","11","12","13","14","15","20"].map(v=>(
@@ -1233,7 +1245,7 @@ return(
 </div>
 )}
 
-<div className="text-xs mt-8" style={{color:"#64748b"}}>Auto-saves in your browser.</div>
+<div className="text-xs mt-8" style={{color:saveState==="saving"?"#d4a843":"#64748b"}}>{saveState==="saving"?"Saving changes…":saveState==="saved"?"All changes saved ✓":"Auto-saves as you work."}</div>
 <div className="text-xs mt-2 mb-8" style={{color:"#64748b"}}>Powered by <span style={{color:"#d4a843"}}>Kevria</span></div>
 </div>
 
@@ -1243,7 +1255,7 @@ return(
     <div style={{fontSize:"1.8rem",color:"#d4a843",marginBottom:"12px"}}>✦</div>
     <h2 style={{fontSize:"1.5rem",fontWeight:800,color: "#2d1b69",marginBottom:"8px"}}>What are you calculating for{participantName?" "+participantName:""}?</h2>
     <p style={{color:"#475569",fontSize:"0.88rem",marginBottom:"32px",lineHeight:1.6}}>Choose the type of support. This sets up the right calculator view.<br/>You can change it any time from the Plan Details section.</p>
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"14px"}}>
+    <div className="grid grid-cols-1 sm:grid-cols-3" style={{gap:"14px"}}>
       <button onClick={()=>setCalcMode("sil")} style={{padding:"28px 16px",background:"#fdf6e3",border:"2px solid #d4a843",borderRadius:"16px",cursor:"pointer",textAlign:"center",boxShadow:"0 1px 3px rgba(15,23,42,0.06)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:"12px"}}>🏠</div>
         <div style={{color:"#b8901a",fontWeight:700,fontSize:"1rem",marginBottom:"8px"}}>SIL / Core Supports</div>
@@ -1397,15 +1409,15 @@ return(
     <div className="text-xs font-semibold" style={{color:"#64748b",textTransform:"uppercase",letterSpacing:"0.06em"}}>NDIS Price Guide Items</div>
     <button onClick={()=>setClinicalPriceItems(p=>[...p,{id:uid(),itemCode:"",description:"",rate:0}])} style={{background:"rgba(100,150,212,0.12)",border:"1px solid rgba(100,150,212,0.3)",color:"#1e40af",padding:"4px 10px",borderRadius:"6px",cursor:"pointer",fontSize:"0.78rem"}}>+ Add row</button>
   </div>
-  <div className="rounded-lg p-3 mb-5" style={{background:"rgba(15,23,42,0.03)",border:"1px solid rgba(15,23,42,0.07)"}}>
-    <div className="grid mb-1" style={{gridTemplateColumns:"2.2fr 3fr 1.4fr auto",gap:"6px"}}>
+  <div className="rounded-lg p-3 mb-5" style={{background:"rgba(15,23,42,0.03)",border:"1px solid rgba(15,23,42,0.07)",overflowX:"auto"}}>
+    <div className="grid mb-1" style={{gridTemplateColumns:"2.2fr 3fr 1.4fr auto",gap:"6px",minWidth:"480px"}}>
       <div className="text-xs" style={{color:"#64748b"}}>Item Code</div>
       <div className="text-xs" style={{color:"#64748b"}}>Description</div>
       <div className="text-xs" style={{color:"#64748b"}}>Rate / hr ($)</div>
       <div/>
     </div>
     {clinicalPriceItems.map((pi,idx)=>(
-      <div key={pi.id} className="grid mb-2" style={{gridTemplateColumns:"2.2fr 3fr 1.4fr auto",gap:"6px",alignItems:"center"}}>
+      <div key={pi.id} className="grid mb-2" style={{gridTemplateColumns:"2.2fr 3fr 1.4fr auto",gap:"6px",alignItems:"center",minWidth:"480px"}}>
         <input value={pi.itemCode} onChange={e=>{const i=idx;setClinicalPriceItems(p=>p.map((x,j)=>j===i?{...x,itemCode:e.target.value}:x))}} placeholder="15_056_0128_1_3"
           className="rounded px-2 py-1 text-xs outline-none"
           style={{background: "#ffffff",border:"1px solid rgba(100,150,212,0.2)",color: "#0f172a",fontFamily:"monospace"}}/>
@@ -1425,8 +1437,8 @@ return(
     <div className="text-xs font-semibold" style={{color:"#64748b",textTransform:"uppercase",letterSpacing:"0.06em"}}>Schedule of Services</div>
     <button onClick={()=>setClinicalScheduleItems(p=>[...p,{id:uid(),description:"",hours:0,rate:0,note:""}])} style={{background:"rgba(100,150,212,0.12)",border:"1px solid rgba(100,150,212,0.3)",color:"#1e40af",padding:"4px 10px",borderRadius:"6px",cursor:"pointer",fontSize:"0.78rem"}}>+ Add row</button>
   </div>
-  <div className="rounded-lg p-3 mb-5" style={{background:"rgba(15,23,42,0.03)",border:"1px solid rgba(15,23,42,0.07)"}}>
-    <div className="grid mb-1" style={{gridTemplateColumns:"3fr 1fr 1.4fr 2fr auto",gap:"6px"}}>
+  <div className="rounded-lg p-3 mb-5" style={{background:"rgba(15,23,42,0.03)",border:"1px solid rgba(15,23,42,0.07)",overflowX:"auto"}}>
+    <div className="grid mb-1" style={{gridTemplateColumns:"3fr 1fr 1.4fr 2fr auto",gap:"6px",minWidth:"520px"}}>
       <div className="text-xs" style={{color:"#64748b"}}>Service Description</div>
       <div className="text-xs" style={{color:"#64748b"}}>Hours</div>
       <div className="text-xs" style={{color:"#64748b"}}>Rate (0=default)</div>
@@ -1434,7 +1446,7 @@ return(
       <div/>
     </div>
     {clinicalScheduleItems.map((si,idx)=>(
-      <div key={si.id} className="grid mb-2" style={{gridTemplateColumns:"3fr 1fr 1.4fr 2fr auto",gap:"6px",alignItems:"center"}}>
+      <div key={si.id} className="grid mb-2" style={{gridTemplateColumns:"3fr 1fr 1.4fr 2fr auto",gap:"6px",alignItems:"center",minWidth:"520px"}}>
         <input value={si.description} onChange={e=>{const i=idx;setClinicalScheduleItems(p=>p.map((x,j)=>j===i?{...x,description:e.target.value}:x))}} placeholder="e.g. Comprehensive BSP Development"
           className="rounded px-2 py-1 text-xs outline-none"
           style={{background: "#ffffff",border:"1px solid rgba(100,150,212,0.2)",color: "#0f172a"}}/>

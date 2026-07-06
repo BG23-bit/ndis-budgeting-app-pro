@@ -268,9 +268,17 @@ export default function DashboardPage() {
   };
 
   const deleteParticipant = (id: string) => {
-    if (!confirm("Delete this participant and all their data?")) return;
-    setParticipants((prev) => prev.filter((p) => p.id !== id));
+    const p = participants.find((x) => x.id === id);
+    if (!confirm(`Delete ${p?.name || "this participant"} and all their data? This cannot be undone.`)) return;
+    setParticipants((prev) => prev.filter((x) => x.id !== id));
     try { localStorage.removeItem("ndis_participant_" + id); } catch {}
+    // Also remove their calculator data from the cloud so it doesn't linger on other devices.
+    if (user?.id) {
+      supabase.from("calculator_data").delete()
+        .eq("user_id", user.id)
+        .eq("participant_id", "ndis_participant_" + id)
+        .then(({ error }: { error: any }) => { if (error) console.error("Cloud delete error:", error); });
+    }
   };
 
   const openEdit = (p: Participant) => {
@@ -464,7 +472,7 @@ export default function DashboardPage() {
                   onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "rgba(241,245,249,0.6)"; }}
                   onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "rgba(241,245,249,0.4)"; }}
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-4">
                       <div style={{
                         width: "48px", height: "48px", borderRadius: "50%",
@@ -480,7 +488,7 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-wrap items-center gap-3">
                       <div className="text-right" style={{ minWidth: "120px" }}>
                         <div className="text-sm" style={{ color: "#334155" }}>Funding</div>
                         <div className="font-semibold" style={{ color: "#d4a843" }}>{money(budget.totalFunding)}</div>
@@ -666,7 +674,7 @@ export default function DashboardPage() {
         )}
 
         <div className="text-xs mt-8" style={{ color: "#64748b" }}>
-          Auto-saves in your browser.
+          Data syncs to your account automatically.
         </div>
         <div className="text-xs mt-2 mb-8" style={{ color: "#64748b" }}>
           Powered by <span style={{ color: "#d4a843" }}>Kevria</span>
