@@ -479,17 +479,17 @@ export default function DashboardPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-8">
-          <div className="rounded-2xl p-5" style={{ background: "#ffffff", border: "1px solid rgba(212,168,67,0.45)" }}>
+          <div className="kv-card p-5">
             <div className="text-sm" style={{ color: "#334155" }}>Total Participants</div>
             <div className="text-3xl font-bold" style={{ color: "#d4a843" }}>{participants.length}</div>
           </div>
-          <div className="rounded-2xl p-5" style={{ background: "#ffffff", border: "1px solid rgba(212,168,67,0.45)" }}>
+          <div className="kv-card p-5">
             <div className="text-sm" style={{ color: "#334155" }}>Total Funding</div>
             <div className="text-3xl font-bold" style={{ color: "#d4a843" }}>
               {money(participants.reduce((a, p) => a + budgetFor(p.id).totalFunding, 0))}
             </div>
           </div>
-          <div className="rounded-2xl p-5" style={{ background: "#ffffff", border: "1px solid rgba(212,168,67,0.45)" }}>
+          <div className="kv-card p-5">
             <div className="text-sm" style={{ color: "#334155" }}>Total Remaining</div>
             <div className="text-3xl font-bold" style={{
               color: participants.reduce((a, p) => a + budgetFor(p.id).remaining, 0) < 0 ? "#ef4444" : "#22c55e"
@@ -501,7 +501,7 @@ export default function DashboardPage() {
 
         {/* Participant Cards */}
         {participants.length === 0 ? (
-          <div className="rounded-2xl p-12 text-center" style={{ background: "#ffffff", border: "1px solid rgba(212,168,67,0.45)" }}>
+          <div className="kv-card p-12 text-center">
             <div style={{ fontSize: "3rem", marginBottom: "15px" }}>👤</div>
             <h2 className="text-xl font-semibold mb-2" style={{ color: "#2d1b69" }}>No Participants Yet</h2>
             <p className="mb-6" style={{ color: "#334155" }}>Add your first NDIS participant to get started.</p>

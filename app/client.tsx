@@ -42,13 +42,13 @@ iframe.onload=()=>{
 document.body.appendChild(iframe);
 }
 function downloadTextFile(fn:string,text:string){const type=fn.endsWith(".csv")?"text/csv;charset=utf-8":"text/plain;charset=utf-8";const blob=new Blob([text],{type});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=fn;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url)}
-function Field(p:{label:string;value:number;step?:number;onChange:(v:number)=>void}){return(<label className="block"><div className="text-sm mb-1" style={{color:"#334155"}}>{p.label}</div><input type="number" step={p.step??1} value={Number.isFinite(p.value)?p.value:0} onChange={e=>p.onChange(num(e.target.value))} onFocus={e=>e.target.select()} className="w-full rounded-lg px-3 py-2 outline-none" style={{background: "#ffffff",border:"1px solid rgba(212,168,67,0.45)",color: "#0f172a"}}/></label>)}
-function SmallField(p:{value:number;step?:number;onChange:(v:number)=>void;disabled?:boolean}){return(<input type="number" step={p.step??0.25} value={p.value||""} placeholder="0" onChange={e=>p.onChange(num(e.target.value))} onFocus={e=>e.target.select()} disabled={p.disabled} className="rounded-lg px-2 py-1 outline-none w-16 text-center" style={{background:p.disabled?"rgba(241,245,249,0.3)":"rgba(241,245,249,0.6)",border:"1px solid rgba(212,168,67,0.45)",color:p.disabled?"#64748b":"#0f172a",fontSize:"0.85rem"}}/>)}
-function TextField(p:{label:string;value:string;onChange:(v:string)=>void}){return(<label className="block"><div className="text-sm mb-1" style={{color:"#334155"}}>{p.label}</div><input value={p.value} onChange={e=>p.onChange(e.target.value)} className="w-full rounded-lg px-3 py-2 outline-none" style={{background: "#ffffff",border:"1px solid rgba(212,168,67,0.45)",color: "#0f172a"}}/></label>)}
-function DateField(p:{label:string;value:string;onChange:(v:string)=>void}){return(<label className="block"><div className="text-sm mb-1" style={{color:"#334155"}}>{p.label}</div><input type="date" value={p.value} onChange={e=>p.onChange(e.target.value)} className="w-full rounded-lg px-3 py-2 outline-none" style={{background: "#ffffff",border:"1px solid rgba(212,168,67,0.45)",color: "#0f172a"}}/></label>)}
-function SelectField(p:{label:string;value:string;options:{value:string;label:string}[];onChange:(v:string)=>void}){return(<label className="block"><div className="text-sm mb-1" style={{color:"#334155"}}>{p.label}</div><select value={p.value} onChange={e=>p.onChange(e.target.value)} className="w-full rounded-lg px-3 py-2 outline-none" style={{background: "#ffffff",border:"1px solid rgba(212,168,67,0.45)",color: "#0f172a"}}>{p.options.map(o=>(<option key={o.value} value={o.value}>{o.label}</option>))}</select></label>)}
-function SmallSelect(p:{value:string;options:{value:string;label:string}[];onChange:(v:string)=>void;disabled?:boolean}){return(<select value={p.value} onChange={e=>p.onChange(e.target.value)} disabled={p.disabled} className="rounded-lg px-2 py-1 outline-none" style={{background:p.disabled?"rgba(241,245,249,0.3)":"rgba(241,245,249,0.6)",border:"1px solid rgba(212,168,67,0.45)",color:p.disabled?"#64748b":"#0f172a",fontSize:"0.8rem"}}>{p.options.map(o=>(<option key={o.value} value={o.value}>{o.label}</option>))}</select>)}
-function getBudgetStatus(remaining:number,totalFunding:number){const pct=totalFunding>0?(remaining/totalFunding)*100:0;if(remaining<0)return{color:"#ef4444",bg:"rgba(239,68,68,0.1)",label:"OVER BUDGET",border:"rgba(239,68,68,0.3)"};if(pct<10)return{color:"#f59e0b",bg:"rgba(245,158,11,0.1)",label:"LOW BUDGET",border:"rgba(245,158,11,0.3)"};return{color:"#22c55e",bg:"rgba(34,197,94,0.1)",label:"ON TRACK",border:"rgba(34,197,94,0.3)"}}
+function Field(p:{label:string;value:number;step?:number;onChange:(v:number)=>void}){return(<label className="block"><div className="text-sm mb-1" style={{color:"#334155"}}>{p.label}</div><input type="number" step={p.step??1} value={Number.isFinite(p.value)?p.value:0} onChange={e=>p.onChange(num(e.target.value))} onFocus={e=>e.target.select()} className="kv-input w-full rounded-lg px-3 py-2"/></label>)}
+function SmallField(p:{value:number;step?:number;onChange:(v:number)=>void;disabled?:boolean}){return(<input type="number" step={p.step??0.25} value={p.value||""} placeholder="0" onChange={e=>p.onChange(num(e.target.value))} onFocus={e=>e.target.select()} disabled={p.disabled} className="kv-input kv-money rounded-lg px-2 py-1 w-16 text-center" style={{fontSize:"0.85rem"}}/>)}
+function TextField(p:{label:string;value:string;onChange:(v:string)=>void}){return(<label className="block"><div className="text-sm mb-1" style={{color:"#334155"}}>{p.label}</div><input value={p.value} onChange={e=>p.onChange(e.target.value)} className="kv-input w-full rounded-lg px-3 py-2"/></label>)}
+function DateField(p:{label:string;value:string;onChange:(v:string)=>void}){return(<label className="block"><div className="text-sm mb-1" style={{color:"#334155"}}>{p.label}</div><input type="date" value={p.value} onChange={e=>p.onChange(e.target.value)} className="kv-input w-full rounded-lg px-3 py-2"/></label>)}
+function SelectField(p:{label:string;value:string;options:{value:string;label:string}[];onChange:(v:string)=>void}){return(<label className="block"><div className="text-sm mb-1" style={{color:"#334155"}}>{p.label}</div><select value={p.value} onChange={e=>p.onChange(e.target.value)} className="kv-input w-full rounded-lg px-3 py-2">{p.options.map(o=>(<option key={o.value} value={o.value}>{o.label}</option>))}</select></label>)}
+function SmallSelect(p:{value:string;options:{value:string;label:string}[];onChange:(v:string)=>void;disabled?:boolean}){return(<select value={p.value} onChange={e=>p.onChange(e.target.value)} disabled={p.disabled} className="kv-input rounded-lg px-2 py-1" style={{fontSize:"0.8rem"}}>{p.options.map(o=>(<option key={o.value} value={o.value}>{o.label}</option>))}</select>)}
+function getBudgetStatus(remaining:number,totalFunding:number){if(totalFunding<=0)return{color:"#64748b",bg:"rgba(100,116,139,0.08)",label:"NOT SET UP",border:"rgba(100,116,139,0.25)"};const pct=(remaining/totalFunding)*100;if(remaining<0)return{color:"#ef4444",bg:"rgba(239,68,68,0.1)",label:"OVER BUDGET",border:"rgba(239,68,68,0.3)"};if(pct<10)return{color:"#f59e0b",bg:"rgba(245,158,11,0.1)",label:"LOW BUDGET",border:"rgba(245,158,11,0.3)"};return{color:"#22c55e",bg:"rgba(34,197,94,0.1)",label:"ON TRACK",border:"rgba(34,197,94,0.3)"}}
 function calcWeeklyCost(line:SupportLine,rates:Rates){const divisor=RATIOS[line.ratio]?.divisor||1;let wt=0;for(const d of DAYS){const r=line.roster[d];if(!r||!r.enabled)continue;const fm=FREQ[r.frequency]?.multiplier||1;const isSat=d==="sat";const isSun=d==="sun";const dr=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayOrd/divisor;const nr=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayNight/divisor;wt+=(r.hours*dr+r.nightHours*nr)*fm}const sf=FREQ[line.activeSleepoverFreq]?.multiplier||1;wt+=line.activeSleepoverHours*(rates.activeSleepoverHourly/divisor)*sf;const ff=FREQ[line.fixedSleepoverFreq]?.multiplier||1;wt+=line.fixedSleepovers*rates.fixedSleepoverUnit*ff;const kf=FREQ[line.kmFreq]?.multiplier||1;wt+=line.kmsPerWeek*line.kmRate*kf;return wt}
 export function calcPHImpact(line:SupportLine,holidays:{date:string;name:string;dayOfWeek:number}[],rates:Rates){const divisor=RATIOS[line.ratio]?.divisor||1;let extraCost=0,savedCost=0;const dm:{[k:number]:string}={0:"sun",1:"mon",2:"tue",3:"wed",4:"thu",5:"fri",6:"sat"};const details:{name:string;date:string;day:string;impact:number;included:boolean}[]=[];for(const h of holidays){const isExcluded=line.excludedHolidays.includes(h.date);const rd=dm[h.dayOfWeek];const r=line.roster[rd];if(!r||!r.enabled){details.push({name:h.name,date:h.date,day:getDayName(h.dayOfWeek),impact:0,included:!isExcluded});continue}const isSat=rd==="sat";const isSun=rd==="sun";const normalDayRate=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayOrd/divisor;const normalNightRate=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayNight/divisor;const phRate=rates.publicHoliday/divisor;if(!isExcluded){const extra=(phRate-normalDayRate)*r.hours+(phRate-normalNightRate)*r.nightHours;extraCost+=extra;details.push({name:h.name,date:h.date,day:getDayName(h.dayOfWeek),impact:extra,included:true})}else{const saved=normalDayRate*r.hours+normalNightRate*r.nightHours;savedCost+=saved;details.push({name:h.name,date:h.date,day:getDayName(h.dayOfWeek),impact:saved,included:false})}}return{extraCost,savedCost,details}}
 function getSuggestions(line:any,rates:Rates){if(line.remaining>=0)return[];const suggestions:string[]=[];const roster=line.roster||{};if(roster.sun?.enabled&&roster.sun.hours>0){const s=rates.sun-rates.weekdayOrd;suggestions.push("Reduce Sunday hours - saves "+money(s*roster.sun.hours*52)+"/yr")}if(roster.sat?.enabled&&roster.sat.hours>0){const s=rates.sat-rates.weekdayOrd;suggestions.push("Reduce Saturday hours - saves "+money(s*roster.sat.hours*52)+"/yr")}if(line.fixedSleepovers>0){suggestions.push("Remove 1 fixed sleepover/wk - saves "+money(rates.fixedSleepoverUnit*52)+"/yr")}if(line.kmsPerWeek>0){suggestions.push("Reduce KMs - currently "+money(line.kmsPerWeek*line.kmRate*52)+"/yr")}return suggestions.slice(0,3)}
@@ -120,7 +120,11 @@ const[loaded,setLoaded]=useState(false);
 const[clinicalFunding,setClinicalFunding]=useState(0);
 const[clinicalServices,setClinicalServices]=useState<{id:string;code:string;description:string;hours:number;rate:number;note:string}[]>([]);
 const[clinicalBudgetLinked,setClinicalBudgetLinked]=useState(false);
-const saveData={rates,lines,planDates,weeksOverride,calcMode,clinicalFunding,clinicalServices,clinicalBudgetLinked};useEffect(()=>{try{localStorage.setItem(STORAGE_KEY,JSON.stringify(saveData))}catch{}},[rates,lines,planDates,weeksOverride,calcMode,clinicalFunding,clinicalServices,clinicalBudgetLinked]);const saveState=useCloudSync(STORAGE_KEY,saveData);
+const saveData={rates,lines,planDates,weeksOverride,calcMode,clinicalFunding,clinicalServices,clinicalBudgetLinked};
+// Don't persist until the initial load has finished — otherwise the mount-time save
+// overwrites stored data with defaults before the async load can read it.
+useEffect(()=>{if(!loaded)return;try{localStorage.setItem(STORAGE_KEY,JSON.stringify(saveData))}catch{}},[loaded,rates,lines,planDates,weeksOverride,calcMode,clinicalFunding,clinicalServices,clinicalBudgetLinked]);
+const saveState=useCloudSync(loaded?STORAGE_KEY:"",saveData);
 const perLine=useMemo(()=>{return lines.map(l=>{const lr=l.lineRates||rates;const wt=calcWeeklyCost(l,lr);const weeklyGST=wt*(lr.gstRate||0);const weeklyWithGST=wt+weeklyGST;const basePlanCost=calcDayCountPlanCost(l,srvStart,srvEnd,planWeeks,lr)*(1+(lr.gstRate||0));const phImpact=calcPHImpact(l,holidays,lr);const phAdjustment=phImpact.extraCost-phImpact.savedCost;const planTotal=basePlanCost+phAdjustment;const remaining=l.totalFunding-planTotal;const totalClaimed=(l.claims||[]).reduce((a:number,c:Claim)=>a+c.amount,0);const actualRemaining=l.totalFunding-totalClaimed;return{...l,weeklyTotal:wt,weeklyGST,weeklyWithGST,basePlanCost,phImpact,phAdjustment,planTotal,remaining,totalClaimed,actualRemaining}})},[lines,rates,planWeeks,holidays]);
 const totals=useMemo(()=>{const totalFunding=perLine.reduce((a,l)=>a+l.totalFunding,0);const weekly=perLine.reduce((a,l)=>a+l.weeklyWithGST,0);const planCost=perLine.reduce((a,l)=>a+l.planTotal,0);const totalPH=perLine.reduce((a,l)=>a+l.phAdjustment,0);const remaining=totalFunding-planCost;const totalClaimed=perLine.reduce((a,l)=>a+(l as any).totalClaimed,0);const actualRemaining=totalFunding-totalClaimed;return{totalFunding,weekly,planCost,totalPH,remaining,totalClaimed,actualRemaining}},[perLine]);
 const saRows=useMemo(()=>perLine.flatMap((l:any)=>{
@@ -781,20 +785,42 @@ const pace=useMemo(()=>{
   return{status,pctElapsed,weeksElapsed,expectedSpend,projectedSpendToDate,variance,ended,usingClaims};
 },[srvStart,srvEnd,planWeeks,totals.totalFunding,totals.weekly,totals.totalClaimed]);
 return(
-<main className="min-h-screen" style={{background:"#f8fafc",color: "#0f172a"}}>
-<div className="rounded-b-none" style={{background:"linear-gradient(135deg, #2d1b69 0%, #3d2787 50%, #2d1b69 100%)",padding:"28px 0",marginBottom:"24px"}}>
-<div className="mx-auto max-w-6xl px-6">
-<div className="flex items-center justify-between">
-<div className="flex items-center gap-3"><span style={{fontSize:"1.6rem",color:"#d4a843"}}>✦</span><h1 className="text-3xl font-bold" style={{color:"#ffffff"}}>Kevria Calc</h1></div>
-{userEmail&&<span className="text-sm" style={{color:"rgba(255,255,255,0.7)"}}>{userEmail}</span>}
+<main className="min-h-screen" style={{background:"#f5f6fa",color: "#0f172a"}}>
+<div style={{background:"linear-gradient(135deg, #241456 0%, #2d1b69 45%, #3d2787 100%)",position:"relative",overflow:"hidden",padding:"34px 0 30px"}}>
+<div style={{position:"absolute",top:"-120px",right:"-60px",width:"380px",height:"380px",borderRadius:"50%",background:"radial-gradient(circle, rgba(212,168,67,0.22), transparent 65%)"}}/>
+<div style={{position:"absolute",bottom:"-140px",left:"12%",width:"300px",height:"300px",borderRadius:"50%",background:"radial-gradient(circle, rgba(255,255,255,0.06), transparent 65%)"}}/>
+<div className="mx-auto max-w-6xl px-6" style={{position:"relative"}}>
+<div className="flex items-center justify-between flex-wrap gap-3">
+<div>
+<div className="flex items-center gap-3"><span style={{fontSize:"1.5rem",color:"#d4a843",filter:"drop-shadow(0 0 12px rgba(212,168,67,0.7))"}}>✦</span><h1 className="text-3xl font-bold tracking-tight" style={{color:"#ffffff"}}>Kevria Calc</h1></div>
+<div className="text-sm mt-1.5" style={{color:"rgba(255,255,255,0.6)"}}>{participantName?<>Budget workspace for <span style={{color:"#d4a843",fontWeight:600}}>{participantName}</span></>:<>Powered by <span style={{color:"#d4a843",fontWeight:600}}>Kevria</span></>}</div>
 </div>
-<div className="text-sm mt-1" style={{color:"rgba(255,255,255,0.65)"}}>Powered by <span style={{color:"#d4a843",fontWeight:600}}>Kevria</span></div>
+{userEmail&&<span className="text-xs px-3 py-1.5 rounded-full" style={{color:"rgba(255,255,255,0.75)",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.14)"}}>{userEmail}</span>}
 </div>
 </div>
+</div>
+{calcMode!==null&&showSil?(
+<div style={{position:"sticky",top:0,zIndex:40,background:"rgba(245,246,250,0.88)",backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",borderBottom:"1px solid #e9eaf2",marginBottom:"24px"}}>
+<div className="mx-auto max-w-6xl px-6 py-2.5 flex items-center justify-between gap-3 flex-wrap">
+<div className="flex items-center gap-2 flex-wrap">
+{([["sec-plan","Plan details",!!(planDates.start&&planDates.end&&new Date(planDates.end)>new Date(planDates.start))],["sec-budget","Funding",totals.totalFunding>0],["sec-lines","Roster",totals.weekly>0]] as [string,string,boolean][]).map(([id,label,done],i)=>(
+<button key={id} type="button" className={"kv-step"+(done?" done":"")} onClick={()=>document.getElementById(id)?.scrollIntoView({behavior:"smooth",block:"start"})}>
+<span className="dot">{done?"✓":i+1}</span>{label}
+</button>
+))}
+</div>
+<div className="flex items-center gap-2">
+<span className="kv-label">Remaining</span>
+<span className="kv-money font-bold" style={{color:totalStatus.color}}>{money(totals.remaining)}</span>
+<span className="text-xs font-semibold px-2.5 py-0.5 rounded-full" style={{background:totalStatus.bg,color:totalStatus.color,border:"1px solid "+totalStatus.border}}>{totalStatus.label}</span>
+</div>
+</div>
+</div>
+):(<div style={{height:"24px"}}/>)}
 <div className="mx-auto max-w-6xl p-6 pt-0">
 
-<div className="rounded-2xl p-6 mb-6" style={{background: "#ffffff",border:"1px solid rgba(212,168,67,0.45)",boxShadow:"0 1px 3px rgba(15,23,42,0.05), 0 1px 2px rgba(15,23,42,0.04)"}}>
-<div className="flex items-center justify-between mb-4"><h2 className="text-xl font-semibold" style={{color:"#d4a843"}}>Plan Details</h2>{calcMode&&<button onClick={()=>setCalcMode(null)} style={{fontSize:"0.72rem",color:"#64748b",background:"rgba(15,23,42,0.04)",border:"1px solid rgba(15,23,42,0.1)",borderRadius:"6px",padding:"4px 10px",cursor:"pointer"}}>{calcMode==="sil"?"SIL / Core":calcMode==="clinical"?"Clinical / Therapy":"SIL + Clinical"} · change mode</button>}</div>
+<div className="kv-card p-6 mb-6">
+<div id="sec-plan" className="flex items-center justify-between mb-4" style={{scrollMarginTop:"70px"}}><div className="flex items-center gap-3"><span className="kv-num">1</span><h2 className="text-xl font-semibold" style={{color:"#2d1b69"}}>Plan Details</h2></div>{calcMode&&<button onClick={()=>setCalcMode(null)} style={{fontSize:"0.72rem",color:"#64748b",background:"rgba(15,23,42,0.04)",border:"1px solid rgba(15,23,42,0.1)",borderRadius:"6px",padding:"4px 10px",cursor:"pointer"}}>{calcMode==="sil"?"SIL / Core":calcMode==="clinical"?"Clinical / Therapy":"SIL + Clinical"} · change mode</button>}</div>
 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
 <DateField label="Plan Start Date" value={planDates.start} onChange={v=>setPlanDates(p=>({...p,start:v}))}/>
 <DateField label="Plan End Date" value={planDates.end} onChange={v=>setPlanDates(p=>({...p,end:v}))}/>
@@ -829,40 +855,52 @@ return(
 {planUploadError&&<div className="w-full mt-1"><span style={{color:"#ef4444",fontSize:"0.85rem"}}>{planUploadError}</span></div>}
 </div>
 </div>
-{holidays.length>0&&(<div className="mt-4"><div className="text-sm font-semibold mb-2" style={{color:"#334155"}}>Public Holidays in Plan Period:</div>
-<div className="grid grid-cols-1 gap-1 sm:grid-cols-2 lg:grid-cols-3">{holidays.map((h,i)=>(<div key={i} className="text-sm py-1 px-2 rounded" style={{background:"rgba(15,23,42,0.03)"}}><span style={{color:"#d4a843"}}>{h.date}</span> <span style={{color:"#475569"}}>({getDayName(h.dayOfWeek)})</span> <span style={{color:"#334155"}}>{h.name}</span></div>))}</div></div>)}
+{holidays.length>0&&(<details className="kv-fold mt-4">
+<summary className="flex items-center gap-2 text-sm font-semibold py-2" style={{color:"#334155"}}><span style={{color:"#d4a843"}}>▸</span>{holidays.length} public holidays in this plan period <span style={{color:"#94a3b8",fontWeight:"normal"}}>— view list</span></summary>
+<div className="grid grid-cols-1 gap-1 sm:grid-cols-2 lg:grid-cols-3 mt-1">{holidays.map((h,i)=>(<div key={i} className="text-sm py-1 px-2 rounded" style={{background:"rgba(15,23,42,0.03)"}}><span className="kv-money" style={{color:"#b8901a"}}>{h.date}</span> <span style={{color:"#94a3b8"}}>({getDayName(h.dayOfWeek).slice(0,3)})</span> <span style={{color:"#334155"}}>{h.name}</span></div>))}</div></details>)}
 </div>
 
-{showSil&&<><div className="rounded-2xl p-6 mb-6" style={{background:"linear-gradient(135deg, rgba(241,245,249,0.8), rgba(45,27,105,0.8))",border:"2px solid "+totalStatus.border}}>
-<div className="flex items-center justify-between mb-4">
-<div className="grid gap-2">
-<div>Combined funding: <span className="font-semibold" style={{color:"#d4a843"}}>{money(totals.totalFunding)}</span></div>
-<div>Weekly cost: <span className="font-semibold">{money(totals.weekly)}</span></div>
-<div>PH adjustment: <span className="font-semibold" style={{color:totals.totalPH>0?"#ef4444":totals.totalPH<0?"#22c55e":"#334155"}}>{totals.totalPH>0?"+":""}{money(totals.totalPH)}</span></div>
-<div>Plan cost: <span className="font-semibold">{money(totals.planCost)}</span></div>
-{totals.totalClaimed>0&&<div>Actual claimed: <span className="font-semibold" style={{color:"#22c55e"}}>{money(totals.totalClaimed)}</span> <span style={{color:"#64748b",fontSize:"0.85em"}}>({money(totals.actualRemaining)} remaining)</span></div>}
+{showSil&&<><div className="rounded-2xl p-6 mb-6" id="sec-budget" style={{scrollMarginTop:"70px",background:"linear-gradient(135deg, #241456 0%, #2d1b69 55%, #3d2787 100%)",boxShadow:"0 14px 40px -18px rgba(35,20,86,0.55)",position:"relative",overflow:"hidden"}}>
+<div style={{position:"absolute",top:"-100px",right:"-40px",width:"320px",height:"320px",borderRadius:"50%",background:"radial-gradient(circle, rgba(212,168,67,0.16), transparent 65%)"}}/>
+<div style={{position:"relative"}}>
+<div className="flex items-center justify-between flex-wrap gap-3 mb-5">
+<div className="flex items-center gap-3"><span className="kv-num" style={{background:"rgba(255,255,255,0.14)"}}>2</span><h2 className="text-xl font-semibold" style={{color:"#ffffff"}}>Budget Overview</h2></div>
+<div className="text-sm font-semibold px-3 py-1 rounded-full" style={{background:"rgba(255,255,255,0.1)",color:totalStatus.color==="#64748b"?"rgba(255,255,255,0.75)":totalStatus.color,border:"1px solid rgba(255,255,255,0.2)"}}>{totalStatus.label}</div>
 </div>
-<div className="text-right"><div className="text-sm font-semibold px-3 py-1 rounded-full" style={{background:totalStatus.bg,color:totalStatus.color,border:"1px solid "+totalStatus.border}}>{totalStatus.label}</div></div>
+<div className="grid grid-cols-2 gap-3 lg:grid-cols-4 mb-5">
+{([["Combined funding",money(totals.totalFunding),"#d4a843"],["Weekly cost",money(totals.weekly),"#ffffff"],["PH adjustment",(totals.totalPH>0?"+":"")+money(totals.totalPH),totals.totalPH>0?"#fca5a5":totals.totalPH<0?"#86efac":"rgba(255,255,255,0.85)"],["Plan cost",money(totals.planCost),"#ffffff"]] as [string,string,string][]).map(([lbl,val,col])=>(
+<div key={lbl} className="rounded-xl px-4 py-3" style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)"}}>
+<div className="text-xs mb-1" style={{color:"rgba(255,255,255,0.6)"}}>{lbl}</div>
+<div className="kv-money text-lg font-bold" style={{color:col}}>{val}</div>
 </div>
-<div className="text-2xl font-bold" style={{color:totalStatus.color}}>Remaining: {money(totals.remaining)}</div>
-<div className="mt-4"><div className="flex justify-between text-xs mb-1" style={{color:"#334155"}}><span>Used: {money(totals.planCost)}</span><span>Budget: {money(totals.totalFunding)}</span></div>
-<div style={{background:"rgba(15,23,42,0.1)",borderRadius:"8px",height:"12px",overflow:"hidden"}}><div style={{width:Math.min(100,totals.totalFunding>0?(totals.planCost/totals.totalFunding)*100:0)+"%",height:"100%",borderRadius:"8px",background:totals.planCost>totals.totalFunding?"linear-gradient(90deg,#ef4444,#dc2626)":totals.planCost>totals.totalFunding*0.9?"linear-gradient(90deg,#f59e0b,#d97706)":"linear-gradient(90deg,#22c55e,#16a34a)",transition:"width 0.3s"}}/></div>
-<div className="text-xs mt-1 text-right" style={{color:"#334155"}}>{totals.totalFunding>0?((totals.planCost/totals.totalFunding)*100).toFixed(1):0}% used</div></div>
-<div className="mt-4 flex flex-wrap gap-2">
-<button onClick={addLine} className="rounded-xl px-4 py-2 font-semibold" style={{background:"rgba(212,168,67,0.15)",border:"1px solid rgba(212,168,67,0.3)",color:"#d4a843"}}>+ Add support line</button>
-<button onClick={exportCSV} className="rounded-xl px-4 py-2" style={{background:"rgba(15,23,42,0.05)",border:"1px solid rgba(15,23,42,0.1)",color:"#334155"}}>Export CSV</button>
-<button onClick={exportPDF} className="rounded-xl px-4 py-2" style={{background:"rgba(15,23,42,0.05)",border:"1px solid rgba(15,23,42,0.1)",color:"#334155"}}>Export PDF</button>
+))}
+</div>
+<div className="flex items-end justify-between flex-wrap gap-2">
+<div>
+<div className="text-xs" style={{color:"rgba(255,255,255,0.6)"}}>Remaining</div>
+<div className="kv-money text-3xl font-bold" style={{color:totalStatus.color==="#64748b"?"#ffffff":totalStatus.color}}>{money(totals.remaining)}</div>
+</div>
+{totals.totalClaimed>0&&<div className="text-sm" style={{color:"rgba(255,255,255,0.75)"}}>Actual claimed: <span className="kv-money font-semibold" style={{color:"#86efac"}}>{money(totals.totalClaimed)}</span> <span style={{color:"rgba(255,255,255,0.5)"}}>({money(totals.actualRemaining)} remaining)</span></div>}
+</div>
+<div className="mt-4"><div className="flex justify-between text-xs mb-1" style={{color:"rgba(255,255,255,0.6)"}}><span>Used: {money(totals.planCost)}</span><span>Budget: {money(totals.totalFunding)}</span></div>
+<div style={{background:"rgba(255,255,255,0.14)",borderRadius:"8px",height:"12px",overflow:"hidden"}}><div style={{width:Math.min(100,totals.totalFunding>0?(totals.planCost/totals.totalFunding)*100:0)+"%",height:"100%",borderRadius:"8px",background:totals.planCost>totals.totalFunding?"linear-gradient(90deg,#ef4444,#dc2626)":totals.planCost>totals.totalFunding*0.9?"linear-gradient(90deg,#f59e0b,#d97706)":"linear-gradient(90deg,#22c55e,#16a34a)",transition:"width 0.3s"}}/></div>
+<div className="text-xs mt-1 text-right" style={{color:"rgba(255,255,255,0.6)"}}>{totals.totalFunding>0?((totals.planCost/totals.totalFunding)*100).toFixed(1):0}% used</div></div>
+<div className="mt-5 flex flex-wrap gap-2 items-stretch">
+<button onClick={addLine} className="kv-btn rounded-xl px-4 py-2 font-bold" style={{background:"#d4a843",border:"none",color:"#241456",cursor:"pointer"}}>+ Add support line</button>
+<button onClick={exportCSV} className="kv-btn rounded-xl px-4 py-2" style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.22)",color:"rgba(255,255,255,0.9)",cursor:"pointer"}}>Export CSV</button>
+<button onClick={exportPDF} className="kv-btn rounded-xl px-4 py-2" style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.22)",color:"rgba(255,255,255,0.9)",cursor:"pointer"}}>Export PDF</button>
 <input ref={claimsFileRef} type="file" accept=".csv,text/csv" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f)handleClaimsCsv(f);e.target.value="";}}/>
-<button onClick={()=>claimsFileRef.current?.click()} className="rounded-xl px-4 py-2" style={{background:"rgba(34,197,94,0.08)",border:"1px solid rgba(34,197,94,0.3)",color:"#16a34a"}}>Import Claims CSV</button>
-{claimsImportError&&<div className="w-full text-sm" style={{color:"#ef4444"}}>{claimsImportError}</div>}
-<button onClick={()=>setShowSAModal(true)} style={{padding:"10px 14px",background:"#fdf6e3",border:"2px solid #d4a843",borderRadius:"12px",cursor:"pointer",textAlign:"left",boxShadow:"0 1px 3px rgba(15,23,42,0.08)"}}>
+<button onClick={()=>claimsFileRef.current?.click()} className="kv-btn rounded-xl px-4 py-2" style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.22)",color:"rgba(255,255,255,0.9)",cursor:"pointer"}}>Import Claims CSV</button>
+{claimsImportError&&<div className="w-full text-sm" style={{color:"#fda4af"}}>{claimsImportError}</div>}
+<button onClick={()=>setShowSAModal(true)} className="kv-btn" style={{padding:"10px 14px",background:"#fdf6e3",border:"none",borderRadius:"12px",cursor:"pointer",textAlign:"left"}}>
   <span style={{display:"block",color:"#b8901a",fontWeight:700,fontSize:"0.9rem"}}>📋 Roster / SIL / Core SoS</span>
   <span style={{display:"block",color:"#475569",fontSize:"0.74rem",marginTop:"2px"}}>Hourly roster — day, night, weekend rates</span>
 </button>
-<button onClick={()=>setShowClinicalModal(true)} style={{padding:"10px 14px",background:"#eff6ff",border:"2px solid #3b82f6",borderRadius:"12px",cursor:"pointer",textAlign:"left",boxShadow:"0 1px 3px rgba(15,23,42,0.08)"}}>
+<button onClick={()=>setShowClinicalModal(true)} className="kv-btn" style={{padding:"10px 14px",background:"#eff6ff",border:"none",borderRadius:"12px",cursor:"pointer",textAlign:"left"}}>
   <span style={{display:"block",color:"#1e40af",fontWeight:700,fontSize:"0.9rem"}}>🏥 Clinical / Therapy SoS</span>
   <span style={{display:"block",color:"#475569",fontSize:"0.74rem",marginTop:"2px"}}>Behaviour support, allied health, therapy packages</span>
 </button>
+</div>
 </div></div>
 
 {pace&&pace.status!=="not_started"&&(()=>{
@@ -876,21 +914,21 @@ return(
   return(
     <div className="rounded-2xl p-6 mb-6" style={{background: "#ffffff",border:"1px solid "+pc.border,boxShadow:"0 1px 3px rgba(15,23,42,0.05), 0 1px 2px rgba(15,23,42,0.04)"}}>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <h2 className="text-xl font-semibold" style={{color:"#d4a843"}}>Plan Progress</h2>
+        <h2 className="text-xl font-semibold" style={{color:"#2d1b69"}}>Plan Progress</h2>
         <span className="text-sm font-semibold px-3 py-1 rounded-full" style={{background:pc.bg,color:pc.color,border:"1px solid "+pc.border}}>{pc.label}</span>
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 mb-5">
-        <div className="rounded-xl p-3" style={{background: "#ffffff",border:"1px solid rgba(212,168,67,0.35)"}}>
+        <div className="kv-sub rounded-xl p-3">
           <div className="text-xs mb-1" style={{color:"#334155"}}>Time elapsed</div>
           <div className="text-lg font-bold" style={{color:"#d4a843"}}>{pace.pctElapsed.toFixed(1)}%</div>
           <div className="text-xs" style={{color:"#64748b"}}>{pace.weeksElapsed.toFixed(1)} of {planWeeks.toFixed(1)} weeks</div>
         </div>
-        <div className="rounded-xl p-3" style={{background: "#ffffff",border:"1px solid rgba(212,168,67,0.35)"}}>
+        <div className="kv-sub rounded-xl p-3">
           <div className="text-xs mb-1" style={{color:"#334155"}}>Expected spend by now</div>
           <div className="text-lg font-bold" style={{color: "#0f172a"}}>{money(pace.expectedSpend)}</div>
           <div className="text-xs" style={{color:"#64748b"}}>based on time elapsed</div>
         </div>
-        <div className="rounded-xl p-3" style={{background: "#ffffff",border:"1px solid rgba(212,168,67,0.35)"}}>
+        <div className="kv-sub rounded-xl p-3">
           <div className="text-xs mb-1" style={{color:"#334155"}}>{pace.usingClaims?"Actual claimed to date":"Projected spend to date"}</div>
           <div className="text-lg font-bold" style={{color:pc.color}}>{money(pace.projectedSpendToDate)}</div>
           <div className="text-xs" style={{color:"#64748b"}}>
@@ -912,15 +950,20 @@ return(
   );
 })()}
 
-<div className="rounded-2xl p-6 mb-6" style={{background: "#ffffff",border:"1px solid rgba(212,168,67,0.45)",boxShadow:"0 1px 3px rgba(15,23,42,0.05), 0 1px 2px rgba(15,23,42,0.04)"}}>
-<div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-  <div>
-    <h2 className="text-xl font-semibold" style={{color:"#d4a843"}}>Rates</h2>
-    <div className="text-xs mt-1" style={{color:"#64748b"}}>
-      <a href="https://www.ndis.gov.au/providers/pricing-arrangements" target="_blank" rel="noopener noreferrer" style={{color:"#475569",textDecoration:"underline"}}>NDIS Pricing Schedule 2026–27</a>
-    </div>
+<details className="kv-fold kv-card mb-6">
+<summary className="p-5 flex flex-wrap items-center justify-between gap-3">
+  <div className="flex items-center gap-3 flex-wrap">
+    <h2 className="text-base font-semibold" style={{color:"#2d1b69"}}>Default hourly rates</h2>
+    <span className="text-xs" style={{color:"#94a3b8"}}>2026–27 preset — each support line also has its own editable rates</span>
   </div>
-  <button onClick={()=>setRates(NDIS_RATES_2026_27)} style={{background:"rgba(212,168,67,0.1)",border:"1px solid rgba(212,168,67,0.3)",color:"#d4a843",padding:"8px 16px",borderRadius:"8px",cursor:"pointer",fontSize:"0.85rem",fontWeight:"600"}}>
+  <span className="text-xs font-semibold" style={{color:"#d4a843"}}>Show ▾</span>
+</summary>
+<div className="px-5 pb-5">
+<div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+  <div className="text-xs" style={{color:"#64748b"}}>
+    <a href="https://www.ndis.gov.au/providers/pricing-arrangements" target="_blank" rel="noopener noreferrer" style={{color:"#475569",textDecoration:"underline"}}>NDIS Pricing Schedule 2026–27</a>
+  </div>
+  <button onClick={()=>setRates(NDIS_RATES_2026_27)} className="kv-btn" style={{background:"rgba(212,168,67,0.1)",border:"1px solid rgba(212,168,67,0.3)",color:"#b8901a",padding:"8px 16px",borderRadius:"8px",cursor:"pointer",fontSize:"0.85rem",fontWeight:"600"}}>
     Reset to 2026–27 NDIS rates
   </button>
 </div>
@@ -933,7 +976,10 @@ return(
 <Field label="Active sleepover $/hr" value={rates.activeSleepoverHourly} onChange={v=>setRates(r=>({...r,activeSleepoverHourly:v}))} step={0.01}/>
 <Field label="Fixed sleepover $ (flat)" value={rates.fixedSleepoverUnit} onChange={v=>setRates(r=>({...r,fixedSleepoverUnit:v}))} step={0.01}/>
 <Field label="GST rate (0 or 0.1)" value={rates.gstRate} onChange={v=>setRates(r=>({...r,gstRate:v}))} step={0.01}/>
-</div></div>
+</div>
+</div>
+</details>
+<div id="sec-lines" className="flex items-center gap-3 mb-4 mt-2" style={{scrollMarginTop:"70px"}}><span className="kv-num">3</span><h2 className="text-xl font-semibold" style={{color:"#2d1b69"}}>Support Lines &amp; Weekly Roster</h2></div>
 <div className="grid gap-6">
 {perLine.map((l:any)=>{
 const status=getBudgetStatus(l.remaining,l.totalFunding);
@@ -943,34 +989,34 @@ const lineMode=getLineMode(l.code);
 const rosterDays=lineMode==="weekday"?["mon","tue","wed","thu","fri"]:DAYS;
 const includedCount=holidays.length-l.excludedHolidays.length;
 return(
-<div key={l.id} className="rounded-2xl p-6" style={{background: "#ffffff",border:"1px solid "+status.border,boxShadow:"0 1px 3px rgba(15,23,42,0.05), 0 1px 2px rgba(15,23,42,0.04)"}}>
+<div key={l.id} className="rounded-2xl p-6" style={{background: "#ffffff",border:"1px solid "+status.border,boxShadow:"0 1px 2px rgba(23,16,61,0.04), 0 10px 28px -14px rgba(23,16,61,0.12)"}}>
 <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
 <div className="flex items-center gap-3">
-<div className="text-xl font-semibold">Support line: <span style={{color:"#d4a843"}}>{l.code}</span> — <span style={{color:"#334155"}}>{l.description}</span></div>
+<div className="flex items-center gap-2 flex-wrap"><span className="kv-money text-xs font-bold px-2 py-1 rounded-md" style={{background:"rgba(45,27,105,0.07)",color:"#2d1b69",border:"1px solid rgba(45,27,105,0.14)"}}>{l.code}</span><span className="text-lg font-semibold" style={{color:"#1e293b"}}>{l.description}</span></div>
 <span className="text-xs font-semibold px-2 py-1 rounded-full" style={{background:status.bg,color:status.color,border:"1px solid "+status.border}}>{status.label}</span>
 </div>
 <button onClick={()=>deleteLine(l.id)} disabled={lines.length<=1} className="rounded-xl px-3 py-2 disabled:opacity-40" style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",color:"#ef4444"}}>Delete</button>
 </div>
 
 <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-<div className="rounded-xl p-4" style={{background: "#ffffff",border:"1px solid rgba(212,168,67,0.35)"}}>
+<div className="kv-sub rounded-xl p-4">
 <div className="text-sm mb-3 font-semibold" style={{color:"#d4a843"}}>Line details</div>
 <div className="grid grid-cols-1 gap-3">
-<div><div className="text-xs mb-1" style={{color:"#334155"}}>Category</div><select value={l.code} onChange={e=>updateLineCode(l.id,e.target.value)} className="w-full rounded-lg px-2 py-1.5 text-sm outline-none" style={{background: "#ffffff",border:"1px solid rgba(212,168,67,0.45)",color: "#0f172a"}}>{Object.entries(CATEGORY_PRESETS).map(([k,v])=>(<option key={k} value={k}>{k} — {v.name}</option>))}</select></div>
+<div><div className="text-xs mb-1" style={{color:"#334155"}}>Category</div><select value={l.code} onChange={e=>updateLineCode(l.id,e.target.value)} className="kv-input w-full rounded-lg px-2 py-1.5 text-sm">{Object.entries(CATEGORY_PRESETS).map(([k,v])=>(<option key={k} value={k}>{k} — {v.name}</option>))}</select></div>
 <TextField label="Description" value={l.description} onChange={v=>updateLine(l.id,{description:v})}/>
 <Field label="Total funding (AUD)" value={l.totalFunding} onChange={v=>updateLine(l.id,{totalFunding:v})} step={100}/>
 <SelectField label="Support Ratio" value={l.ratio} options={Object.entries(RATIOS).map(([k,v])=>({value:k,label:v.label}))} onChange={v=>updateLine(l.id,{ratio:v})}/>
 </div></div>
 
 {lineMode==="lump"?(
-<div className="rounded-xl p-4 lg:col-span-2" style={{background: "#ffffff",border:"1px solid rgba(212,168,67,0.35)",display:"flex",flexDirection:"column",justifyContent:"center"}}>
+<div className="kv-sub rounded-xl p-4 lg:col-span-2" style={{display:"flex",flexDirection:"column",justifyContent:"center"}}>
 <div className="text-sm font-semibold mb-2" style={{color:"#d4a843"}}>{CATEGORY_PRESETS[l.code]?.name||"Support Category"}</div>
 {l.code==="17"?(<div className="text-sm mb-4 rounded-lg px-3 py-2" style={{color:"#c0a060",background:"rgba(212,168,67,0.07)",border:"1px solid rgba(212,168,67,0.45)"}}>⚠️ SDA is a fixed annual housing payment set in the participant's plan — not an hourly rate. Enter the total SDA funding amount below and track it as a lump sum.</div>):(<div className="text-sm mb-4" style={{color:"#475569"}}>This category covers lump sum items (equipment, modifications, transport, consumables). No roster needed — just set the total funding.</div>)}
 <div className="text-sm" style={{color:"#334155"}}>Budget: <span className="font-semibold" style={{color:"#d4a843"}}>{money(l.totalFunding)}</span></div>
 <div className="text-lg font-bold mt-2" style={{color:status.color}}>Remaining: {money(l.remaining)}</div>
 </div>
 ):(
-<div className="rounded-xl p-4 lg:col-span-2" style={{background: "#ffffff",border:"1px solid rgba(212,168,67,0.35)"}}>
+<div className="kv-sub rounded-xl p-4 lg:col-span-2">
 <div className="text-sm mb-3 font-semibold" style={{color:"#d4a843"}}>Weekly Roster{lineMode==="weekday"&&<span style={{color:"#64748b",fontWeight:"normal",fontSize:"0.8rem",marginLeft:"8px"}}>Weekdays only</span>}</div>
 <div className="grid gap-2">
 {rosterDays.map(d=>{const r=l.roster[d];return(
@@ -1047,7 +1093,7 @@ return(
 </div>}
 
 {lineMode!=="lump"&&holidays.length>0&&(
-<div className="mt-4 rounded-xl p-4" style={{background: "#ffffff",border:"1px solid rgba(212,168,67,0.35)"}}>
+<div className="kv-sub mt-4 rounded-xl p-4">
 <div className="flex items-center justify-between mb-3">
 <div className="text-sm font-semibold" style={{color:"#d4a843"}}>Public Holidays ({includedCount}/{holidays.length} included)</div>
 <div className="flex gap-2">
@@ -1388,15 +1434,13 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
       <div key={f.key}>
         <div className="text-xs mb-1 font-semibold" style={{color:"#334155"}}>{f.label}</div>
         <input value={providerDetails[f.key]} onChange={e=>setProviderDetails(p=>({...p,[f.key]:e.target.value}))} placeholder={f.placeholder}
-          className="w-full rounded-lg px-3 py-2 outline-none text-sm"
-          style={{background: "#ffffff",border:"1px solid rgba(212,168,67,0.45)",color: "#0f172a"}}/>
+          className="kv-input w-full rounded-lg px-3 py-2 text-sm"/>
       </div>
     ))}
     <div className="sm:col-span-2">
       <div className="text-xs mb-1 font-semibold" style={{color:"#334155"}}>Address</div>
       <input value={providerDetails.address} onChange={e=>setProviderDetails(p=>({...p,address:e.target.value}))} placeholder="e.g. 123 Main St, Melbourne VIC 3000"
-        className="w-full rounded-lg px-3 py-2 outline-none text-sm"
-        style={{background: "#ffffff",border:"1px solid rgba(212,168,67,0.45)",color: "#0f172a"}}/>
+        className="kv-input w-full rounded-lg px-3 py-2 text-sm"/>
     </div>
   </div>
 
@@ -1420,8 +1464,8 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
         <div className="text-xs flex-1 truncate" style={{color:"#1e293b",minWidth:0}}>{row.label}</div>
         <input value={saItemNumbers[row.key]||""} onChange={e=>setSaItemNumbers(p=>({...p,[row.key]:e.target.value}))}
           placeholder={getDefaultItemNumber(row.code,row.rateType)||"e.g. 01_011_0107_1_1"}
-          className="rounded px-2 py-1 text-xs outline-none"
-          style={{background: "#ffffff",border:"1px solid rgba(212,168,67,0.45)",color: "#0f172a",width:"180px",flexShrink:0}}/>
+          className="kv-input kv-money rounded px-2 py-1 text-xs"
+          style={{width:"180px",flexShrink:0}}/>
       </div>
     ))}
   </div>}
@@ -1439,8 +1483,7 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
     <div className="mt-3">
       <div className="text-xs mb-1 font-semibold" style={{color:"#334155"}}>Establishment Fee (leave blank if none)</div>
       <input value={saEstFee} onChange={e=>setSaEstFee(e.target.value)} placeholder="e.g. 735.80" type="number" min="0" step="0.01"
-        className="w-full rounded-lg px-3 py-2 outline-none text-sm"
-        style={{background: "#ffffff",border:"1px solid rgba(212,168,67,0.45)",color: "#0f172a"}}/>
+        className="kv-input w-full rounded-lg px-3 py-2 text-sm"/>
     </div>
   </div>
 
