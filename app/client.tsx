@@ -71,42 +71,41 @@ useEffect(()=>{if(!userId||!key)return;pendingRef.current=data;if(timerRef.curre
 useEffect(()=>{if(!userId||!key)return;const flush=()=>{if(pendingRef.current!=null){if(timerRef.current)clearTimeout(timerRef.current);doSave(userId,key,pendingRef.current)}};const onVis=()=>{if(document.visibilityState==="hidden")flush()};window.addEventListener("pagehide",flush);document.addEventListener("visibilitychange",onVis);return()=>{window.removeEventListener("pagehide",flush);document.removeEventListener("visibilitychange",onVis)}},[userId,key,doSave]);
 return saveState}
 async function loadFromCloud(key:string):Promise<any>{try{const{data:d}=await supabase.auth.getUser();if(!d.user)return null;const{data:row}=await supabase.from("calculator_data").select("data").eq("user_id",d.user.id).eq("participant_id",key).single();return row?.data||null}catch{return null}}
-export const NDIS_RATES_2025_26:Rates={weekdayOrd:70.23,weekdayNight:77.38,sat:98.83,sun:127.43,publicHoliday:156.03,activeSleepoverHourly:78.81,fixedSleepoverUnit:297.6,gstRate:0};
+export const NDIS_RATES_2026_27:Rates={weekdayOrd:73.58,weekdayNight:81.07,sat:103.54,sun:133.50,publicHoliday:163.46,activeSleepoverHourly:82.57,fixedSleepoverUnit:311.79,gstRate:0};
 const CATEGORY_PRESETS:{[code:string]:{name:string;rates:Rates}}={
-  "01":{name:"Assistance with Daily Life",rates:{weekdayOrd:70.23,weekdayNight:77.38,sat:98.83,sun:127.43,publicHoliday:156.03,activeSleepoverHourly:78.81,fixedSleepoverUnit:297.6,gstRate:0}},
+  "01":{name:"Assistance with Daily Life",rates:{weekdayOrd:73.58,weekdayNight:81.07,sat:103.54,sun:133.50,publicHoliday:163.46,activeSleepoverHourly:82.57,fixedSleepoverUnit:311.79,gstRate:0}},
   "02":{name:"Transport",rates:{weekdayOrd:0,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
   "03":{name:"Consumables",rates:{weekdayOrd:0,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
-  "04":{name:"Community Participation",rates:{weekdayOrd:70.23,weekdayNight:77.38,sat:98.83,sun:127.43,publicHoliday:156.03,activeSleepoverHourly:78.81,fixedSleepoverUnit:297.6,gstRate:0}},
+  "04":{name:"Community Participation",rates:{weekdayOrd:73.58,weekdayNight:81.07,sat:103.54,sun:133.50,publicHoliday:163.46,activeSleepoverHourly:82.57,fixedSleepoverUnit:311.79,gstRate:0}},
   "05":{name:"Assistive Technology",rates:{weekdayOrd:0,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
   "06":{name:"Home Modifications",rates:{weekdayOrd:0,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
   "07":{name:"Support Coordination",rates:{weekdayOrd:100.14,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
-  "08":{name:"Improved Living Arrangements",rates:{weekdayOrd:70.23,weekdayNight:77.38,sat:98.83,sun:127.43,publicHoliday:156.03,activeSleepoverHourly:78.81,fixedSleepoverUnit:297.6,gstRate:0}},
-  "09":{name:"Increased Social and Community Participation",rates:{weekdayOrd:70.23,weekdayNight:77.38,sat:98.83,sun:127.43,publicHoliday:156.03,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
-  "10":{name:"Finding and Keeping a Job",rates:{weekdayOrd:70.23,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
-  "11":{name:"Improved Relationships",rates:{weekdayOrd:193.99,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
-  "12":{name:"Improved Health and Wellbeing",rates:{weekdayOrd:100.14,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
-  "13":{name:"Improved Learning",rates:{weekdayOrd:100.14,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
+  "08":{name:"Improved Living Arrangements",rates:{weekdayOrd:73.58,weekdayNight:81.07,sat:103.54,sun:133.50,publicHoliday:163.46,activeSleepoverHourly:82.57,fixedSleepoverUnit:311.79,gstRate:0}},
+  "09":{name:"Increased Social and Community Participation",rates:{weekdayOrd:73.58,weekdayNight:81.07,sat:103.54,sun:133.50,publicHoliday:163.46,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
+  "10":{name:"Finding and Keeping a Job",rates:{weekdayOrd:73.58,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
+  "11":{name:"Improved Relationships",rates:{weekdayOrd:252.99,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
+  "12":{name:"Improved Health and Wellbeing",rates:{weekdayOrd:161.99,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
+  "13":{name:"Improved Learning",rates:{weekdayOrd:83.87,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
   "14":{name:"Improved Life Choices",rates:{weekdayOrd:100.14,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
-  "15":{name:"Improved Daily Living",rates:{weekdayOrd:193.99,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
-  "16":{name:"Home and Living",rates:{weekdayOrd:70.23,weekdayNight:77.38,sat:98.83,sun:127.43,publicHoliday:156.03,activeSleepoverHourly:78.81,fixedSleepoverUnit:297.6,gstRate:0}},
+  "15":{name:"Improved Daily Living",rates:{weekdayOrd:156.16,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
+  "16":{name:"Home and Living",rates:{weekdayOrd:73.58,weekdayNight:81.07,sat:103.54,sun:133.50,publicHoliday:163.46,activeSleepoverHourly:82.57,fixedSleepoverUnit:311.79,gstRate:0}},
   "17":{name:"Specialist Disability Accommodation",rates:{weekdayOrd:0,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
   "18":{name:"Recurring Transport",rates:{weekdayOrd:0,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
   "19":{name:"Assistive Technology Maintenance",rates:{weekdayOrd:0,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
-  "20":{name:"Behaviour Support",rates:{weekdayOrd:193.99,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
-  "21":{name:"YPIRAC",rates:{weekdayOrd:70.23,weekdayNight:77.38,sat:98.83,sun:127.43,publicHoliday:156.03,activeSleepoverHourly:78.81,fixedSleepoverUnit:297.6,gstRate:0}},
+  "20":{name:"Behaviour Support",rates:{weekdayOrd:252.99,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
+  "21":{name:"YPIRAC",rates:{weekdayOrd:73.58,weekdayNight:81.07,sat:103.54,sun:133.50,publicHoliday:163.46,activeSleepoverHourly:82.57,fixedSleepoverUnit:311.79,gstRate:0}},
 };
-export function getPresetRates(code:string):Rates{return CATEGORY_PRESETS[code]?.rates||NDIS_RATES_2025_26}
+export function getPresetRates(code:string):Rates{return CATEGORY_PRESETS[code]?.rates||NDIS_RATES_2026_27}
 const NDIS_ITEM_DEFAULTS:{[code:string]:{[rateType:string]:string}}={
-  "01":{weekday:"01_011_0107_1_1",weekdayNight:"01_012_0107_1_1",sat:"01_013_0107_1_1",satNight:"01_013_0107_1_1",sun:"01_014_0107_1_1",sunNight:"01_014_0107_1_1",publicHoliday:"01_015_0107_1_1",activeSleepover:"01_010_0107_1_1",fixedSleepover:"01_799_0104_1_1",lump:"01_821_0115_1_1"},
-  "04":{weekday:"04_104_0125_6_1",weekdayNight:"04_104_0125_6_1",sat:"04_105_0125_6_1",satNight:"04_105_0125_6_1",sun:"04_106_0125_6_1",sunNight:"04_106_0125_6_1",publicHoliday:"04_117_0125_6_1",activeSleepover:"04_010_0125_6_1"},
-  "07":{weekday:"07_001_0106_8_3",lump:"07_001_0106_8_3"},
+  "01":{weekday:"01_011_0107_1_1",weekdayNight:"01_015_0107_1_1",sat:"01_013_0107_1_1",satNight:"01_013_0107_1_1",sun:"01_014_0107_1_1",sunNight:"01_014_0107_1_1",publicHoliday:"01_012_0107_1_1",activeSleepover:"01_002_0107_1_1",fixedSleepover:"01_010_0107_1_1",lump:"01_821_0115_1_1"},
+  "04":{weekday:"04_104_0125_6_1",weekdayNight:"04_103_0125_6_1",sat:"04_105_0125_6_1",satNight:"04_105_0125_6_1",sun:"04_106_0125_6_1",sunNight:"04_106_0125_6_1",publicHoliday:"04_102_0125_6_1"},
+  "07":{weekday:"07_002_0106_8_3",lump:"07_002_0106_8_3"},
   "08":{weekday:"01_821_0115_1_1",lump:"01_821_0115_1_1"},
   "09":{weekday:"04_104_0125_6_1",sat:"04_105_0125_6_1",sun:"04_106_0125_6_1"},
-  "10":{weekday:"10_002_0102_5_3",lump:"10_002_0102_5_3"},
+  "10":{weekday:"10_806_0133_5_1",lump:"10_806_0133_5_1"},
   "11":{weekday:"11_022_0110_7_3",lump:"11_022_0110_7_3"},
-  "12":{weekday:"12_001_0117_1_3",lump:"12_001_0117_1_3"},
-  "13":{weekday:"13_001_0132_3_3",lump:"13_001_0132_3_3"},
-  "14":{weekday:"14_033_0128_3_3",lump:"14_033_0128_3_3"},
+  "12":{weekday:"12_027_0126_3_3",lump:"12_027_0126_3_3"},
+  "13":{weekday:"13_030_0102_4_3",lump:"13_030_0102_4_3"},
   "15":{weekday:"15_056_0128_1_3",lump:"15_056_0128_1_3"},
 };
 function getDefaultItemNumber(code:string,rateType:string):string{return NDIS_ITEM_DEFAULTS[code]?.[rateType]||""}
@@ -117,12 +116,12 @@ const STORAGE_KEY=storageKey||"ndis_budget_calc_pro_v7";
 const[userEmail,setUserEmail]=useState<string|null>(null);
 useEffect(()=>{supabase.auth.getUser().then(({data})=>{setUserEmail(data.user?.email??null)});const{data:sub}=supabase.auth.onAuthStateChange((_ev,session)=>{setUserEmail(session?.user?.email??null)});return()=>{sub.subscription.unsubscribe()}},[]);
 const[planDates,setPlanDates]=useState<PlanDates>({start:new Date().toISOString().slice(0,10),end:new Date(Date.now()+365*24*60*60*1000).toISOString().slice(0,10),state:"NSW"});
-const[rates,setRates]=useState<Rates>({weekdayOrd:70.23,weekdayNight:77.38,sat:98.83,sun:127.43,publicHoliday:156.03,activeSleepoverHourly:78.81,fixedSleepoverUnit:297.6,gstRate:0});
-const[lines,setLines]=useState<SupportLine[]>([{id:uid(),code:"01",description:"Core Supports",totalFunding:0,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:0.99,kmFreq:"every",claims:[],lineRates:NDIS_RATES_2025_26}]);
+const[rates,setRates]=useState<Rates>({weekdayOrd:73.58,weekdayNight:81.07,sat:103.54,sun:133.50,publicHoliday:163.46,activeSleepoverHourly:82.57,fixedSleepoverUnit:311.79,gstRate:0});
+const[lines,setLines]=useState<SupportLine[]>([{id:uid(),code:"01",description:"Core Supports",totalFunding:0,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:1.00,kmFreq:"every",claims:[],lineRates:NDIS_RATES_2026_27}]);
 const srvStart=planDates.serviceStart||planDates.start;const srvEnd=planDates.serviceEnd||planDates.end;
 const planWeeksCalc=useMemo(()=>getWeeksInPlan(srvStart,srvEnd),[srvStart,srvEnd]);const[weeksOverride,setWeeksOverride]=useState<number|null>(null);const planWeeks=weeksOverride!==null?weeksOverride:planWeeksCalc;
 const holidays=useMemo(()=>getHolidaysInRange(srvStart,srvEnd,planDates.state),[srvStart,srvEnd,planDates.state]);
-useEffect(()=>{async function load(){const cloud=await loadFromCloud(STORAGE_KEY);const raw=cloud||(()=>{try{const r=localStorage.getItem(STORAGE_KEY);return r?JSON.parse(r):null}catch{return null}})();if(!raw){setLoaded(true);return;}if(raw?.rates)setRates((r:any)=>({...r,...raw.rates}));if(raw?.planDates)setPlanDates((p:any)=>({...p,...raw.planDates}));if(Array.isArray(raw?.lines)&&raw.lines.length>0)setLines(raw.lines.map((l:any)=>({...l,ratio:l.ratio||"1:1",excludedHolidays:l.excludedHolidays||[],roster:l.roster||defaultRoster(),activeSleepoverFreq:l.activeSleepoverFreq||"every",fixedSleepoverFreq:l.fixedSleepoverFreq||"every",kmsPerWeek:l.kmsPerWeek||0,kmRate:l.kmRate||0.99,kmFreq:l.kmFreq||"every",claims:l.claims||[],lineRates:l.lineRates||getPresetRates(l.code)})));if(raw?.weeksOverride!=null)setWeeksOverride(raw.weeksOverride);if(raw?.calcMode!==undefined)setCalcMode(raw.calcMode as any);else{const hasLines=Array.isArray(raw?.lines)&&raw.lines.some((l:any)=>(l?.totalFunding||0)>0);const hasClinical=Array.isArray(raw?.clinicalServices)&&raw.clinicalServices.length>0;if(hasLines&&hasClinical)setCalcMode("both");else if(hasClinical&&!hasLines)setCalcMode("clinical");else if(hasLines)setCalcMode("sil");}if(typeof raw?.clinicalFunding==="number")setClinicalFunding(raw.clinicalFunding);if(Array.isArray(raw?.clinicalServices))setClinicalServices(raw.clinicalServices);if(typeof raw?.clinicalBudgetLinked==="boolean")setClinicalBudgetLinked(raw.clinicalBudgetLinked);setLoaded(true);}load()},[]);
+useEffect(()=>{async function load(){const cloud=await loadFromCloud(STORAGE_KEY);const raw=cloud||(()=>{try{const r=localStorage.getItem(STORAGE_KEY);return r?JSON.parse(r):null}catch{return null}})();if(!raw){setLoaded(true);return;}if(raw?.rates)setRates((r:any)=>({...r,...raw.rates}));if(raw?.planDates)setPlanDates((p:any)=>({...p,...raw.planDates}));if(Array.isArray(raw?.lines)&&raw.lines.length>0)setLines(raw.lines.map((l:any)=>({...l,ratio:l.ratio||"1:1",excludedHolidays:l.excludedHolidays||[],roster:l.roster||defaultRoster(),activeSleepoverFreq:l.activeSleepoverFreq||"every",fixedSleepoverFreq:l.fixedSleepoverFreq||"every",kmsPerWeek:l.kmsPerWeek||0,kmRate:l.kmRate||1.00,kmFreq:l.kmFreq||"every",claims:l.claims||[],lineRates:l.lineRates||getPresetRates(l.code)})));if(raw?.weeksOverride!=null)setWeeksOverride(raw.weeksOverride);if(raw?.calcMode!==undefined)setCalcMode(raw.calcMode as any);else{const hasLines=Array.isArray(raw?.lines)&&raw.lines.some((l:any)=>(l?.totalFunding||0)>0);const hasClinical=Array.isArray(raw?.clinicalServices)&&raw.clinicalServices.length>0;if(hasLines&&hasClinical)setCalcMode("both");else if(hasClinical&&!hasLines)setCalcMode("clinical");else if(hasLines)setCalcMode("sil");}if(typeof raw?.clinicalFunding==="number")setClinicalFunding(raw.clinicalFunding);if(Array.isArray(raw?.clinicalServices))setClinicalServices(raw.clinicalServices);if(typeof raw?.clinicalBudgetLinked==="boolean")setClinicalBudgetLinked(raw.clinicalBudgetLinked);setLoaded(true);}load()},[]);
 const[calcMode,setCalcMode]=useState<"sil"|"clinical"|"both"|null>(null);
 const[loaded,setLoaded]=useState(false);
 const[clinicalFunding,setClinicalFunding]=useState(0);
@@ -155,7 +154,7 @@ function updateLine(id:string,patch:Partial<SupportLine>){setLines(prev=>prev.ma
 function updateRosterDay(lineId:string,day:string,patch:Partial<DayRoster>){setLines(prev=>prev.map(l=>{if(l.id!==lineId)return l;return{...l,roster:{...l.roster,[day]:{...l.roster[day],...patch}}}}))}
 function toggleHoliday(lineId:string,date:string){setLines(prev=>prev.map(l=>{if(l.id!==lineId)return l;const exc=l.excludedHolidays.includes(date)?l.excludedHolidays.filter(d=>d!==date):[...l.excludedHolidays,date];return{...l,excludedHolidays:exc}}))}
 function setAllHolidays(lineId:string,include:boolean){setLines(prev=>prev.map(l=>l.id!==lineId?l:{...l,excludedHolidays:include?[]:holidays.map(h=>h.date)}))}
-function addLine(){setLines(prev=>[...prev,{id:uid(),code:"01",description:"New Support Line",totalFunding:0,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:0.99,kmFreq:"every",claims:[],lineRates:NDIS_RATES_2025_26}])}
+function addLine(){setLines(prev=>[...prev,{id:uid(),code:"01",description:"New Support Line",totalFunding:0,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:1.00,kmFreq:"every",claims:[],lineRates:NDIS_RATES_2026_27}])}
 function updateLineCode(id:string,code:string){setLines(prev=>prev.map(l=>l.id!==id?l:{...l,code,lineRates:getPresetRates(code)}))}
 function deleteLine(id:string){if(lines.length<=1)return;const l=lines.find(x=>x.id===id);const claimCount=l?.claims?.length||0;const msg='Delete support line "'+(l?.description||l?.code||"")+'"'+(claimCount>0?" and its "+claimCount+" logged claim"+(claimCount===1?"":"s"):"")+"? This cannot be undone.";if(!confirm(msg))return;setLines(prev=>(prev.length<=1?prev:prev.filter(x=>x.id!==id)))}
 const[openClaimsLines,setOpenClaimsLines]=useState<Set<string>>(new Set());
@@ -176,7 +175,7 @@ const[saItemNumbers,setSaItemNumbers]=useState<{[k:string]:string}>({});
 const[showClinicalModal,setShowClinicalModal]=useState(false);
 const[clinicalPractitioner,setClinicalPractitioner]=useState({name:"",title:"",qualifications:"",org:"",phone:"",email:""});
 const[clinicalOverview,setClinicalOverview]=useState("");
-const[clinicalPriceItems,setClinicalPriceItems]=useState<{id:string;itemCode:string;description:string;rate:number}[]>([{id:"cp1",itemCode:"15_056_0128_1_3",description:"Behaviour Support Practitioner",rate:193.99}]);
+const[clinicalPriceItems,setClinicalPriceItems]=useState<{id:string;itemCode:string;description:string;rate:number}[]>([{id:"cp1",itemCode:"11_022_0110_7_3",description:"Behaviour Support Practitioner",rate:252.99}]);
 const[clinicalScheduleItems,setClinicalScheduleItems]=useState<{id:string;description:string;hours:number;rate:number;note:string}[]>([{id:"cs1",description:"",hours:0,rate:0,note:""}]);
 useEffect(()=>{try{const raw=localStorage.getItem("kevria_provider_details");if(raw)setProviderDetails(p=>({...p,...JSON.parse(raw)}))}catch{}},[]);
 useEffect(()=>{try{localStorage.setItem("kevria_provider_details",JSON.stringify(providerDetails))}catch{}},[providerDetails]);
@@ -212,7 +211,7 @@ function applyPlanExtract(){
       for(const sl of planExtract.supportLines){
         const idx=updated.findIndex((_l:SupportLine,i:number)=>!used.has(i)&&_l.code===sl.code);
         if(idx>=0){updated[idx]={...updated[idx],totalFunding:sl.totalFunding,description:sl.description,lineRates:updated[idx].lineRates||getPresetRates(sl.code)};used.add(idx);}
-        else{updated.push({id:uid(),code:sl.code,description:sl.description,totalFunding:sl.totalFunding,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:0.99,kmFreq:"every",claims:[],lineRates:getPresetRates(sl.code)});}
+        else{updated.push({id:uid(),code:sl.code,description:sl.description,totalFunding:sl.totalFunding,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:1.00,kmFreq:"every",claims:[],lineRates:getPresetRates(sl.code)});}
       }
     }
     if(Array.isArray(planExtract.scheduleOfSupports)&&planExtract.scheduleOfSupports.length>0){
@@ -334,7 +333,7 @@ function exportPDF(){
 </head><body>
 <div class="header">
   <div><div class="brand"><span class="brand-mark">&#10022;</span><span class="brand-name">KEVRIA</span></div><div class="report-title">NDIS Budget Report</div></div>
-  <div class="header-right"><div>Generated: ${escapeHtml(dt)}</div><div style="margin-top:4px;color:rgba(255,255,255,.55)">Rates: 2025&#8211;26 NDIS Price Guide</div></div>
+  <div class="header-right"><div>Generated: ${escapeHtml(dt)}</div><div style="margin-top:4px;color:rgba(255,255,255,.55)">Rates: 2026&#8211;27 NDIS Pricing Schedule</div></div>
 </div>
 <div class="info-bar">
   ${infoExtra}<div class="info-item"><div class="lbl">Plan Start</div><div class="val">${escapeHtml(planDates.start)}</div></div>
@@ -365,7 +364,7 @@ function exportPDF(){
 </div>
 <div class="footer">
   <div>Generated by <a href="https://kevriacalc.com"><strong>Kevria Calc</strong></a></div>
-  <div>Rates based on 2025&#8211;26 NDIS Price Guide. Verify with your plan manager before quoting. Not financial advice.</div>
+  <div>Rates based on the 2026&#8211;27 NDIS Pricing Schedule. Verify with your plan manager before quoting. Not financial advice.</div>
 </div>
 <script>window.onload=function(){window.focus();window.print()}</script>
 </body></html>`;
@@ -528,7 +527,7 @@ tbody td{padding:9px 10px;vertical-align:top}
     <tr class="total-row"><td colspan="3">Total</td><td style="text-align:right">${escapeHtml(money(grandTotal))}</td></tr>
     </tbody>
   </table>
-  <div class="note">Prices per the NDIS Pricing Arrangements &amp; Price Limits (2025&#8211;26). Plan totals are estimates and may vary based on actual supports delivered. All prices are GST-inclusive where applicable.</div>
+  <div class="note">Prices per the NDIS Pricing Schedule (2026&#8211;27). Plan totals are estimates and may vary based on actual supports delivered. All prices are GST-inclusive where applicable.</div>
 
   ${(()=>{
     const rLines=perLine.filter((l:any)=>getLineMode(l.code)!=="lump"&&(Object.values(l.roster).some((r:any)=>r?.enabled)||(l.kmsPerWeek||0)>0));
@@ -587,7 +586,7 @@ tbody td{padding:9px 10px;vertical-align:top}
 </div>
 <div class="footer">
   <div>Generated by <strong>Kevria Calc</strong> | kevriacalc.com</div>
-  <div>Rates: 2025&#8211;26 NDIS Price Guide. Verify before quoting. Not financial advice.</div>
+  <div>Rates: 2026&#8211;27 NDIS Pricing Schedule. Verify before quoting. Not financial advice.</div>
 </div>
 <script>window.onload=function(){window.focus();window.print()}</script>
 </body></html>`;
@@ -682,7 +681,7 @@ tbody td{padding:9px 10px;vertical-align:top}
     <tr class="total-row"><td>Total</td><td style="text-align:center">${escapeHtml(titleHours)}</td><td style="text-align:right">${escapeHtml(money(grandTotal))}</td></tr>
     </tbody>
   </table>
-  <div class="note">All services are delivered in accordance with the NDIS Pricing Arrangements &amp; Price Limits (2025&#8211;26). Total hours and costs are estimates based on assessed clinical need and may be adjusted following review.</div>
+  <div class="note">All services are delivered in accordance with the NDIS Pricing Schedule (2026&#8211;27). Total hours and costs are estimates based on assessed clinical need and may be adjusted following review.</div>
 
   <div class="section-heading" style="margin-top:16px">Practitioner Details &amp; Signatures</div>
   <div style="margin-bottom:18px">
@@ -708,7 +707,7 @@ tbody td{padding:9px 10px;vertical-align:top}
 </div>
 <div class="footer">
   <div>Generated by <strong>Kevria Calc</strong> | kevriacalc.com</div>
-  <div>Rates: 2025&#8211;26 NDIS Price Guide. Verify before quoting. Not financial advice.</div>
+  <div>Rates: 2026&#8211;27 NDIS Pricing Schedule. Verify before quoting. Not financial advice.</div>
 </div>
 <script>window.onload=function(){window.focus();window.print()}</script>
 </body></html>`;
@@ -875,11 +874,11 @@ return(
   <div>
     <h2 className="text-xl font-semibold" style={{color:"#d4a843"}}>Rates</h2>
     <div className="text-xs mt-1" style={{color:"#64748b"}}>
-      <a href="https://www.ndis.gov.au/providers/pricing-arrangements" target="_blank" rel="noopener noreferrer" style={{color:"#475569",textDecoration:"underline"}}>NDIS Pricing Arrangements 2025–26</a>
+      <a href="https://www.ndis.gov.au/providers/pricing-arrangements" target="_blank" rel="noopener noreferrer" style={{color:"#475569",textDecoration:"underline"}}>NDIS Pricing Schedule 2026–27</a>
     </div>
   </div>
-  <button onClick={()=>setRates(NDIS_RATES_2025_26)} style={{background:"rgba(212,168,67,0.1)",border:"1px solid rgba(212,168,67,0.3)",color:"#d4a843",padding:"8px 16px",borderRadius:"8px",cursor:"pointer",fontSize:"0.85rem",fontWeight:"600"}}>
-    Reset to 2025–26 NDIS rates
+  <button onClick={()=>setRates(NDIS_RATES_2026_27)} style={{background:"rgba(212,168,67,0.1)",border:"1px solid rgba(212,168,67,0.3)",color:"#d4a843",padding:"8px 16px",borderRadius:"8px",cursor:"pointer",fontSize:"0.85rem",fontWeight:"600"}}>
+    Reset to 2026–27 NDIS rates
   </button>
 </div>
 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -1327,7 +1326,7 @@ return(
 
   {saRows.length>0&&<div className="rounded-lg p-4 mb-5" style={{background:"rgba(15,23,42,0.03)",border:"1px solid rgba(15,23,42,0.07)"}}>
     <div className="text-xs font-semibold mb-1" style={{color:"#334155",textTransform:"uppercase",letterSpacing:"0.06em"}}>NDIS Item Numbers</div>
-    <div className="text-xs mb-3" style={{color:"#64748b"}}>Auto-filled from the 2025–26 price guide. Override any item number below if needed.</div>
+    <div className="text-xs mb-3" style={{color:"#64748b"}}>Auto-filled from the 2026–27 pricing schedule. Override any item number below if needed.</div>
     {saRows.map(row=>(
       <div key={row.key} className="flex items-center gap-2 mb-2">
         <div className="text-xs flex-1 truncate" style={{color:"#1e293b",minWidth:0}}>{row.label}</div>
@@ -1351,7 +1350,7 @@ return(
     </div>
     <div className="mt-3">
       <div className="text-xs mb-1 font-semibold" style={{color:"#334155"}}>Establishment Fee (leave blank if none)</div>
-      <input value={saEstFee} onChange={e=>setSaEstFee(e.target.value)} placeholder="e.g. 654.70" type="number" min="0" step="0.01"
+      <input value={saEstFee} onChange={e=>setSaEstFee(e.target.value)} placeholder="e.g. 735.80" type="number" min="0" step="0.01"
         className="w-full rounded-lg px-3 py-2 outline-none text-sm"
         style={{background: "#ffffff",border:"1px solid rgba(212,168,67,0.45)",color: "#0f172a"}}/>
     </div>
@@ -1424,7 +1423,7 @@ return(
         <input value={pi.description} onChange={e=>{const i=idx;setClinicalPriceItems(p=>p.map((x,j)=>j===i?{...x,description:e.target.value}:x))}} placeholder="Service description"
           className="rounded px-2 py-1 text-xs outline-none"
           style={{background: "#ffffff",border:"1px solid rgba(100,150,212,0.2)",color: "#0f172a"}}/>
-        <input type="number" step="0.01" value={pi.rate||""} onChange={e=>{const i=idx;setClinicalPriceItems(p=>p.map((x,j)=>j===i?{...x,rate:num(e.target.value)}:x))}} placeholder="193.99"
+        <input type="number" step="0.01" value={pi.rate||""} onChange={e=>{const i=idx;setClinicalPriceItems(p=>p.map((x,j)=>j===i?{...x,rate:num(e.target.value)}:x))}} placeholder="252.99"
           className="rounded px-2 py-1 text-xs outline-none"
           style={{background: "#ffffff",border:"1px solid rgba(100,150,212,0.2)",color: "#0f172a"}}/>
         <button onClick={()=>{const i=idx;setClinicalPriceItems(p=>p.filter((_,j)=>j!==i))}} style={{color:"#ef4444",background:"none",border:"none",cursor:"pointer",fontSize:"0.9rem",padding:"2px 4px"}}>✕</button>

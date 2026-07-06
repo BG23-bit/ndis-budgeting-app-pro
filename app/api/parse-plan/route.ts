@@ -113,11 +113,11 @@ NDIS support category codes:
 08 = Improved Living Arrangements
 09 = Increased Social & Community Participation
 10 = Finding & Keeping a Job
-11 = Improved Health & Wellbeing
-12 = Improved Learning
-13 = Improved Life Choices
-14 = Improved Daily Living Skills
-15 = Improved Relationships
+11 = Improved Relationships
+12 = Improved Health & Wellbeing
+13 = Improved Learning
+14 = Improved Life Choices
+15 = Improved Daily Living
 
 For scheduleOfSupports: extract every line item from the Schedule of Supports / Annexure table. Use rateType to classify: look at the service description for keywords like "Weekday", "Saturday", "Sunday", "Public Holiday", "Night", "Weekly", "Establishment". If the description says "Saturday" → "saturday", "Sunday" → "sunday", "Public Holiday" → "publicHoliday", "Night" or "Evening" → "weekdayNight", "Weekly" or "week" in hours → "weekly", otherwise "weekday". Plain numbers only (no $ symbol). Extract ALL line items found.
 

@@ -148,7 +148,7 @@ export default function LandingPage() {
               <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "20px", paddingBottom: "16px", borderBottom: "1px solid rgba(15,23,42,0.06)" }}>
                 <span style={{ color: "#d4a843", fontSize: "1rem" }}>✦</span>
                 <span style={{ fontSize: "0.85rem", fontWeight: "600", color: "#d4a843" }}>Kevria Calc</span>
-                <span style={{ marginLeft: "auto", fontSize: "0.75rem", color: "#64748b" }}>2025–26 rates loaded</span>
+                <span style={{ marginLeft: "auto", fontSize: "0.75rem", color: "#64748b" }}>2026–27 rates loaded</span>
               </div>
 
               {/* Budget summary */}
@@ -180,9 +180,9 @@ export default function LandingPage() {
               {/* Roster rows */}
               <div style={{ fontSize: "0.75rem", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "10px" }}>Weekly Roster</div>
               {[
-                { day: "Mon", hrs: "8h", rate: "$70.23/hr", cost: "$561.84" },
-                { day: "Sat", hrs: "6h", rate: "$98.83/hr", cost: "$592.98" },
-                { day: "Sun", hrs: "4h", rate: "$127.43/hr", cost: "$509.72" },
+                { day: "Mon", hrs: "8h", rate: "$73.58/hr", cost: "$588.64" },
+                { day: "Sat", hrs: "6h", rate: "$103.54/hr", cost: "$621.24" },
+                { day: "Sun", hrs: "4h", rate: "$133.50/hr", cost: "$534.00" },
               ].map(r => (
                 <div key={r.day} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "7px 0", borderBottom: "1px solid rgba(15,23,42,0.04)" }}>
                   <span style={{ width: "32px", fontSize: "0.8rem", color: "#475569", fontWeight: "600" }}>{r.day}</span>
@@ -222,7 +222,7 @@ export default function LandingPage() {
         <div style={{ maxWidth: "1100px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: "48px", flexWrap: "wrap" }}>
           {[
             { value: "15", label: "NDIS categories covered" },
-            { value: "2025–26", label: "Price guide built in" },
+            { value: "2026–27", label: "Price guide built in" },
             { value: "8", label: "States & territories" },
             { value: "1-click", label: "Schedule of Supports PDF" },
           ].map(s => (
@@ -280,7 +280,7 @@ export default function LandingPage() {
           {/* Grid features */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px" }}>
             {[
-              { icon: "💰", title: "Per-Category Rates", desc: "Every support line pre-loaded with correct 2025–26 rates for its category. Fully editable." },
+              { icon: "💰", title: "Per-Category Rates", desc: "Every support line pre-loaded with correct 2026–27 rates for its category. Fully editable." },
               { icon: "🗂️", title: "Smart Roster Modes", desc: "Full shift, weekday-only, or lump sum — roster adapts to the support type automatically." },
               { icon: "⚠️", title: "Rate Monitoring", desc: "Yellow warnings flag rates set below the price guide while still allowing negotiated rates." },
               { icon: "📈", title: "Plan Pace Tracking", desc: "See if spending is on pace, ahead, or behind today's date — act before the budget runs out." },
@@ -500,7 +500,7 @@ export default function LandingPage() {
             },
             {
               q: "How are hourly rates handled?",
-              a: "Each support line is pre-loaded from the 2025–26 NDIS Price Guide for that category. Support Coordination (07) loads at $100.14/hr. Core Supports (01) at the standard DSW rates. Therapy (14) at $193.99/hr. All rates are editable with a yellow indicator if set below guide.",
+              a: "Each support line is pre-loaded from the 2026–27 NDIS Pricing Schedule for that category. Support Coordination (07) loads at $100.14/hr. Core Supports (01) at the standard DSW rates ($73.58/hr weekday daytime). Therapy (15) at $156.16/hr and Behaviour Support at $252.99/hr. All rates are editable with a yellow indicator if set below guide.",
             },
             {
               q: "How does pricing work?",
@@ -592,7 +592,7 @@ export default function LandingPage() {
               © {new Date().getFullYear()} Kevria. All rights reserved. Powered by <a href="https://kevria.com" target="_blank" rel="noopener noreferrer" style={{ color: "#d4a843", textDecoration: "none" }}>Kevria</a>
             </p>
             <p style={{ color: "#64748b", fontSize: "0.72rem", maxWidth: "500px", textAlign: "right" }}>
-              Rates based on 2025–26 NDIS Price Guide. Not affiliated with NDIA. Not financial advice. Always verify with your plan manager.
+              Rates based on the 2026–27 NDIS Pricing Schedule. Not affiliated with NDIA. Not financial advice. Always verify with your plan manager.
             </p>
           </div>
         </div>

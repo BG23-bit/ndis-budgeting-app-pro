@@ -24,7 +24,7 @@ The Service is operated by Kevria, an Australian business (kevria.com). Referenc
             heading: "2. Description of the Service",
             body: `The Service is a professional budgeting tool designed to assist NDIS providers, support coordinators, plan managers, and related professionals with:
 • Calculating NDIS support budgets and roster of care costs
-• Applying 2025–26 NDIS Price Guide rates by support category
+• Applying 2026–27 NDIS Pricing Schedule rates by support category
 • Tracking claims and actual spend against allocated funding
 • Generating budget reports and exports
 
@@ -78,7 +78,7 @@ You are responsible for ensuring you have appropriate consents and authorisation
           },
           {
             heading: "9. NDIS rates and calculations",
-            body: `The Service applies rates from the NDIS Pricing Arrangements and Price Limits (2025–26) as a reference. Rates are pre-loaded but are fully editable to reflect your organisation's actual pricing.
+            body: `The Service applies rates from the NDIS Pricing Schedule (2026–27) as a reference. Rates are pre-loaded but are fully editable to reflect your organisation's actual pricing.
 
 We make reasonable efforts to keep rates current, but we do not guarantee that all rates are accurate, complete, or up to date at any given time. You are responsible for verifying rates against the current NDIS Pricing Arrangements before quoting or invoicing participants.
 

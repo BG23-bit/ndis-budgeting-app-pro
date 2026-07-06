@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import Client, { defaultRoster, getHolidaysInRange, getWeeksInPlan, calcDayCountPlanCost, calcPHImpact, getPresetRates, NDIS_RATES_2025_26 } from "../client";
+import Client, { defaultRoster, getHolidaysInRange, getWeeksInPlan, calcDayCountPlanCost, calcPHImpact, getPresetRates, NDIS_RATES_2026_27 } from "../client";
 
 type Participant = {
   id: string;
@@ -34,7 +34,7 @@ function computeBudget(raw: any): Budget {
     const end = planDates.serviceEnd || planDates.end || "";
     const planWeeks = raw.weeksOverride != null ? raw.weeksOverride : getWeeksInPlan(start, end);
     const holidays = getHolidaysInRange(start, end, planDates.state || "NSW");
-    const globalRates = { ...NDIS_RATES_2025_26, ...(raw.rates || {}) };
+    const globalRates = { ...NDIS_RATES_2026_27, ...(raw.rates || {}) };
 
     let totalFunding = 0;
     let planCost = 0;
@@ -49,7 +49,7 @@ function computeBudget(raw: any): Budget {
         fixedSleepovers: l.fixedSleepovers || 0,
         fixedSleepoverFreq: l.fixedSleepoverFreq || "every",
         kmsPerWeek: l.kmsPerWeek || 0,
-        kmRate: l.kmRate || 0.99,
+        kmRate: l.kmRate || 1.00,
         kmFreq: l.kmFreq || "every",
       };
       const lr = l.lineRates || getPresetRates(l.code) || globalRates;
