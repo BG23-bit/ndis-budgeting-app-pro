@@ -24,6 +24,23 @@ function money(n:number):string{const v=Number.isFinite(n)?n:0;return v.toLocale
 function num(x:any):number{const v=Number(x);return Number.isFinite(v)?v:0}
 function uid():string{return Math.random().toString(16).slice(2)+Date.now().toString(16)}
 function escapeHtml(s:string){return s.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;")}
+import {parseCSV,findCol,normDate,parseMoney,type ClaimsImportRow,type ClaimsImportPreview} from "@/lib/claims-import";
+// Print via a hidden iframe instead of window.open so popup blockers can't break exports.
+function printHtml(html:string){
+const iframe=document.createElement("iframe");
+Object.assign(iframe.style,{position:"fixed",right:"0",bottom:"0",width:"0",height:"0",border:"0"});
+iframe.setAttribute("aria-hidden","true");
+iframe.srcdoc=html;
+iframe.onload=()=>{
+  const win=iframe.contentWindow;
+  if(!win)return;
+  const cleanup=()=>setTimeout(()=>{try{document.body.removeChild(iframe)}catch{}},500);
+  win.addEventListener("afterprint",cleanup);
+  setTimeout(()=>{try{win.focus();win.print()}catch{}},150);
+  setTimeout(()=>{try{document.body.removeChild(iframe)}catch{}},120000);
+};
+document.body.appendChild(iframe);
+}
 function downloadTextFile(fn:string,text:string){const type=fn.endsWith(".csv")?"text/csv;charset=utf-8":"text/plain;charset=utf-8";const blob=new Blob([text],{type});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=fn;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url)}
 function Field(p:{label:string;value:number;step?:number;onChange:(v:number)=>void}){return(<label className="block"><div className="text-sm mb-1" style={{color:"#334155"}}>{p.label}</div><input type="number" step={p.step??1} value={Number.isFinite(p.value)?p.value:0} onChange={e=>p.onChange(num(e.target.value))} onFocus={e=>e.target.select()} className="w-full rounded-lg px-3 py-2 outline-none" style={{background: "#ffffff",border:"1px solid rgba(212,168,67,0.45)",color: "#0f172a"}}/></label>)}
 function SmallField(p:{value:number;step?:number;onChange:(v:number)=>void;disabled?:boolean}){return(<input type="number" step={p.step??0.25} value={p.value||""} placeholder="0" onChange={e=>p.onChange(num(e.target.value))} onFocus={e=>e.target.select()} disabled={p.disabled} className="rounded-lg px-2 py-1 outline-none w-16 text-center" style={{background:p.disabled?"rgba(241,245,249,0.3)":"rgba(241,245,249,0.6)",border:"1px solid rgba(212,168,67,0.45)",color:p.disabled?"#64748b":"#0f172a",fontSize:"0.85rem"}}/>)}
@@ -161,6 +178,67 @@ useEffect(()=>{try{localStorage.setItem("kevria_item_numbers",JSON.stringify(saI
 useEffect(()=>{try{const raw=localStorage.getItem("kevria_clinical_prac");if(raw)setClinicalPractitioner((p:any)=>({...p,...JSON.parse(raw)}))}catch{}},[]);
 useEffect(()=>{try{localStorage.setItem("kevria_clinical_prac",JSON.stringify(clinicalPractitioner))}catch{}},[clinicalPractitioner]);
 const planFileRef=React.useRef<HTMLInputElement>(null);
+const claimsFileRef=React.useRef<HTMLInputElement>(null);
+const[claimsImport,setClaimsImport]=useState<ClaimsImportPreview|null>(null);
+const[claimsImportError,setClaimsImportError]=useState<string|null>(null);
+function handleClaimsCsv(file:File){
+  setClaimsImportError(null);
+  file.text().then(text=>{
+    const rows=parseCSV(text);
+    if(rows.length<2){setClaimsImportError("No data rows found in that CSV.");return;}
+    const headers=rows[0].map(h=>h.toLowerCase().replace(/[^a-z0-9]/g,""));
+    const cDate=findCol(headers,["supportsdeliveredfrom","deliveredfrom","servicedate","supportdate","date"]);
+    const cPaid=findCol(headers,["paidtotalamount","paidamount","amountpaid"]);
+    const cAmount=findCol(headers,["totalamount","amount","total"]);
+    const cQty=findCol(headers,["quantity","qty","hours"]);
+    const cPrice=findCol(headers,["unitprice","rate"]);
+    const cItem=findCol(headers,["supportnumber","supportitemnumber","itemnumber","supportitem","item"]);
+    const cNdis=findCol(headers,["ndisnumber","participantndis"]);
+    const cRef=findCol(headers,["claimreference","reference","invoicenumber","invoice"]);
+    if(cDate<0||(cPaid<0&&cAmount<0&&(cQty<0||cPrice<0))){
+      setClaimsImportError("Couldn't find date and amount columns. Expected an NDIS payment request export (e.g. SupportsDeliveredFrom, PaidTotalAmount) or any CSV with Date and Amount columns.");
+      return;
+    }
+    const digits=(s:string)=>(s||"").replace(/\D/g,"");
+    const myNdis=digits(ndisNumber||"");
+    let skippedOther=0,skippedNoMatch=0,skippedDup=0,skippedBad=0;
+    const out:ClaimsImportRow[]=[];
+    const existing=new Set<string>();
+    for(const l of lines)for(const c of (l.claims||[]))existing.add(l.id+"|"+c.date+"|"+c.amount.toFixed(2));
+    for(const r of rows.slice(1)){
+      const date=normDate(r[cDate]||"");
+      let amount=0;
+      if(cPaid>=0&&parseMoney(r[cPaid])>0)amount=parseMoney(r[cPaid]);
+      else if(cQty>=0&&cPrice>=0&&parseMoney(r[cQty])>0&&parseMoney(r[cPrice])>0)amount=parseMoney(r[cQty])*parseMoney(r[cPrice]);
+      else if(cAmount>=0)amount=parseMoney(r[cAmount]);
+      if(!date||!(amount>0)){skippedBad++;continue;}
+      if(cNdis>=0&&myNdis&&digits(r[cNdis])&&digits(r[cNdis])!==myNdis){skippedOther++;continue;}
+      let target=lines[0];
+      if(cItem>=0&&(r[cItem]||"").trim()){
+        const code=(r[cItem]||"").trim().slice(0,2);
+        const match=lines.find(l=>l.code===code);
+        if(match)target=match;else{skippedNoMatch++;continue;}
+      }
+      const note=[cItem>=0?(r[cItem]||"").trim():"",cRef>=0?(r[cRef]||"").trim():""].filter(Boolean).join(" · ");
+      amount=Math.round(amount*100)/100;
+      const key=target.id+"|"+date+"|"+amount.toFixed(2);
+      if(existing.has(key)){skippedDup++;continue;}
+      existing.add(key);
+      out.push({lineId:target.id,lineLabel:target.code+" — "+target.description,date,amount,note});
+    }
+    if(out.length===0&&skippedDup===0){setClaimsImportError("No usable claim rows found in that CSV.");return;}
+    setClaimsImport({rows:out,skippedOther,skippedNoMatch,skippedDup,skippedBad,fileName:file.name});
+  }).catch(()=>setClaimsImportError("Couldn't read that file. Make sure it's a CSV export."));
+}
+function applyClaimsImport(){
+  if(!claimsImport)return;
+  setLines(prev=>prev.map(l=>{
+    const add=claimsImport.rows.filter(r=>r.lineId===l.id);
+    if(!add.length)return l;
+    return{...l,claims:[...(l.claims||[]),...add.map(r=>({id:uid(),date:r.date,amount:r.amount,note:r.note}))]};
+  }));
+  setClaimsImport(null);
+}
 async function handlePlanUpload(file:File){
   setUploadingPlan(true);setPlanUploadError(null);
   try{
@@ -343,13 +421,8 @@ function exportPDF(){
   <div>Generated by <a href="https://kevriacalc.com"><strong>Kevria Calc</strong></a></div>
   <div>Rates based on the 2026&#8211;27 NDIS Pricing Schedule. Verify with your plan manager before quoting. Not financial advice.</div>
 </div>
-<script>window.onload=function(){window.focus();window.print()}</script>
 </body></html>`;
-  const w=window.open("","_blank");
-  if(!w){alert("Popup blocked. Please allow popups for this site.");return}
-  w.document.open();
-  w.document.write(html);
-  w.document.close();
+  printHtml(html);
 }
 function generateScheduleOfSupports(){
   const pd=providerDetails;
@@ -565,13 +638,8 @@ tbody td{padding:9px 10px;vertical-align:top}
   <div>Generated by <strong>Kevria Calc</strong> | kevriacalc.com</div>
   <div>Rates: 2026&#8211;27 NDIS Pricing Schedule. Verify before quoting. Not financial advice.</div>
 </div>
-<script>window.onload=function(){window.focus();window.print()}</script>
 </body></html>`;
-  const w=window.open("","_blank");
-  if(!w){alert("Popup blocked. Please allow popups for this site.");return}
-  w.document.open();
-  w.document.write(html);
-  w.document.close();
+  printHtml(html);
 }
 function generateClinicalSoS(){
   const pName=participantName||"[Participant Name]";
@@ -686,13 +754,8 @@ tbody td{padding:9px 10px;vertical-align:top}
   <div>Generated by <strong>Kevria Calc</strong> | kevriacalc.com</div>
   <div>Rates: 2026&#8211;27 NDIS Pricing Schedule. Verify before quoting. Not financial advice.</div>
 </div>
-<script>window.onload=function(){window.focus();window.print()}</script>
 </body></html>`;
-  const w=window.open("","_blank");
-  if(!w){alert("Popup blocked. Please allow popups for this site.");return}
-  w.document.open();
-  w.document.write(html);
-  w.document.close();
+  printHtml(html);
 }
 const totalStatus=getBudgetStatus(totals.remaining,totals.totalFunding);
 const showSil=calcMode==="sil"||calcMode==="both";
@@ -789,6 +852,9 @@ return(
 <button onClick={addLine} className="rounded-xl px-4 py-2 font-semibold" style={{background:"rgba(212,168,67,0.15)",border:"1px solid rgba(212,168,67,0.3)",color:"#d4a843"}}>+ Add support line</button>
 <button onClick={exportCSV} className="rounded-xl px-4 py-2" style={{background:"rgba(15,23,42,0.05)",border:"1px solid rgba(15,23,42,0.1)",color:"#334155"}}>Export CSV</button>
 <button onClick={exportPDF} className="rounded-xl px-4 py-2" style={{background:"rgba(15,23,42,0.05)",border:"1px solid rgba(15,23,42,0.1)",color:"#334155"}}>Export PDF</button>
+<input ref={claimsFileRef} type="file" accept=".csv,text/csv" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f)handleClaimsCsv(f);e.target.value="";}}/>
+<button onClick={()=>claimsFileRef.current?.click()} className="rounded-xl px-4 py-2" style={{background:"rgba(34,197,94,0.08)",border:"1px solid rgba(34,197,94,0.3)",color:"#16a34a"}}>Import Claims CSV</button>
+{claimsImportError&&<div className="w-full text-sm" style={{color:"#ef4444"}}>{claimsImportError}</div>}
 <button onClick={()=>setShowSAModal(true)} style={{padding:"10px 14px",background:"#fdf6e3",border:"2px solid #d4a843",borderRadius:"12px",cursor:"pointer",textAlign:"left",boxShadow:"0 1px 3px rgba(15,23,42,0.08)"}}>
   <span style={{display:"block",color:"#b8901a",fontWeight:700,fontSize:"0.9rem"}}>📋 Roster / SIL / Core SoS</span>
   <span style={{display:"block",color:"#475569",fontSize:"0.74rem",marginTop:"2px"}}>Hourly roster — day, night, weekend rates</span>
@@ -1112,6 +1178,48 @@ return(
 <div style={{display:"flex",gap:"12px",marginTop:"20px"}}>
 <button onClick={applyPlanExtract} style={{flex:1,padding:"12px",backgroundColor:"#d4a843",color:"#f8fafc",border:"none",borderRadius:"8px",cursor:"pointer",fontWeight:"700",fontSize:"1rem"}}>Apply to Calculator</button>
 <button onClick={()=>setPlanExtract(null)} style={{flex:1,padding:"12px",background:"rgba(15,23,42,0.05)",border:"1px solid rgba(15,23,42,0.1)",color:"#334155",borderRadius:"8px",cursor:"pointer"}}>Cancel</button>
+</div>
+</div>
+</div>
+)}
+{claimsImport&&(
+<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.82)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:"16px"}}>
+<div style={{background:"#f8fafc",border:"1px solid rgba(34,197,94,0.4)",borderRadius:"16px",padding:"32px",maxWidth:"640px",width:"100%",maxHeight:"85vh",overflowY:"auto"}}>
+<h3 style={{fontSize:"1.3rem",fontWeight:"700",color:"#16a34a",marginBottom:"6px"}}>Import claims — review before applying</h3>
+<div style={{color:"#64748b",fontSize:"0.85rem",marginBottom:"16px"}}>{claimsImport.fileName}</div>
+{claimsImport.rows.length>0?(
+<>
+<div style={{overflowX:"auto"}}>
+<table style={{width:"100%",borderCollapse:"collapse",fontSize:"0.82rem",minWidth:"480px"}}>
+<thead><tr style={{color:"#334155",borderBottom:"1px solid rgba(34,197,94,0.25)"}}>
+<th style={{textAlign:"left",padding:"4px 8px",fontWeight:"600"}}>Date</th>
+<th style={{textAlign:"left",padding:"4px 8px",fontWeight:"600"}}>Support line</th>
+<th style={{textAlign:"left",padding:"4px 8px",fontWeight:"600"}}>Note</th>
+<th style={{textAlign:"right",padding:"4px 8px",fontWeight:"600"}}>Amount</th>
+</tr></thead>
+<tbody>{claimsImport.rows.map((r,i)=>(
+<tr key={i} style={{borderBottom:"1px solid rgba(15,23,42,0.04)"}}>
+<td style={{padding:"4px 8px",color:"#334155",whiteSpace:"nowrap"}}>{r.date}</td>
+<td style={{padding:"4px 8px",color:"#1e293b"}}>{r.lineLabel}</td>
+<td style={{padding:"4px 8px",color:"#64748b"}}>{r.note||"—"}</td>
+<td style={{padding:"4px 8px",color:"#16a34a",textAlign:"right",whiteSpace:"nowrap",fontWeight:600}}>{money(r.amount)}</td>
+</tr>
+))}</tbody>
+</table>
+</div>
+<div style={{textAlign:"right",fontWeight:700,color:"#16a34a",marginTop:"10px"}}>Total: {money(claimsImport.rows.reduce((s,r)=>s+r.amount,0))} across {claimsImport.rows.length} claim{claimsImport.rows.length===1?"":"s"}</div>
+</>
+):(
+<div style={{color:"#64748b",fontSize:"0.9rem"}}>Nothing new to import — every row in this file has already been imported.</div>
+)}
+{(claimsImport.skippedDup>0||claimsImport.skippedOther>0||claimsImport.skippedNoMatch>0||claimsImport.skippedBad>0)&&(
+<div style={{marginTop:"12px",padding:"10px 12px",background:"rgba(15,23,42,0.04)",borderRadius:"8px",fontSize:"0.8rem",color:"#64748b"}}>
+Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported":"",claimsImport.skippedOther>0?claimsImport.skippedOther+" for other participants":"",claimsImport.skippedNoMatch>0?claimsImport.skippedNoMatch+" with no matching support line":"",claimsImport.skippedBad>0?claimsImport.skippedBad+" without a valid date/amount":""].filter(Boolean).join(" · ")}
+</div>
+)}
+<div style={{display:"flex",gap:"12px",marginTop:"20px"}}>
+{claimsImport.rows.length>0&&<button onClick={applyClaimsImport} style={{flex:1,padding:"12px",backgroundColor:"#16a34a",color:"#ffffff",border:"none",borderRadius:"8px",cursor:"pointer",fontWeight:"700",fontSize:"1rem"}}>Import {claimsImport.rows.length} claim{claimsImport.rows.length===1?"":"s"}</button>}
+<button onClick={()=>setClaimsImport(null)} style={{flex:1,padding:"12px",background:"rgba(15,23,42,0.05)",border:"1px solid rgba(15,23,42,0.1)",color:"#334155",borderRadius:"8px",cursor:"pointer"}}>Cancel</button>
 </div>
 </div>
 </div>
