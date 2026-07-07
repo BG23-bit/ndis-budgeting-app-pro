@@ -102,6 +102,32 @@ const NDIS_ITEM_DEFAULTS:{[code:string]:{[rateType:string]:string}}={
   "15":{weekday:"15_056_0128_1_3",lump:"15_056_0128_1_3"},
 };
 function getDefaultItemNumber(code:string,rateType:string):string{return NDIS_ITEM_DEFAULTS[code]?.[rateType]||""}
+// Merge proposedRoster entries (from plan-upload notes) for one category code into roster fields
+function rosterFromProposal(prs:any[]):{roster:{[k:string]:DayRoster};aso:number;fso:number;kms:number}{
+  const roster=defaultRoster();
+  let aso=0,fso=0,kms=0;
+  for(const r of prs){
+    const freq=r?.frequency&&FREQ[r.frequency]?r.frequency:"every";
+    for(const [d,v] of Object.entries(r?.days||{})){
+      if(!(d in roster))continue;
+      const hv=num((v as any)?.hours),nv=num((v as any)?.nightHours);
+      if(hv<=0&&nv<=0)continue;
+      const prev=roster[d];
+      roster[d]={enabled:true,hours:(prev.enabled?prev.hours:0)+hv,nightHours:(prev.enabled?prev.nightHours:0)+nv,frequency:freq};
+    }
+    aso+=num(r?.activeSleepoverHoursPerWeek);fso+=num(r?.sleepoversPerWeek);kms+=num(r?.kmsPerWeek);
+  }
+  return{roster,aso,fso,kms};
+}
+function proposalDaysSummary(prs:any[]):string{
+  const{roster,aso,fso,kms}=rosterFromProposal(prs);
+  const parts:string[]=[];
+  for(const d of DAYS){const r=roster[d];if(!r.enabled)continue;parts.push(DL[d].slice(0,3)+" "+(r.hours||0)+"h"+((r.nightHours||0)>0?" +"+r.nightHours+"e":""));}
+  if(aso>0)parts.push("active o/n "+aso+"h/wk");
+  if(fso>0)parts.push(fso+" sleepover"+(fso===1?"":"s")+"/wk");
+  if(kms>0)parts.push(kms+" km/wk");
+  return parts.join(" · ");
+}
 function getLineMode(code:string):"full"|"weekday"|"lump"{if(["02","03","05","06","17","18","19"].includes(code))return"lump";if(["07","10","11","12","13","14","15","20"].includes(code))return"weekday";return"full"}
 function isBelowGuide(lr:Rates,code:string):boolean{const p=CATEGORY_PRESETS[code]?.rates;if(!p)return false;return(p.weekdayOrd>0&&lr.weekdayOrd<p.weekdayOrd)||(p.weekdayNight>0&&lr.weekdayNight<p.weekdayNight)||(p.sat>0&&lr.sat<p.sat)||(p.sun>0&&lr.sun<p.sun)||(p.publicHoliday>0&&lr.publicHoliday<p.publicHoliday)||(p.activeSleepoverHourly>0&&lr.activeSleepoverHourly<p.activeSleepoverHourly)}
 export default function PageClient({storageKey,participantName,ndisNumber}:{storageKey?:string;participantName?:string;ndisNumber?:string}){
@@ -166,6 +192,29 @@ const[uploadingPlan,setUploadingPlan]=useState(false);
 const[planExtract,setPlanExtract]=useState<any>(null);
 const[planUploadError,setPlanUploadError]=useState<string|null>(null);
 const[removeOnApply,setRemoveOnApply]=useState<Set<string>>(new Set());
+const[planNotes,setPlanNotes]=useState("");
+// Simulate what the proposed roster would cost against the extracted budgets
+function simulateExtractOutcome(extract:any):null|{rows:{code:string;description:string;budget:number;cost:number;remaining:number;summary:string}[];totalBudget:number;totalCost:number}{
+  if(!Array.isArray(extract?.supportLines)||!Array.isArray(extract?.proposedRoster)||extract.proposedRoster.length===0)return null;
+  const start=extract.planStart||planDates.start,end=extract.planEnd||planDates.end,state=extract.state||planDates.state;
+  const weeks=getWeeksInPlan(start,end);
+  const hols=getHolidaysInRange(start,end,state);
+  const rows:{code:string;description:string;budget:number;cost:number;remaining:number;summary:string}[]=[];
+  for(const sl of extract.supportLines){
+    if((sl?.totalFunding||0)<=0)continue;
+    const prs=extract.proposedRoster.filter((r:any)=>r?.categoryCode===sl.code);
+    if(prs.length===0)continue;
+    const{roster,aso,fso,kms}=rosterFromProposal(prs);
+    const line:any={id:"sim",code:sl.code,description:sl.description,totalFunding:sl.totalFunding,ratio:"1:1",excludedHolidays:[],roster,activeSleepoverHours:aso,activeSleepoverFreq:"every",fixedSleepovers:fso,fixedSleepoverFreq:"every",kmsPerWeek:kms,kmRate:1.00,kmFreq:"every",claims:[],lineRates:getPresetRates(sl.code)};
+    const lr=line.lineRates;
+    const base=calcDayCountPlanCost(line,start,end,weeks,lr)*(1+(lr.gstRate||0));
+    const ph=calcPHImpact(line,hols,lr);
+    const cost=base+ph.extraCost-ph.savedCost;
+    rows.push({code:sl.code,description:sl.description,budget:sl.totalFunding,cost,remaining:sl.totalFunding-cost,summary:proposalDaysSummary(prs)});
+  }
+  if(rows.length===0)return null;
+  return{rows,totalBudget:rows.reduce((s,r)=>s+r.budget,0),totalCost:rows.reduce((s,r)=>s+r.cost,0)};
+}
 // Existing lines the extraction would NOT update (mirrors applyPlanExtract's matching)
 function staleLinesForExtract(extract:any,cur:SupportLine[]):SupportLine[]{
   if(!Array.isArray(extract?.supportLines)||extract.supportLines.length===0)return[];
@@ -262,7 +311,7 @@ async function handlePlanUpload(file:File){
   setUploadingPlan(true);setPlanUploadError(null);
   try{
     const {data:{session}}=await supabase.auth.getSession();
-    const fd=new FormData();fd.append("pdf",file);
+    const fd=new FormData();fd.append("pdf",file);if(planNotes.trim())fd.append("notes",planNotes.trim());
     const headers:HeadersInit=session?.access_token?{Authorization:"Bearer "+session.access_token}:{};
     const res=await fetch("/api/parse-plan",{method:"POST",body:fd,headers});
     const data=await res.json();
@@ -300,6 +349,17 @@ function applyPlanExtract(){
         const newRates={...l.lineRates};
         for(const item of items){const k=scheduleRateMap[item.rateType];if(k)(newRates as any)[k]=item.price;}
         return{...l,lineRates:newRates};
+      });
+    }
+    // Apply the roster proposed from the provider's notes (first line per category code)
+    if(Array.isArray(planExtract.proposedRoster)&&planExtract.proposedRoster.length>0){
+      const doneCodes=new Set<string>();
+      updated=updated.map((l:SupportLine)=>{
+        const prs=planExtract.proposedRoster.filter((r:any)=>r?.categoryCode===l.code);
+        if(prs.length===0||doneCodes.has(l.code))return l;
+        doneCodes.add(l.code);
+        const{roster,aso,fso,kms}=rosterFromProposal(prs);
+        return{...l,roster,activeSleepoverHours:aso,fixedSleepovers:fso,kmsPerWeek:kms>0?kms:l.kmsPerWeek};
       });
     }
     return updated;
@@ -866,12 +926,15 @@ return(
 {planDates.end&&planDates.start&&new Date(planDates.end)<=new Date(planDates.start)&&(<div className="mt-3 rounded-lg px-4 py-2 text-sm" style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",color:"#f87171"}}>⚠ Plan end date must be after the start date</div>)}
 <div className="mt-4">
 <div className="text-xs font-semibold mb-2" style={{color:"#64748b",textTransform:"uppercase",letterSpacing:"0.06em"}}>Optional — Auto-fill from plan PDF</div>
+<textarea value={planNotes} onChange={e=>setPlanNotes(e.target.value)} rows={2} maxLength={2000}
+placeholder="Optional: describe the supports you plan to deliver and the roster fills itself — e.g. 6 hrs community access each weekday 9am–3pm, 4 hrs across the weekend, sleepover every night"
+className="kv-input w-full rounded-lg px-3 py-2 text-sm mb-2" style={{resize:"vertical"}}/>
 <div className="flex items-center gap-3 flex-wrap">
 <input ref={planFileRef} type="file" accept=".pdf,application/pdf" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f)handlePlanUpload(f);e.target.value="";}}/>
-<button onClick={()=>planFileRef.current?.click()} disabled={uploadingPlan} style={{background:"rgba(212,168,67,0.12)",border:"1px solid rgba(212,168,67,0.35)",color:"#d4a843",padding:"10px 18px",borderRadius:"8px",cursor:"pointer",fontWeight:"600",fontSize:"0.9rem",opacity:uploadingPlan?0.7:1}}>
+<button onClick={()=>planFileRef.current?.click()} disabled={uploadingPlan} className="kv-btn" style={{background:"rgba(212,168,67,0.12)",border:"1px solid rgba(212,168,67,0.35)",color:"#b8901a",padding:"10px 18px",borderRadius:"8px",cursor:"pointer",fontWeight:"600",fontSize:"0.9rem",opacity:uploadingPlan?0.7:1}}>
 {uploadingPlan?"⏳ Reading plan...":"📄 Upload NDIS Plan PDF"}
 </button>
-<span style={{color:"#64748b",fontSize:"0.82rem"}}>Upload a plan PDF to auto-fill dates, state &amp; funding — or enter manually below</span>
+<span style={{color:"#64748b",fontSize:"0.82rem"}}>Budgets fill from the PDF — add notes above and the weekly roster fills in too, with a budget check before anything is applied</span>
 {planUploadError&&<div className="w-full mt-1"><span style={{color:"#ef4444",fontSize:"0.85rem"}}>{planUploadError}</span></div>}
 </div>
 </div>
@@ -1258,6 +1321,32 @@ return(<>
 {planExtract.establishmentFee?<div style={{color:"#1e293b",marginTop:"4px"}}>Establishment Fee: <span style={{color: "#0f172a",fontWeight:"600"}}>{money(planExtract.establishmentFee)}</span></div>:null}
 </div>
 )}
+{(()=>{
+const sim=simulateExtractOutcome(planExtract);
+if(!sim)return null;
+return(
+<div style={{marginTop:"16px"}}>
+<div style={{color:"#b8901a",fontWeight:"600",marginBottom:"8px",fontSize:"0.95rem"}}>Proposed roster &amp; budget check:</div>
+{sim.rows.map((r,i)=>{
+const over=r.remaining<0;
+const pct=r.cost>0?Math.max(0,Math.round((1-r.budget/r.cost)*100)):0;
+return(
+<div key={i} style={{padding:"10px 12px",marginBottom:"6px",background:over?"rgba(239,68,68,0.05)":"rgba(34,197,94,0.05)",border:"1px solid "+(over?"rgba(239,68,68,0.25)":"rgba(34,197,94,0.2)"),borderRadius:"8px"}}>
+<div className="flex items-center justify-between gap-2 flex-wrap">
+<div><span className="kv-money" style={{color:"#b8901a",fontWeight:600,marginRight:"8px"}}>{r.code}</span><span style={{color:"#1e293b",fontSize:"0.9rem",fontWeight:600}}>{r.description}</span></div>
+<span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{background:over?"rgba(239,68,68,0.1)":"rgba(34,197,94,0.1)",color:over?"#dc2626":"#16a34a",border:"1px solid "+(over?"rgba(239,68,68,0.3)":"rgba(34,197,94,0.3)")}}>{over?"OVER BUDGET":"FITS BUDGET"}</span>
+</div>
+<div style={{fontSize:"0.78rem",color:"#64748b",marginTop:"4px"}}>{r.summary}</div>
+<div className="kv-money" style={{fontSize:"0.85rem",color:"#334155",marginTop:"4px"}}>Costs <strong>{money(r.cost)}</strong> over the plan vs <strong>{money(r.budget)}</strong> funded — <span style={{color:over?"#dc2626":"#16a34a",fontWeight:700}}>{over?money(-r.remaining)+" over":money(r.remaining)+" spare"}</span></div>
+{over&&<div style={{fontSize:"0.8rem",color:"#b45309",marginTop:"4px"}}>To fit, hours would need to come down by about {pct}% — trim weekend or evening hours first (they cost the most), or agree a lower rate.</div>}
+</div>
+);
+})}
+<div className="kv-money" style={{display:"flex",justifyContent:"space-between",padding:"6px 12px",fontWeight:700,color:sim.totalCost>sim.totalBudget?"#dc2626":"#16a34a"}}><span>Roster total vs budgets checked</span><span>{money(sim.totalCost)} / {money(sim.totalBudget)}</span></div>
+<div style={{fontSize:"0.75rem",color:"#94a3b8",padding:"0 12px"}}>Estimated with 2026–27 preset rates, this plan&apos;s dates, state public holidays and km allowances. Fine-tune in the calculator after applying.</div>
+</div>
+);
+})()}
 {(()=>{
 const stale=staleLinesForExtract(planExtract,lines);
 if(stale.length===0)return null;
