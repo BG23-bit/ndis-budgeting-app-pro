@@ -1,6 +1,40 @@
 // Extraction prompt for /api/parse-plan. Kept here (not in the route) so
 // scripts/parse-plan-live-test.ts can exercise exactly what production sends.
 
+// Standalone notes → roster translation (used by /api/roster-notes after budgets exist)
+export function buildRosterPrompt(notes: string, lines: { code: string; description: string; totalFunding: number }[], planStart?: string, planEnd?: string, state?: string): string {
+  return `You are converting a support provider's notes into a weekly roster for an NDIS budgeting tool.
+
+The participant's current support lines (budgets) are:
+${lines.map((l) => `- code ${l.code}: ${l.description} — total funding $${(l.totalFunding || 0).toFixed(2)}`).join("\n")}
+${planStart && planEnd ? `Plan period: ${planStart} to ${planEnd}.` : ""}${state ? ` State: ${state}.` : ""}
+
+Provider notes:
+"""
+${notes}
+"""
+
+Return ONLY a valid JSON object — no markdown, no extra text:
+{
+  "proposedRoster": [
+    {
+      "categoryCode": "2-digit string — MUST be one of the codes listed above",
+      "days": { "mon": {"hours": number, "nightHours": number}, "tue": {"hours": number, "nightHours": number} },
+      "frequency": "every|2nd|3rd|4th|monthly",
+      "activeSleepoverHoursPerWeek": number,
+      "sleepoversPerWeek": number,
+      "kmsPerWeek": number
+    }
+  ]
+}
+
+Rules:
+- "each weekday" / "weekdays" = mon, tue, wed, thu, fri. "weekend" = sat and sun. An amount "per weekend" with no per-day split means that many hours across the whole weekend (split evenly between sat and sun); "each weekend day" means that many hours on sat AND sun.
+- Hours delivered between 6am and 8pm are daytime "hours". Any portion between 8pm and midnight is "nightHours". A sleepover / overnight stay = sleepoversPerWeek (e.g. "sleepover every night" = 7). Awake overnight support = activeSleepoverHoursPerWeek.
+- Put hours on the line whose budget they draw from: under a flexible Core budget, daily living AND community access hours both draw from that Core line — combine hours for the same code by summing per day. Only roster-based core supports (codes 01, 04, 08, 16, 21) get entries; ignore therapy, coordination or plan-management hours.
+- Round hours to the nearest quarter hour. Do not invent supports that are not described in the notes. If the notes don't describe any roster supports, return {"proposedRoster": []}.`;
+}
+
 export function buildPlanPrompt(notes?: string | null): string {
   let prompt = `You are extracting data from an Australian NDIS (National Disability Insurance Scheme) plan or service agreement document.
 

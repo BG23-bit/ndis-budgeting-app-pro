@@ -140,16 +140,17 @@ const[lines,setLines]=useState<SupportLine[]>([{id:uid(),code:"01",description:"
 const srvStart=planDates.serviceStart||planDates.start;const srvEnd=planDates.serviceEnd||planDates.end;
 const planWeeksCalc=useMemo(()=>getWeeksInPlan(srvStart,srvEnd),[srvStart,srvEnd]);const[weeksOverride,setWeeksOverride]=useState<number|null>(null);const planWeeks=weeksOverride!==null?weeksOverride:planWeeksCalc;
 const holidays=useMemo(()=>getHolidaysInRange(srvStart,srvEnd,planDates.state),[srvStart,srvEnd,planDates.state]);
-useEffect(()=>{async function load(){const cloud=await loadFromCloud(STORAGE_KEY);const raw=cloud||(()=>{try{const r=localStorage.getItem(STORAGE_KEY);return r?JSON.parse(r):null}catch{return null}})();if(!raw){setLoaded(true);return;}if(raw?.rates)setRates((r:any)=>({...r,...raw.rates}));if(raw?.planDates)setPlanDates((p:any)=>({...p,...raw.planDates}));if(Array.isArray(raw?.lines)&&raw.lines.length>0)setLines(raw.lines.map((l:any)=>({...l,ratio:l.ratio||"1:1",excludedHolidays:l.excludedHolidays||[],roster:l.roster||defaultRoster(),activeSleepoverFreq:l.activeSleepoverFreq||"every",fixedSleepoverFreq:l.fixedSleepoverFreq||"every",kmsPerWeek:l.kmsPerWeek||0,kmRate:l.kmRate||1.00,kmFreq:l.kmFreq||"every",claims:l.claims||[],lineRates:l.lineRates||getPresetRates(l.code)})));if(raw?.weeksOverride!=null)setWeeksOverride(raw.weeksOverride);if(raw?.calcMode!==undefined)setCalcMode(raw.calcMode as any);else{const hasLines=Array.isArray(raw?.lines)&&raw.lines.some((l:any)=>(l?.totalFunding||0)>0);const hasClinical=Array.isArray(raw?.clinicalServices)&&raw.clinicalServices.length>0;if(hasLines&&hasClinical)setCalcMode("both");else if(hasClinical&&!hasLines)setCalcMode("clinical");else if(hasLines)setCalcMode("sil");}if(typeof raw?.clinicalFunding==="number")setClinicalFunding(raw.clinicalFunding);if(Array.isArray(raw?.clinicalServices))setClinicalServices(raw.clinicalServices);if(typeof raw?.clinicalBudgetLinked==="boolean")setClinicalBudgetLinked(raw.clinicalBudgetLinked);setLoaded(true);}load()},[]);
+useEffect(()=>{async function load(){const cloud=await loadFromCloud(STORAGE_KEY);const raw=cloud||(()=>{try{const r=localStorage.getItem(STORAGE_KEY);return r?JSON.parse(r):null}catch{return null}})();if(!raw){setLoaded(true);return;}if(raw?.rates)setRates((r:any)=>({...r,...raw.rates}));if(raw?.planDates)setPlanDates((p:any)=>({...p,...raw.planDates}));if(Array.isArray(raw?.lines)&&raw.lines.length>0)setLines(raw.lines.map((l:any)=>({...l,ratio:l.ratio||"1:1",excludedHolidays:l.excludedHolidays||[],roster:l.roster||defaultRoster(),activeSleepoverFreq:l.activeSleepoverFreq||"every",fixedSleepoverFreq:l.fixedSleepoverFreq||"every",kmsPerWeek:l.kmsPerWeek||0,kmRate:l.kmRate||1.00,kmFreq:l.kmFreq||"every",claims:l.claims||[],lineRates:l.lineRates||getPresetRates(l.code)})));if(raw?.weeksOverride!=null)setWeeksOverride(raw.weeksOverride);if(raw?.calcMode!==undefined)setCalcMode(raw.calcMode as any);else{const hasLines=Array.isArray(raw?.lines)&&raw.lines.some((l:any)=>(l?.totalFunding||0)>0);const hasClinical=Array.isArray(raw?.clinicalServices)&&raw.clinicalServices.length>0;if(hasLines&&hasClinical)setCalcMode("both");else if(hasClinical&&!hasLines)setCalcMode("clinical");else if(hasLines)setCalcMode("sil");}if(typeof raw?.planNotes==="string")setPlanNotes(raw.planNotes);if(typeof raw?.clinicalFunding==="number")setClinicalFunding(raw.clinicalFunding);if(Array.isArray(raw?.clinicalServices))setClinicalServices(raw.clinicalServices);if(typeof raw?.clinicalBudgetLinked==="boolean")setClinicalBudgetLinked(raw.clinicalBudgetLinked);setLoaded(true);}load()},[]);
 const[calcMode,setCalcMode]=useState<"sil"|"clinical"|"both"|null>(null);
 const[loaded,setLoaded]=useState(false);
 const[clinicalFunding,setClinicalFunding]=useState(0);
 const[clinicalServices,setClinicalServices]=useState<{id:string;code:string;description:string;hours:number;rate:number;note:string}[]>([]);
 const[clinicalBudgetLinked,setClinicalBudgetLinked]=useState(false);
-const saveData={rates,lines,planDates,weeksOverride,calcMode,clinicalFunding,clinicalServices,clinicalBudgetLinked};
+const[planNotes,setPlanNotes]=useState("");
+const saveData={rates,lines,planDates,weeksOverride,calcMode,clinicalFunding,clinicalServices,clinicalBudgetLinked,planNotes};
 // Don't persist until the initial load has finished — otherwise the mount-time save
 // overwrites stored data with defaults before the async load can read it.
-useEffect(()=>{if(!loaded)return;try{localStorage.setItem(STORAGE_KEY,JSON.stringify(saveData))}catch{}},[loaded,rates,lines,planDates,weeksOverride,calcMode,clinicalFunding,clinicalServices,clinicalBudgetLinked]);
+useEffect(()=>{if(!loaded)return;try{localStorage.setItem(STORAGE_KEY,JSON.stringify(saveData))}catch{}},[loaded,rates,lines,planDates,weeksOverride,calcMode,clinicalFunding,clinicalServices,clinicalBudgetLinked,planNotes]);
 const saveState=useCloudSync(loaded?STORAGE_KEY:"",saveData);
 const perLine=useMemo(()=>{return lines.map(l=>{const lr=l.lineRates||rates;const wt=calcWeeklyCost(l,lr);const weeklyGST=wt*(lr.gstRate||0);const weeklyWithGST=wt+weeklyGST;const basePlanCost=calcDayCountPlanCost(l,srvStart,srvEnd,planWeeks,lr)*(1+(lr.gstRate||0));const phImpact=calcPHImpact(l,holidays,lr);const phAdjustment=phImpact.extraCost-phImpact.savedCost;const planTotal=basePlanCost+phAdjustment;const remaining=l.totalFunding-planTotal;const totalClaimed=(l.claims||[]).reduce((a:number,c:Claim)=>a+c.amount,0);const actualRemaining=l.totalFunding-totalClaimed;return{...l,weeklyTotal:wt,weeklyGST,weeklyWithGST,basePlanCost,phImpact,phAdjustment,planTotal,remaining,totalClaimed,actualRemaining}})},[lines,rates,planWeeks,holidays]);
 const totals=useMemo(()=>{const totalFunding=perLine.reduce((a,l)=>a+l.totalFunding,0);const weekly=perLine.reduce((a,l)=>a+l.weeklyWithGST,0);const planCost=perLine.reduce((a,l)=>a+l.planTotal,0);const totalPH=perLine.reduce((a,l)=>a+l.phAdjustment,0);const remaining=totalFunding-planCost;const totalClaimed=perLine.reduce((a,l)=>a+(l as any).totalClaimed,0);const actualRemaining=totalFunding-totalClaimed;return{totalFunding,weekly,planCost,totalPH,remaining,totalClaimed,actualRemaining}},[perLine]);
@@ -192,7 +193,63 @@ const[uploadingPlan,setUploadingPlan]=useState(false);
 const[planExtract,setPlanExtract]=useState<any>(null);
 const[planUploadError,setPlanUploadError]=useState<string|null>(null);
 const[removeOnApply,setRemoveOnApply]=useState<Set<string>>(new Set());
-const[planNotes,setPlanNotes]=useState("");
+const[autofilling,setAutofilling]=useState(false);
+const[autofillError,setAutofillError]=useState<string|null>(null);
+const[autofillResult,setAutofillResult]=useState<{rows:{code:string;description:string;budget:number;cost:number;remaining:number;summary:string}[];skipped:number}|null>(null);
+// Cost the proposed roster against CURRENT lines (their budgets and rates) before applying
+function computeRosterVerdict(proposal:any[]){
+  const rows:{code:string;description:string;budget:number;cost:number;remaining:number;summary:string}[]=[];
+  const doneCodes=new Set<string>();
+  for(const l of lines){
+    const prs=proposal.filter((r:any)=>r?.categoryCode===l.code);
+    if(prs.length===0||doneCodes.has(l.code))continue;
+    doneCodes.add(l.code);
+    const{roster,aso,fso,kms}=rosterFromProposal(prs);
+    const simLine:any={...l,roster,activeSleepoverHours:aso,fixedSleepovers:fso,kmsPerWeek:kms>0?kms:l.kmsPerWeek};
+    const lr=l.lineRates||rates;
+    const base=calcDayCountPlanCost(simLine,srvStart,srvEnd,planWeeks,lr)*(1+(lr.gstRate||0));
+    const ph=calcPHImpact(simLine,holidays,lr);
+    const cost=base+ph.extraCost-ph.savedCost;
+    rows.push({code:l.code,description:l.description,budget:l.totalFunding,cost,remaining:l.totalFunding-cost,summary:proposalDaysSummary(prs)});
+  }
+  const matchedCodes=new Set(rows.map(r=>r.code));
+  const skipped=proposal.filter((r:any)=>!matchedCodes.has(r?.categoryCode)).length;
+  return{rows,skipped};
+}
+function applyRosterProposal(proposal:any[]){
+  setLines(prev=>{
+    const doneCodes=new Set<string>();
+    return prev.map(l=>{
+      const prs=proposal.filter((r:any)=>r?.categoryCode===l.code);
+      if(prs.length===0||doneCodes.has(l.code))return l;
+      doneCodes.add(l.code);
+      const{roster,aso,fso,kms}=rosterFromProposal(prs);
+      return{...l,roster,activeSleepoverHours:aso,fixedSleepovers:fso,kmsPerWeek:kms>0?kms:l.kmsPerWeek};
+    });
+  });
+}
+async function autofillRoster(){
+  if(!planNotes.trim())return;
+  setAutofilling(true);setAutofillError(null);setAutofillResult(null);
+  try{
+    const{data:{session}}=await supabase.auth.getSession();
+    const res=await fetch("/api/roster-notes",{
+      method:"POST",
+      headers:{"Content-Type":"application/json",...(session?.access_token?{Authorization:"Bearer "+session.access_token}:{})},
+      body:JSON.stringify({notes:planNotes.trim(),lines:lines.map(l=>({code:l.code,description:l.description,totalFunding:l.totalFunding})),planStart:planDates.start,planEnd:planDates.end,state:planDates.state}),
+    });
+    const data=await res.json();
+    if(data.error)throw new Error(data.error);
+    const proposal=Array.isArray(data.proposedRoster)?data.proposedRoster:[];
+    if(proposal.length===0){setAutofillError("Couldn't read any roster supports from those notes — try describing days and hours, e.g. \"6 hrs community access each weekday\".");return;}
+    const verdict=computeRosterVerdict(proposal);
+    if(verdict.rows.length===0){setAutofillError("Those notes didn't match any of your support lines — check the hours describe core/roster supports.");return;}
+    applyRosterProposal(proposal);
+    setAutofillResult(verdict);
+  }catch(e:any){
+    setAutofillError(e.message||"Auto-fill failed. Please try again.");
+  }finally{setAutofilling(false);}
+}
 // Simulate what the proposed roster would cost against the extracted budgets
 function simulateExtractOutcome(extract:any):null|{rows:{code:string;description:string;budget:number;cost:number;remaining:number;summary:string}[];totalBudget:number;totalCost:number}{
   if(!Array.isArray(extract?.supportLines)||!Array.isArray(extract?.proposedRoster)||extract.proposedRoster.length===0)return null;
@@ -311,7 +368,7 @@ async function handlePlanUpload(file:File){
   setUploadingPlan(true);setPlanUploadError(null);
   try{
     const {data:{session}}=await supabase.auth.getSession();
-    const fd=new FormData();fd.append("pdf",file);if(planNotes.trim())fd.append("notes",planNotes.trim());
+    const fd=new FormData();fd.append("pdf",file);
     const headers:HeadersInit=session?.access_token?{Authorization:"Bearer "+session.access_token}:{};
     const res=await fetch("/api/parse-plan",{method:"POST",body:fd,headers});
     const data=await res.json();
@@ -926,15 +983,12 @@ return(
 {planDates.end&&planDates.start&&new Date(planDates.end)<=new Date(planDates.start)&&(<div className="mt-3 rounded-lg px-4 py-2 text-sm" style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",color:"#f87171"}}>⚠ Plan end date must be after the start date</div>)}
 <div className="mt-4">
 <div className="text-xs font-semibold mb-2" style={{color:"#64748b",textTransform:"uppercase",letterSpacing:"0.06em"}}>Optional — Auto-fill from plan PDF</div>
-<textarea value={planNotes} onChange={e=>setPlanNotes(e.target.value)} rows={2} maxLength={2000}
-placeholder="Optional: describe the supports you plan to deliver and the roster fills itself — e.g. 6 hrs community access each weekday 9am–3pm, 4 hrs across the weekend, sleepover every night"
-className="kv-input w-full rounded-lg px-3 py-2 text-sm mb-2" style={{resize:"vertical"}}/>
 <div className="flex items-center gap-3 flex-wrap">
 <input ref={planFileRef} type="file" accept=".pdf,application/pdf" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f)handlePlanUpload(f);e.target.value="";}}/>
 <button onClick={()=>planFileRef.current?.click()} disabled={uploadingPlan} className="kv-btn" style={{background:"rgba(212,168,67,0.12)",border:"1px solid rgba(212,168,67,0.35)",color:"#b8901a",padding:"10px 18px",borderRadius:"8px",cursor:"pointer",fontWeight:"600",fontSize:"0.9rem",opacity:uploadingPlan?0.7:1}}>
 {uploadingPlan?"⏳ Reading plan...":"📄 Upload NDIS Plan PDF"}
 </button>
-<span style={{color:"#64748b",fontSize:"0.82rem"}}>Budgets fill from the PDF — add notes above and the weekly roster fills in too, with a budget check before anything is applied</span>
+<span style={{color:"#64748b",fontSize:"0.82rem"}}>Upload a plan PDF to auto-fill dates, state &amp; funding — then use ✨ Auto-fill roster (below) to fill the weekly hours from your notes</span>
 {planUploadError&&<div className="w-full mt-1"><span style={{color:"#ef4444",fontSize:"0.85rem"}}>{planUploadError}</span></div>}
 </div>
 </div>
@@ -1063,6 +1117,41 @@ className="kv-input w-full rounded-lg px-3 py-2 text-sm mb-2" style={{resize:"ve
 </div>
 </details>
 <div id="sec-lines" className="flex items-center gap-3 mb-4 mt-2" style={{scrollMarginTop:"70px"}}><span className="kv-num">3</span><h2 className="text-xl font-semibold" style={{color:"#2d1b69"}}>Support Lines &amp; Weekly Roster</h2></div>
+<div className="kv-card p-4 mb-5">
+<div className="flex items-center gap-2 mb-2 flex-wrap">
+<span className="text-sm font-semibold" style={{color:"#2d1b69"}}>✨ Auto-fill roster from notes</span>
+<span className="text-xs" style={{color:"#94a3b8"}}>describe the supports and the roster fills itself — edit the text and run it again any time</span>
+</div>
+<textarea value={planNotes} onChange={e=>setPlanNotes(e.target.value)} rows={2} maxLength={2000}
+placeholder={'e.g. 6 hrs community access each weekday 9am–3pm, 4 hrs across the weekend, sleepover every night, 100 km per week'}
+className="kv-input w-full rounded-lg px-3 py-2 text-sm" style={{resize:"vertical"}}/>
+<div className="flex items-center gap-3 flex-wrap mt-2">
+<button onClick={autofillRoster} disabled={autofilling||!planNotes.trim()} className="kv-btn rounded-xl px-4 py-2 font-bold" style={{background:planNotes.trim()&&!autofilling?"#d4a843":"#ecdfb6",border:"none",color:"#241456",cursor:planNotes.trim()&&!autofilling?"pointer":"not-allowed"}}>{autofilling?"⏳ Filling roster…":"✨ Auto-fill roster"}</button>
+<span className="text-xs" style={{color:"#64748b"}}>Replaces the weekly roster on matching support lines and shows whether it fits the budget.</span>
+</div>
+{autofillError&&<div className="text-sm mt-2" style={{color:"#ef4444"}}>{autofillError}</div>}
+{autofillResult&&(
+<div className="mt-3">
+{autofillResult.rows.map((r,i)=>{
+const over=r.remaining<0;
+const pct=r.cost>0?Math.max(0,Math.round((1-r.budget/r.cost)*100)):0;
+return(
+<div key={i} style={{padding:"10px 12px",marginBottom:"6px",background:over?"rgba(239,68,68,0.05)":"rgba(34,197,94,0.05)",border:"1px solid "+(over?"rgba(239,68,68,0.25)":"rgba(34,197,94,0.2)"),borderRadius:"8px"}}>
+<div className="flex items-center justify-between gap-2 flex-wrap">
+<div><span className="kv-money" style={{color:"#b8901a",fontWeight:600,marginRight:"8px"}}>{r.code}</span><span style={{color:"#1e293b",fontSize:"0.9rem",fontWeight:600}}>{r.description}</span></div>
+<span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{background:over?"rgba(239,68,68,0.1)":"rgba(34,197,94,0.1)",color:over?"#dc2626":"#16a34a",border:"1px solid "+(over?"rgba(239,68,68,0.3)":"rgba(34,197,94,0.3)")}}>{over?"OVER BUDGET":"FITS BUDGET"}</span>
+</div>
+<div style={{fontSize:"0.78rem",color:"#64748b",marginTop:"4px"}}>{r.summary}</div>
+<div className="kv-money" style={{fontSize:"0.85rem",color:"#334155",marginTop:"4px"}}>Costs <strong>{money(r.cost)}</strong> over the plan vs <strong>{money(r.budget)}</strong> funded — <span style={{color:over?"#dc2626":"#16a34a",fontWeight:700}}>{over?money(-r.remaining)+" over":money(r.remaining)+" spare"}</span></div>
+{over&&<div style={{fontSize:"0.8rem",color:"#b45309",marginTop:"4px"}}>To fit, hours would need to come down by about {pct}% — trim weekend or evening hours first (they cost the most).</div>}
+</div>
+);
+})}
+{autofillResult.skipped>0&&<div className="text-xs mt-1" style={{color:"#94a3b8"}}>{autofillResult.skipped} note item{autofillResult.skipped===1?"":"s"} didn&apos;t match any support line and {autofillResult.skipped===1?"was":"were"} skipped.</div>}
+<div className="text-xs mt-1" style={{color:"#94a3b8"}}>Roster applied below — fine-tune any day directly on the line.</div>
+</div>
+)}
+</div>
 <div className="grid gap-6">
 {perLine.map((l:any)=>{
 const status=getBudgetStatus(l.remaining,l.totalFunding);
