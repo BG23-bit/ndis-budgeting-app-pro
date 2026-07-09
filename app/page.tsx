@@ -117,7 +117,7 @@ export default function LandingPage() {
                 fontWeight: "700",
                 boxShadow: "0 4px 14px rgba(45,27,105,0.25)",
               }}>
-                Get Started — $9.99/mo
+                Get Started — $9.90/mo
               </button>
               <button onClick={() => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })} style={{
                 padding: "15px 28px",
@@ -316,7 +316,7 @@ export default function LandingPage() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "40px 30px" }}>
             {[
               { step: "01", title: "Create Account", desc: "Sign up with your email in seconds" },
-              { step: "02", title: "Choose a Plan", desc: "Monthly ($9.99/mo) or Annual ($79/yr). Cancel anytime." },
+              { step: "02", title: "Choose a Plan", desc: "Monthly ($9.90/mo) or Annual ($79/yr). Cancel anytime." },
               { step: "03", title: "Add Participants", desc: "Add participants and enter their plan details — or upload their NDIS plan PDF to auto-fill everything instantly" },
               { step: "04", title: "Build Rosters", desc: "Set up support lines, shifts, and rates. Public holidays and pace tracking are automatic." },
               { step: "05", title: "Generate Schedule of Supports", desc: "One click — professional PDF with NDIS codes, daily hours, weekly costs, plan totals, and signature blocks" },
@@ -354,7 +354,7 @@ export default function LandingPage() {
             <div style={{ background: "rgba(15,23,42,0.03)", border: "1px solid rgba(15,23,42,0.1)", borderRadius: "20px", padding: "36px" }}>
               <p style={{ fontSize: "0.78rem", color: "#64748b", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "10px" }}>Monthly</p>
               <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginBottom: "4px" }}>
-                <span style={{ fontSize: "2.8rem", fontWeight: "800" }}>$9.99</span>
+                <span style={{ fontSize: "2.8rem", fontWeight: "800" }}>$9.90</span>
               </div>
               <p style={{ color: "#64748b", marginBottom: "28px", fontSize: "0.88rem" }}>AUD / month</p>
               {["Unlimited participants & support lines", "Schedule of Supports PDF generator", "25 PDF plan uploads / month (add +25 anytime for $4.99/mo)", "Per-category rate presets (01–15)", "Public holiday auto-calc by state", "Plan pace tracking", "Claims & actual spend tracker", "CSV & PDF exports", "Cancel anytime"].map((item, i) => (
@@ -377,7 +377,7 @@ export default function LandingPage() {
                 <span style={{ fontSize: "2.8rem", fontWeight: "800" }}>$79</span>
               </div>
               <p style={{ color: "#64748b", marginBottom: "28px", fontSize: "0.88rem" }}>AUD / year <span style={{ color: "#d4a843" }}>(≈$6.58/mo)</span></p>
-              {["Everything in Monthly", "2 months free vs monthly", "Priority support", "Cancel anytime"].map((item, i) => (
+              {["Everything in Monthly", "4 months free vs monthly", "Priority support", "Cancel anytime"].map((item, i) => (
                 <div key={i} style={{ padding: "8px 0", borderBottom: i < 3 ? "1px solid rgba(15,23,42,0.05)" : "none", color: "#334155", fontSize: "0.88rem", display: "flex", gap: "10px", alignItems: "center" }}>
                   <span style={{ color: "#22c55e", flexShrink: 0 }}>✓</span> {item}
                 </div>
@@ -504,7 +504,7 @@ export default function LandingPage() {
             },
             {
               q: "How does pricing work?",
-              a: "Monthly ($9.99/mo) or Annual ($79/yr — save 34%). Both plans include all features including 25 PDF plan uploads per month — and you can add 25 more anytime for $4.99/mo if you manage a larger caseload. No lock-in — cancel anytime.",
+              a: "Monthly ($9.90/mo) or Annual ($79/yr — save 34%). Both plans include all features including 25 PDF plan uploads per month — and you can add 25 more anytime for $4.99/mo if you manage a larger caseload. No lock-in — cancel anytime.",
             },
             {
               q: "Can I manage multiple participants?",
@@ -552,7 +552,7 @@ export default function LandingPage() {
                 padding: "15px 40px", fontSize: "1rem", backgroundColor: "#d4a843", color: "#0f172a",
                 border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "700",
               }}>
-                Get Started — $9.99/mo →
+                Get Started — $9.90/mo →
               </button>
               <p style={{ color: "#64748b", fontSize: "0.8rem", marginTop: "14px" }}>Annual plan available at $79/yr · Cancel anytime</p>
             </div>

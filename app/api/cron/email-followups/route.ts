@@ -61,7 +61,7 @@ function buildWelcomeEmail(email: string) {
             <p style="font-size: 13px; color: #334155; margin: 0 0 6px;">✓ Unlimited participants</p>
             <p style="font-size: 13px; color: #334155; margin: 0 0 6px;">✓ PDF plan upload (auto-extract dates & funding)</p>
             <p style="font-size: 13px; color: #334155; margin: 0 0 12px;">✓ Claims & actual spend tracking</p>
-            <p style="font-size: 13px; color: #64748b; margin: 0;">From <strong style="color: #d4a843;">$9.99/month</strong> or $79/year (save 34%)</p>
+            <p style="font-size: 13px; color: #64748b; margin: 0;">From <strong style="color: #d4a843;">$9.90/month</strong> or $79/year (save 34%)</p>
           </div>
           <p style="font-size: 14px; color: #6b7280; margin: 0;">Any questions — just reply to this email.</p>
         </div>
@@ -151,7 +151,7 @@ function buildFollowup2Email(email: string) {
           </p>
           <div style="background: #ffffff; border-radius: 10px; padding: 24px 28px; margin: 24px 0; text-align: center;">
             <p style="font-size: 13px; font-weight: 700; color: #d4a843; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.5px;">Upgrade today</p>
-            <p style="font-size: 28px; font-weight: 800; color: #0f172a; margin: 0 0 4px;">$9.99<span style="font-size: 16px; font-weight: 400; color: #64748b;">/month</span></p>
+            <p style="font-size: 28px; font-weight: 800; color: #0f172a; margin: 0 0 4px;">$9.90<span style="font-size: 16px; font-weight: 400; color: #64748b;">/month</span></p>
             <p style="font-size: 13px; color: #64748b; margin: 0 0 16px;">or $79/year — save 34%</p>
             <a href="${UPGRADE_URL}" style="display: inline-block; background: #2d1b69; color: #ffffff; font-weight: 700; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 14px;">Unlock Full Access →</a>
           </div>
