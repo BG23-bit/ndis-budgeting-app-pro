@@ -1,6 +1,38 @@
 // Extraction prompt for /api/parse-plan. Kept here (not in the route) so
 // scripts/parse-plan-live-test.ts can exercise exactly what production sends.
 
+// Notes → clinical/therapy service list (used by /api/roster-notes with mode "clinical")
+export function buildClinicalNotesPrompt(notes: string, funding?: number, planStart?: string, planEnd?: string): string {
+  return `You are converting a support provider's notes into a clinical/therapy service list for an NDIS budgeting tool.
+${funding && funding > 0 ? `Clinical funding available: $${funding.toFixed(2)}.` : ""}${planStart && planEnd ? ` Plan period: ${planStart} to ${planEnd}.` : ""}
+
+Service categories and default 2026-27 hourly rates:
+07 = Support Coordination / Psychosocial Recovery Coach — $100.14/hr
+11 = Behaviour Support / Specialist Behavioural Intervention (BSP development, FBA, behaviour practitioner) — $252.99/hr
+12 = Exercise Physiology — $161.99/hr
+13 = Improved Learning (school-to-further-education transition) — $83.87/hr
+14 = Plan Management / Improved Life Choices — $100.14/hr
+15 = Therapy — OT, physiotherapy, speech, dietetics, therapy assistants — $156.16/hr (psychology: $252.99/hr)
+
+Provider notes:
+"""
+${notes}
+"""
+
+Return ONLY a valid JSON object — no markdown, no extra text:
+{
+  "services": [
+    { "code": "11", "description": "string e.g. Functional Behaviour Assessment", "hours": number, "rate": number, "note": "short working e.g. 1.5h fortnightly x 26 fortnights" }
+  ]
+}
+
+Rules:
+- "hours" is the TOTAL hours across the described period (default: the plan period). Convert frequencies — weekly, fortnightly, per term, monthly — into totals and show the working in "note". Round to the nearest quarter hour.
+- Use rates stated in the notes when given; otherwise the default rate for that category above.
+- One entry per distinct service. Ignore roster-style core supports (daily living, community access hours) — they belong in the roster, not here.
+- If the notes describe no clinical or therapy services, return {"services": []}.`;
+}
+
 // Standalone notes → roster translation (used by /api/roster-notes after budgets exist)
 export function buildRosterPrompt(notes: string, lines: { code: string; description: string; totalFunding: number }[], planStart?: string, planEnd?: string, state?: string): string {
   return `You are converting a support provider's notes into a weekly roster for an NDIS budgeting tool.

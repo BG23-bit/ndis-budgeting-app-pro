@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { buildRosterPrompt } from "@/lib/plan-prompt";
+import { buildRosterPrompt, buildClinicalNotesPrompt } from "@/lib/plan-prompt";
 
 // Translates provider notes into a proposed weekly roster against the
 // participant's existing support lines. Text-only — does not count toward
@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
+    const mode = body?.mode === "clinical" ? "clinical" : "roster";
     const notes = String(body?.notes || "").slice(0, 2000).trim();
     const lines = Array.isArray(body?.lines)
       ? body.lines.slice(0, 30).map((l: any) => ({
@@ -36,7 +37,11 @@ export async function POST(req: NextRequest) {
         }))
       : [];
     if (!notes) return Response.json({ error: "Add some notes describing the supports first." }, { status: 400 });
-    if (lines.length === 0) return Response.json({ error: "Add at least one support line (or upload a plan) first." }, { status: 400 });
+    if (mode === "roster" && lines.length === 0) return Response.json({ error: "Add at least one support line (or upload a plan) first." }, { status: 400 });
+
+    const prompt = mode === "clinical"
+      ? buildClinicalNotesPrompt(notes, Number(body?.funding) || 0, body?.planStart, body?.planEnd)
+      : buildRosterPrompt(notes, lines, body?.planStart, body?.planEnd, body?.state);
 
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const response = await client.messages.create({
@@ -44,7 +49,7 @@ export async function POST(req: NextRequest) {
       max_tokens: 1500,
       messages: [{
         role: "user",
-        content: [{ type: "text", text: buildRosterPrompt(notes, lines, body?.planStart, body?.planEnd, body?.state) }],
+        content: [{ type: "text", text: prompt }],
       }],
     });
 
@@ -58,6 +63,9 @@ export async function POST(req: NextRequest) {
     } catch {
       console.error("Roster notes parse error: non-JSON output:", clean.slice(0, 300));
       return Response.json({ error: "Couldn't turn those notes into a roster. Try describing days and hours more plainly." }, { status: 422 });
+    }
+    if (mode === "clinical") {
+      return Response.json({ services: Array.isArray(parsed?.services) ? parsed.services : [] });
     }
     return Response.json({ proposedRoster: Array.isArray(parsed?.proposedRoster) ? parsed.proposedRoster : [] });
   } catch (e: any) {

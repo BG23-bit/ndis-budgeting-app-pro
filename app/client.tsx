@@ -128,7 +128,7 @@ function proposalDaysSummary(prs:any[]):string{
   if(kms>0)parts.push(kms+" km/wk");
   return parts.join(" · ");
 }
-function getLineMode(code:string):"full"|"weekday"|"lump"{if(["02","03","05","06","17","18","19"].includes(code))return"lump";if(["07","10","11","12","13","14","15","20"].includes(code))return"weekday";return"full"}
+function getLineMode(code:string):"full"|"weekday"|"hourly"|"lump"{if(["02","03","05","06","17","18","19"].includes(code))return"lump";if(["07","11","12","13","14","15","20"].includes(code))return"hourly";if(code==="10")return"weekday";return"full"}
 function isBelowGuide(lr:Rates,code:string):boolean{const p=CATEGORY_PRESETS[code]?.rates;if(!p)return false;return(p.weekdayOrd>0&&lr.weekdayOrd<p.weekdayOrd)||(p.weekdayNight>0&&lr.weekdayNight<p.weekdayNight)||(p.sat>0&&lr.sat<p.sat)||(p.sun>0&&lr.sun<p.sun)||(p.publicHoliday>0&&lr.publicHoliday<p.publicHoliday)||(p.activeSleepoverHourly>0&&lr.activeSleepoverHourly<p.activeSleepoverHourly)}
 export default function PageClient({storageKey,participantName,ndisNumber}:{storageKey?:string;participantName?:string;ndisNumber?:string}){
 const STORAGE_KEY=storageKey||"ndis_budget_calc_pro_v7";
@@ -140,17 +140,18 @@ const[lines,setLines]=useState<SupportLine[]>([{id:uid(),code:"01",description:"
 const srvStart=planDates.serviceStart||planDates.start;const srvEnd=planDates.serviceEnd||planDates.end;
 const planWeeksCalc=useMemo(()=>getWeeksInPlan(srvStart,srvEnd),[srvStart,srvEnd]);const[weeksOverride,setWeeksOverride]=useState<number|null>(null);const planWeeks=weeksOverride!==null?weeksOverride:planWeeksCalc;
 const holidays=useMemo(()=>getHolidaysInRange(srvStart,srvEnd,planDates.state),[srvStart,srvEnd,planDates.state]);
-useEffect(()=>{async function load(){const cloud=await loadFromCloud(STORAGE_KEY);const raw=cloud||(()=>{try{const r=localStorage.getItem(STORAGE_KEY);return r?JSON.parse(r):null}catch{return null}})();if(!raw){setLoaded(true);return;}if(raw?.rates)setRates((r:any)=>({...r,...raw.rates}));if(raw?.planDates)setPlanDates((p:any)=>({...p,...raw.planDates}));if(Array.isArray(raw?.lines)&&raw.lines.length>0)setLines(raw.lines.map((l:any)=>({...l,ratio:l.ratio||"1:1",excludedHolidays:l.excludedHolidays||[],roster:l.roster||defaultRoster(),activeSleepoverFreq:l.activeSleepoverFreq||"every",fixedSleepoverFreq:l.fixedSleepoverFreq||"every",kmsPerWeek:l.kmsPerWeek||0,kmRate:l.kmRate||1.00,kmFreq:l.kmFreq||"every",claims:l.claims||[],lineRates:l.lineRates||getPresetRates(l.code)})));if(raw?.weeksOverride!=null)setWeeksOverride(raw.weeksOverride);if(raw?.calcMode!==undefined)setCalcMode(raw.calcMode as any);else{const hasLines=Array.isArray(raw?.lines)&&raw.lines.some((l:any)=>(l?.totalFunding||0)>0);const hasClinical=Array.isArray(raw?.clinicalServices)&&raw.clinicalServices.length>0;if(hasLines&&hasClinical)setCalcMode("both");else if(hasClinical&&!hasLines)setCalcMode("clinical");else if(hasLines)setCalcMode("sil");}if(typeof raw?.planNotes==="string")setPlanNotes(raw.planNotes);if(typeof raw?.clinicalFunding==="number")setClinicalFunding(raw.clinicalFunding);if(Array.isArray(raw?.clinicalServices))setClinicalServices(raw.clinicalServices);if(typeof raw?.clinicalBudgetLinked==="boolean")setClinicalBudgetLinked(raw.clinicalBudgetLinked);setLoaded(true);}load()},[]);
+useEffect(()=>{async function load(){const cloud=await loadFromCloud(STORAGE_KEY);const raw=cloud||(()=>{try{const r=localStorage.getItem(STORAGE_KEY);return r?JSON.parse(r):null}catch{return null}})();if(!raw){setLoaded(true);return;}if(raw?.rates)setRates((r:any)=>({...r,...raw.rates}));if(raw?.planDates)setPlanDates((p:any)=>({...p,...raw.planDates}));if(Array.isArray(raw?.lines)&&raw.lines.length>0)setLines(raw.lines.map((l:any)=>({...l,ratio:l.ratio||"1:1",excludedHolidays:l.excludedHolidays||[],roster:l.roster||defaultRoster(),activeSleepoverFreq:l.activeSleepoverFreq||"every",fixedSleepoverFreq:l.fixedSleepoverFreq||"every",kmsPerWeek:l.kmsPerWeek||0,kmRate:l.kmRate||1.00,kmFreq:l.kmFreq||"every",claims:l.claims||[],lineRates:l.lineRates||getPresetRates(l.code)})));if(raw?.weeksOverride!=null)setWeeksOverride(raw.weeksOverride);if(raw?.calcMode!==undefined)setCalcMode(raw.calcMode as any);else{const hasLines=Array.isArray(raw?.lines)&&raw.lines.some((l:any)=>(l?.totalFunding||0)>0);const hasClinical=Array.isArray(raw?.clinicalServices)&&raw.clinicalServices.length>0;if(hasLines&&hasClinical)setCalcMode("both");else if(hasClinical&&!hasLines)setCalcMode("clinical");else if(hasLines)setCalcMode("sil");}if(typeof raw?.planNotes==="string")setPlanNotes(raw.planNotes);if(typeof raw?.clinicalNotes==="string")setClinicalNotes(raw.clinicalNotes);if(typeof raw?.clinicalFunding==="number")setClinicalFunding(raw.clinicalFunding);if(Array.isArray(raw?.clinicalServices))setClinicalServices(raw.clinicalServices);if(typeof raw?.clinicalBudgetLinked==="boolean")setClinicalBudgetLinked(raw.clinicalBudgetLinked);setLoaded(true);}load()},[]);
 const[calcMode,setCalcMode]=useState<"sil"|"clinical"|"both"|null>(null);
 const[loaded,setLoaded]=useState(false);
 const[clinicalFunding,setClinicalFunding]=useState(0);
 const[clinicalServices,setClinicalServices]=useState<{id:string;code:string;description:string;hours:number;rate:number;note:string}[]>([]);
 const[clinicalBudgetLinked,setClinicalBudgetLinked]=useState(false);
 const[planNotes,setPlanNotes]=useState("");
-const saveData={rates,lines,planDates,weeksOverride,calcMode,clinicalFunding,clinicalServices,clinicalBudgetLinked,planNotes};
+const[clinicalNotes,setClinicalNotes]=useState("");
+const saveData={rates,lines,planDates,weeksOverride,calcMode,clinicalFunding,clinicalServices,clinicalBudgetLinked,planNotes,clinicalNotes};
 // Don't persist until the initial load has finished — otherwise the mount-time save
 // overwrites stored data with defaults before the async load can read it.
-useEffect(()=>{if(!loaded)return;try{localStorage.setItem(STORAGE_KEY,JSON.stringify(saveData))}catch{}},[loaded,rates,lines,planDates,weeksOverride,calcMode,clinicalFunding,clinicalServices,clinicalBudgetLinked,planNotes]);
+useEffect(()=>{if(!loaded)return;try{localStorage.setItem(STORAGE_KEY,JSON.stringify(saveData))}catch{}},[loaded,rates,lines,planDates,weeksOverride,calcMode,clinicalFunding,clinicalServices,clinicalBudgetLinked,planNotes,clinicalNotes]);
 const saveState=useCloudSync(loaded?STORAGE_KEY:"",saveData);
 const perLine=useMemo(()=>{return lines.map(l=>{const lr=l.lineRates||rates;const wt=calcWeeklyCost(l,lr);const weeklyGST=wt*(lr.gstRate||0);const weeklyWithGST=wt+weeklyGST;const basePlanCost=calcDayCountPlanCost(l,srvStart,srvEnd,planWeeks,lr)*(1+(lr.gstRate||0));const phImpact=calcPHImpact(l,holidays,lr);const phAdjustment=phImpact.extraCost-phImpact.savedCost;const planTotal=basePlanCost+phAdjustment;const remaining=l.totalFunding-planTotal;const totalClaimed=(l.claims||[]).reduce((a:number,c:Claim)=>a+c.amount,0);const actualRemaining=l.totalFunding-totalClaimed;return{...l,weeklyTotal:wt,weeklyGST,weeklyWithGST,basePlanCost,phImpact,phAdjustment,planTotal,remaining,totalClaimed,actualRemaining}})},[lines,rates,planWeeks,holidays]);
 const totals=useMemo(()=>{const totalFunding=perLine.reduce((a,l)=>a+l.totalFunding,0);const weekly=perLine.reduce((a,l)=>a+l.weeklyWithGST,0);const planCost=perLine.reduce((a,l)=>a+l.planTotal,0);const totalPH=perLine.reduce((a,l)=>a+l.phAdjustment,0);const remaining=totalFunding-planCost;const totalClaimed=perLine.reduce((a,l)=>a+(l as any).totalClaimed,0);const actualRemaining=totalFunding-totalClaimed;return{totalFunding,weekly,planCost,totalPH,remaining,totalClaimed,actualRemaining}},[perLine]);
@@ -227,6 +228,34 @@ function applyRosterProposal(proposal:any[]){
       return{...l,roster,activeSleepoverHours:aso,fixedSleepovers:fso,kmsPerWeek:kms>0?kms:l.kmsPerWeek};
     });
   });
+}
+const[clinicalAutofilling,setClinicalAutofilling]=useState(false);
+const[clinicalAutofillError,setClinicalAutofillError]=useState<string|null>(null);
+const[clinicalAutofillResult,setClinicalAutofillResult]=useState<{count:number;totalHours:number;totalCost:number}|null>(null);
+async function autofillClinical(){
+  if(!clinicalNotes.trim())return;
+  setClinicalAutofilling(true);setClinicalAutofillError(null);setClinicalAutofillResult(null);
+  try{
+    const{data:{session}}=await supabase.auth.getSession();
+    const res=await fetch("/api/roster-notes",{
+      method:"POST",
+      headers:{"Content-Type":"application/json",...(session?.access_token?{Authorization:"Bearer "+session.access_token}:{})},
+      body:JSON.stringify({mode:"clinical",notes:clinicalNotes.trim(),funding:clinicalBudgetLinked?0:clinicalFunding,planStart:planDates.start,planEnd:planDates.end}),
+    });
+    const data=await res.json();
+    if(data.error)throw new Error(data.error);
+    const services=Array.isArray(data.services)?data.services:[];
+    if(services.length===0){setClinicalAutofillError("Couldn't read any clinical services from those notes — try naming the service and hours, e.g. \"20 hrs behaviour support plan development, weekly 1hr OT sessions\".");return;}
+    const mapped=services.map((s:any)=>{
+      const code=s?.code&&CATEGORY_PRESETS[s.code]?String(s.code):"15";
+      return{id:uid(),code,description:String(s?.description||CATEGORY_PRESETS[code]?.name||"Service").slice(0,120),hours:Math.max(0,num(s?.hours)),rate:num(s?.rate)>0?num(s.rate):(CATEGORY_PRESETS[code]?.rates.weekdayOrd||0),note:String(s?.note||"").slice(0,120)};
+    }).filter((s:any)=>s.hours>0);
+    if(mapped.length===0){setClinicalAutofillError("Those notes didn't include usable hours — add how many hours or how often each service runs.");return;}
+    setClinicalServices(mapped);
+    setClinicalAutofillResult({count:mapped.length,totalHours:mapped.reduce((s:number,x:any)=>s+x.hours,0),totalCost:mapped.reduce((s:number,x:any)=>s+x.hours*x.rate,0)});
+  }catch(e:any){
+    setClinicalAutofillError(e.message||"Auto-fill failed. Please try again.");
+  }finally{setClinicalAutofilling(false);}
 }
 async function autofillRoster(){
   if(!planNotes.trim())return;
@@ -1187,6 +1216,23 @@ return(
 <div className="text-sm" style={{color:"#334155"}}>Budget: <span className="font-semibold" style={{color:"#d4a843"}}>{money(l.totalFunding)}</span></div>
 <div className="text-lg font-bold mt-2" style={{color:status.color}}>Remaining: {money(l.remaining)}</div>
 </div>
+):lineMode==="hourly"?(
+<div className="kv-sub rounded-xl p-4 lg:col-span-2">
+<div className="text-sm mb-3 font-semibold" style={{color:"#d4a843"}}>Service Hours<span style={{color:"#64748b",fontWeight:"normal",fontSize:"0.8rem",marginLeft:"8px"}}>flat hourly service — no day-by-day roster needed</span></div>
+<div className="flex items-center gap-2 flex-wrap">
+<span className="text-xs" style={{color:"#475569"}}>Hours per week:</span>
+<SmallField value={l.roster.mon?.hours||0} onChange={v=>updateRosterDay(l.id,"mon",{enabled:v>0,hours:v})}/>
+<SmallSelect value={l.roster.mon?.frequency||"every"} options={Object.entries(FREQ).map(([k,v])=>({value:k,label:v.label}))} onChange={v=>updateRosterDay(l.id,"mon",{frequency:v})}/>
+<span className="text-xs" style={{color:"#475569"}}>@ <span className="kv-money font-semibold" style={{color:"#b8901a"}}>{money((l.lineRates?.weekdayOrd||0)/(RATIOS[l.ratio]?.divisor||1))}</span>/hr</span>
+</div>
+<div className="flex items-center gap-2 flex-wrap mt-2"><span className="text-xs" style={{color:"#475569"}}>KMs per week:</span><SmallField value={l.kmsPerWeek} step={1} onChange={v=>updateLine(l.id,{kmsPerWeek:v})}/><span className="text-xs" style={{color:"#475569"}}>@ $</span><SmallField value={l.kmRate} step={0.01} onChange={v=>updateLine(l.id,{kmRate:v})}/><span className="text-xs" style={{color:"#475569"}}>/km</span><SmallSelect value={l.kmFreq} options={Object.entries(FREQ).map(([k,v])=>({value:k,label:v.label}))} onChange={v=>updateLine(l.id,{kmFreq:v})}/></div>
+{DAYS.some(d=>d!=="mon"&&l.roster[d]?.enabled&&((l.roster[d].hours||0)>0||(l.roster[d].nightHours||0)>0))&&<div className="text-xs mt-2" style={{color:"#b45309"}}>This line also has hours saved on other days from an earlier roster — they still count toward the totals below.</div>}
+<div className="mt-4 text-sm" style={{color:"#334155"}}>
+<div>Weekly total: <span className="kv-money font-semibold" style={{color: "#0f172a"}}>{money(l.weeklyWithGST)}</span></div>
+<div>Plan total: <span className="kv-money font-semibold" style={{color: "#0f172a"}}>{money(l.planTotal)}</span></div>
+<div className="text-lg font-bold mt-2 kv-money" style={{color:status.color}}>Remaining: {money(l.remaining)}</div>
+</div>
+</div>
 ):(
 <div className="kv-sub rounded-xl p-4 lg:col-span-2">
 <div className="text-sm mb-3 font-semibold" style={{color:"#d4a843"}}>Weekly Roster{lineMode==="weekday"&&<span style={{color:"#64748b",fontWeight:"normal",fontSize:"0.8rem",marginLeft:"8px"}}>Weekdays only</span>}</div>
@@ -1264,7 +1310,7 @@ return(
 )}
 </div>}
 
-{lineMode!=="lump"&&holidays.length>0&&(
+{(lineMode==="full"||lineMode==="weekday")&&holidays.length>0&&(
 <div className="kv-sub mt-4 rounded-xl p-4">
 <div className="flex items-center justify-between mb-3">
 <div className="text-sm font-semibold" style={{color:"#d4a843"}}>Public Holidays ({includedCount}/{holidays.length} included)</div>
@@ -1557,6 +1603,24 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
       <div className="text-xs mt-1" style={{color:"#64748b"}}>Counted within plan lines above</div>
     </div>
   </div>}
+
+  <div className="rounded-xl p-3 mb-4" style={{background:"rgba(100,150,212,0.05)",border:"1px solid rgba(100,150,212,0.2)"}}>
+    <div className="flex items-center gap-2 mb-2 flex-wrap">
+      <span className="text-sm font-semibold" style={{color:"#1e40af"}}>✨ Auto-fill services from notes</span>
+      <span className="text-xs" style={{color:"#64748b"}}>describe the clinical services — edit the text and run again any time; replaces the list below</span>
+    </div>
+    <textarea value={clinicalNotes} onChange={e=>setClinicalNotes(e.target.value)} rows={2} maxLength={2000}
+      placeholder="e.g. 20 hrs comprehensive BSP development, fortnightly 1 hr OT sessions across the plan, 6 psychology sessions of 1.5 hrs"
+      className="kv-input w-full rounded-lg px-3 py-2 text-sm" style={{resize:"vertical"}}/>
+    <div className="flex items-center gap-3 flex-wrap mt-2">
+      <button onClick={autofillClinical} disabled={clinicalAutofilling||!clinicalNotes.trim()} className="kv-btn rounded-xl px-4 py-2 font-bold" style={{background:clinicalNotes.trim()&&!clinicalAutofilling?"#1e40af":"#c7d7f5",border:"none",color:"#ffffff",cursor:clinicalNotes.trim()&&!clinicalAutofilling?"pointer":"not-allowed"}}>{clinicalAutofilling?"⏳ Filling services…":"✨ Auto-fill services"}</button>
+      {clinicalAutofillResult&&(()=>{
+        const over=!clinicalBudgetLinked&&clinicalFunding>0&&clinicalAutofillResult.totalCost>clinicalFunding;
+        return(<span className="text-sm kv-money" style={{color:over?"#dc2626":"#16a34a"}}>✓ {clinicalAutofillResult.count} service{clinicalAutofillResult.count===1?"":"s"} — {clinicalAutofillResult.totalHours%1===0?clinicalAutofillResult.totalHours:clinicalAutofillResult.totalHours.toFixed(1)}h, {money(clinicalAutofillResult.totalCost)}{!clinicalBudgetLinked&&clinicalFunding>0?(over?" — OVER the "+money(clinicalFunding)+" funding":" — fits the "+money(clinicalFunding)+" funding"):""}</span>);
+      })()}
+    </div>
+    {clinicalAutofillError&&<div className="text-sm mt-2" style={{color:"#ef4444"}}>{clinicalAutofillError}</div>}
+  </div>
 
   <div className="flex items-center justify-between mb-2">
     <div className="text-xs font-semibold" style={{color:"#64748b",textTransform:"uppercase",letterSpacing:"0.06em"}}>Services</div>
