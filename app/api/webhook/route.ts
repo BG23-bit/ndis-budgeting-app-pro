@@ -28,6 +28,28 @@ async function updateStatusByCustomerId(customerId: string, status: string) {
     .eq("stripe_customer_id", customerId);
 }
 
+// Derive access from the MAIN subscription only, so cancelling or failing to
+// pay for the uploads add-on never locks a customer out of the app.
+function isAddonSub(sub: Stripe.Subscription): boolean {
+  const addonPrice = process.env.STRIPE_ADDON_PRICE_ID;
+  if (sub.metadata?.addon === "1") return true;
+  if (!addonPrice) return false;
+  const items = sub.items?.data || [];
+  return items.length > 0 && items.every((i) => i.price?.id === addonPrice);
+}
+
+async function syncMainStatus(customerId: string) {
+  const subs = await getStripe().subscriptions.list({ customer: customerId, status: "all", limit: 10 });
+  const mains = subs.data
+    .filter((s) => !isAddonSub(s))
+    .sort((a, b) => b.created - a.created);
+  const best =
+    mains.find((s) => s.status === "active" || s.status === "trialing") || mains[0];
+  if (!best) return;
+  await updateStatusByCustomerId(customerId, best.status);
+  console.log("Synced main subscription status:", customerId, best.status);
+}
+
 export async function POST(req: Request) {
   const body = await req.text();
   const sig = req.headers.get("stripe-signature")!;
@@ -51,6 +73,11 @@ export async function POST(req: Request) {
         const session = event.data.object as Stripe.Checkout.Session;
         const userId = session.metadata?.userId;
         const customerId = session.customer as string;
+        // Add-on purchases don't grant (or re-grant) app access
+        if (session.metadata?.addon === "1") {
+          console.log("Uploads add-on purchased for user:", userId);
+          break;
+        }
         if (userId && customerId) {
           await setActiveByUserId(userId, customerId);
           console.log("Subscription activated for user:", userId);
@@ -58,25 +85,23 @@ export async function POST(req: Request) {
         break;
       }
 
-      case "customer.subscription.updated": {
-        const sub = event.data.object as Stripe.Subscription;
-        await updateStatusByCustomerId(sub.customer as string, sub.status);
-        console.log("Subscription updated:", sub.customer, sub.status);
-        break;
-      }
-
+      case "customer.subscription.updated":
       case "customer.subscription.deleted": {
         const sub = event.data.object as Stripe.Subscription;
-        await updateStatusByCustomerId(sub.customer as string, "canceled");
-        console.log("Subscription canceled:", sub.customer);
+        if (isAddonSub(sub)) {
+          console.log("Add-on subscription change ignored for access:", sub.customer, sub.status);
+          break;
+        }
+        await syncMainStatus(sub.customer as string);
         break;
       }
 
       case "invoice.payment_failed": {
         const invoice = event.data.object as Stripe.Invoice;
         const customerId = invoice.customer as string;
-        await updateStatusByCustomerId(customerId, "past_due");
-        console.log("Payment failed:", customerId);
+        // Re-derive from the main subscription rather than blanket past_due —
+        // a failed add-on invoice must not lock the account.
+        await syncMainStatus(customerId);
         break;
       }
 

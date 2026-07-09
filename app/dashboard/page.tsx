@@ -487,7 +487,7 @@ export default function DashboardPage() {
               ))}
             </div>
 
-            {["Unlimited participants & support lines", "100 PDF plan uploads / month", "Public holiday auto-calculations", "Plan pace tracking", "Claims & actual spend tracker", "CSV & PDF exports", "Cancel anytime"].map((f) => (
+            {["Unlimited participants & support lines", "25 PDF plan uploads / month (add more anytime)", "Public holiday auto-calculations", "Plan pace tracking", "Claims & actual spend tracker", "CSV & PDF exports", "Cancel anytime"].map((f) => (
               <p key={f} style={{ color: "#94a3b8", marginBottom: "6px", fontSize: "0.88rem", textAlign: "left" }}>✓ {f}</p>
             ))}
 

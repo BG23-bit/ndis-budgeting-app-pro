@@ -193,6 +193,21 @@ function updateClaim(lineId:string,claimId:string,patch:Partial<Claim>){setLines
 const[uploadingPlan,setUploadingPlan]=useState(false);
 const[planExtract,setPlanExtract]=useState<any>(null);
 const[planUploadError,setPlanUploadError]=useState<string|null>(null);
+const[uploadLimitReached,setUploadLimitReached]=useState(false);
+const[buyingUploads,setBuyingUploads]=useState(false);
+async function buyMoreUploads(){
+  setBuyingUploads(true);
+  try{
+    const{data:{session}}=await supabase.auth.getSession();
+    if(!session?.user)return;
+    const res=await fetch("/api/checkout",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:session.user.id,email:session.user.email,plan:"uploads_addon"})});
+    const data=await res.json();
+    if(data.url)window.location.href=data.url;
+    else setPlanUploadError(data.error||"Couldn't start checkout. Please try again.");
+  }catch{
+    setPlanUploadError("Couldn't start checkout. Please try again.");
+  }finally{setBuyingUploads(false);}
+}
 const[removeOnApply,setRemoveOnApply]=useState<Set<string>>(new Set());
 const[uploadStage,setUploadStage]=useState<string|null>(null);
 const[flashCodes,setFlashCodes]=useState<Set<string>>(new Set());
@@ -414,7 +429,7 @@ function applyClaimsImport(){
 }
 const UPLOAD_STAGES=["Reading the plan PDF…","Finding funding components…","Extracting budgets…","Checking totals against the plan…","Nearly there…"];
 async function handlePlanUpload(file:File){
-  setUploadingPlan(true);setPlanUploadError(null);
+  setUploadingPlan(true);setPlanUploadError(null);setUploadLimitReached(false);
   let si=0;setUploadStage(UPLOAD_STAGES[0]);
   const stageTimer=setInterval(()=>{si=Math.min(si+1,UPLOAD_STAGES.length-1);setUploadStage(UPLOAD_STAGES[si]);},4500);
   try{
@@ -423,7 +438,7 @@ async function handlePlanUpload(file:File){
     const headers:HeadersInit=session?.access_token?{Authorization:"Bearer "+session.access_token}:{};
     const res=await fetch("/api/parse-plan",{method:"POST",body:fd,headers});
     const data=await res.json();
-    if(data.error)throw new Error(data.error);
+    if(data.error){if(data.limitReached)setUploadLimitReached(true);throw new Error(data.error);}
     if(Array.isArray(data.supportLines))data.supportLines=data.supportLines.filter((l:any)=>(l?.totalFunding||0)>0);
     // Pre-tick removal for stale lines that hold no roster or claims (safe to drop)
     const stale=staleLinesForExtract(data,lines);
@@ -1045,6 +1060,7 @@ return(
 </button>
 <span style={{color:"#64748b",fontSize:"0.82rem"}}>Upload a plan PDF to auto-fill dates, state &amp; funding — then use ✨ Auto-fill roster (below) to fill the weekly hours from your notes</span>
 {planUploadError&&<div className="w-full mt-1"><span style={{color:"#ef4444",fontSize:"0.85rem"}}>{planUploadError}</span></div>}
+{uploadLimitReached&&<div className="w-full mt-1"><button onClick={buyMoreUploads} disabled={buyingUploads} className="kv-btn" style={{background:"#d4a843",border:"none",color:"#241456",padding:"9px 18px",borderRadius:"8px",cursor:"pointer",fontWeight:700,fontSize:"0.88rem"}}>{buyingUploads?"Opening checkout…":"➕ Add 25 more uploads — $4.99/mo"}</button></div>}
 </div>
 </div>
 {holidays.length>0&&(<details className="kv-fold mt-4">

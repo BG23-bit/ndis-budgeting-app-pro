@@ -1,9 +1,33 @@
 import Anthropic from "@anthropic-ai/sdk";
+import Stripe from "stripe";
 import { NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { buildPlanPrompt } from "@/lib/plan-prompt";
 
-const MONTHLY_LIMIT = 100;
+const BASE_MONTHLY_LIMIT = 25;
+const ADDON_UPLOADS = 25;
+
+// Extra uploads come from the "+25 uploads" add-on subscription, read live from
+// Stripe (quantity is stackable) so no extra state needs syncing.
+async function getUploadAllowance(stripeCustomerId: string | null): Promise<number> {
+  if (!stripeCustomerId || !process.env.STRIPE_ADDON_PRICE_ID || !process.env.STRIPE_SECRET_KEY) {
+    return BASE_MONTHLY_LIMIT;
+  }
+  try {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    const subs = await stripe.subscriptions.list({ customer: stripeCustomerId, status: "active", limit: 10 });
+    let addonQty = 0;
+    for (const sub of subs.data) {
+      for (const item of sub.items?.data || []) {
+        if (item.price?.id === process.env.STRIPE_ADDON_PRICE_ID) addonQty += item.quantity || 0;
+      }
+    }
+    return BASE_MONTHLY_LIMIT + addonQty * ADDON_UPLOADS;
+  } catch (e) {
+    console.error("Upload allowance lookup failed:", e);
+    return BASE_MONTHLY_LIMIT;
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,7 +47,7 @@ export async function POST(req: NextRequest) {
     }
     const { data: profile } = await supabase
       .from("profiles")
-      .select("paid, pdf_uploads_today, pdf_upload_date")
+      .select("paid, pdf_uploads_today, pdf_upload_date, stripe_customer_id")
       .eq("id", user.id)
       .single();
 
@@ -31,15 +55,19 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "An active subscription is required to upload plans." }, { status: 403 });
     }
 
-    // Check monthly upload limit
+    // Check monthly upload limit (base + any "+25 uploads" add-ons)
     const currentMonth = new Date().toISOString().slice(0, 7); // "YYYY-MM"
     const uploadsThisMonth = profile.pdf_upload_date?.slice(0, 7) === currentMonth
       ? (profile.pdf_uploads_today ?? 0)
       : 0;
-    if (uploadsThisMonth >= MONTHLY_LIMIT) {
-      return Response.json({
-        error: `Monthly PDF upload limit reached (${MONTHLY_LIMIT}/month). You can still enter plan details manually below. Limit resets at the start of next month.`,
-      }, { status: 429 });
+    if (uploadsThisMonth >= BASE_MONTHLY_LIMIT) {
+      const allowance = await getUploadAllowance(profile.stripe_customer_id ?? null);
+      if (uploadsThisMonth >= allowance) {
+        return Response.json({
+          error: `You've used all ${allowance} plan uploads for this month. Add 25 more for $4.99/mo, or enter plan details manually below. The limit resets at the start of next month.`,
+          limitReached: true,
+        }, { status: 429 });
+      }
     }
 
     const formData = await req.formData();

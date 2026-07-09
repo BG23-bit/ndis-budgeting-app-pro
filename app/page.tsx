@@ -357,7 +357,7 @@ export default function LandingPage() {
                 <span style={{ fontSize: "2.8rem", fontWeight: "800" }}>$9.99</span>
               </div>
               <p style={{ color: "#64748b", marginBottom: "28px", fontSize: "0.88rem" }}>AUD / month</p>
-              {["Unlimited participants & support lines", "Schedule of Supports PDF generator", "100 PDF plan uploads / month", "Per-category rate presets (01–15)", "Public holiday auto-calc by state", "Plan pace tracking", "Claims & actual spend tracker", "CSV & PDF exports", "Cancel anytime"].map((item, i) => (
+              {["Unlimited participants & support lines", "Schedule of Supports PDF generator", "25 PDF plan uploads / month (add +25 anytime for $4.99/mo)", "Per-category rate presets (01–15)", "Public holiday auto-calc by state", "Plan pace tracking", "Claims & actual spend tracker", "CSV & PDF exports", "Cancel anytime"].map((item, i) => (
                 <div key={i} style={{ padding: "8px 0", borderBottom: i < 8 ? "1px solid rgba(15,23,42,0.05)" : "none", color: "#334155", fontSize: "0.88rem", display: "flex", gap: "10px", alignItems: "center" }}>
                   <span style={{ color: "#22c55e", flexShrink: 0 }}>✓</span> {item}
                 </div>
@@ -504,7 +504,7 @@ export default function LandingPage() {
             },
             {
               q: "How does pricing work?",
-              a: "Monthly ($9.99/mo) or Annual ($79/yr — save 34%). Both plans include all features including 100 PDF plan uploads per month. No lock-in — cancel anytime.",
+              a: "Monthly ($9.99/mo) or Annual ($79/yr — save 34%). Both plans include all features including 25 PDF plan uploads per month — and you can add 25 more anytime for $4.99/mo if you manage a larger caseload. No lock-in — cancel anytime.",
             },
             {
               q: "Can I manage multiple participants?",
