@@ -98,6 +98,9 @@ export default function DashboardPage() {
   const [budgets, setBudgets] = useState<{ [id: string]: Budget }>({});
   const hasLoadedRef = useRef(false);
   const skipNextSaveRef = useRef(false);
+  const deletedIdsRef = useRef<Set<string>>(new Set());
+  const [loadError, setLoadError] = useState(false);
+  const [recoverable, setRecoverable] = useState<{ id: string; updated: string }[] | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -126,35 +129,94 @@ export default function DashboardPage() {
     checkUser();
   }, [router]);
 
+  // Load the participant list. On any error we show a retry banner and keep
+  // saving BLOCKED (hasLoadedRef stays false) — a failed load must never lead
+  // to an empty list being saved over the real one.
+  async function loadList() {
+    setLoadError(false);
+    try {
+      const { data: d } = await supabase.auth.getUser();
+      if (d.user) {
+        const { data: row, error } = await supabase.from("participant_lists").select("participants").eq("user_id", d.user.id).maybeSingle();
+        if (error) { setLoadError(true); return; }
+        const list = Array.isArray(row?.participants) ? row.participants : [];
+        if (list.length > 0) setParticipants(list);
+        // Calculator data with no matching list entry means the list was wiped
+        // by a past sync bug (or a pre-cleanup delete) — offer to restore.
+        const { data: rows } = await supabase.from("calculator_data").select("participant_id, updated_at").eq("user_id", d.user.id);
+        const listIds = new Set(list.map((p: any) => p.id));
+        let dismissed: string[] = [];
+        try { dismissed = JSON.parse(localStorage.getItem("ndis_recovery_dismissed") || "[]"); } catch {}
+        const dismissedSet = new Set(dismissed);
+        const orphans = (rows || [])
+          .map((r: any) => ({ id: String(r.participant_id).replace("ndis_participant_", ""), updated: String(r.updated_at || "") }))
+          .filter((o: any) => String(o.id) !== "ndis_preview" && !listIds.has(o.id) && !dismissedSet.has(o.id) && o.id.length > 8)
+          .sort((a: any, b: any) => b.updated.localeCompare(a.updated));
+        if (orphans.length > 0) setRecoverable(orphans);
+      } else {
+        // Unauthenticated / preview mode — fall back to localStorage.
+        const raw = localStorage.getItem("ndis_participants_list");
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length > 0) setParticipants(parsed);
+          } catch {}
+        }
+      }
+      hasLoadedRef.current = true;
+    } catch {
+      setLoadError(true);
+    }
+  }
+  useEffect(() => { loadList(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const recoverParticipants = () => {
+    if (!recoverable || recoverable.length === 0) return;
+    const existing = new Set(participants.map((p) => p.id));
+    const restored: Participant[] = recoverable
+      .filter((o) => !existing.has(o.id))
+      .map((o, i) => {
+        const when = o.updated ? new Date(o.updated).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }) : "";
+        return { id: o.id, name: "Recovered " + (i + 1) + (when ? " — edited " + when : ""), ndisNumber: "" };
+      });
+    setParticipants((prev) => [...prev, ...restored]);
+    setRecoverable(null);
+  };
+
+  const dismissRecovery = () => {
+    if (recoverable) {
+      try {
+        const prev = JSON.parse(localStorage.getItem("ndis_recovery_dismissed") || "[]");
+        localStorage.setItem("ndis_recovery_dismissed", JSON.stringify([...new Set([...prev, ...recoverable.map((o) => o.id)])]));
+      } catch {}
+    }
+    setRecoverable(null);
+  };
+
+  // Refresh the list from the cloud when the tab regains focus, merging so a
+  // stale tab picks up participants added elsewhere instead of overwriting them.
   useEffect(() => {
-    async function load() {
+    const onVis = async () => {
+      if (document.visibilityState !== "visible" || !hasLoadedRef.current) return;
       try {
         const { data: d } = await supabase.auth.getUser();
-        if (d.user) {
-          // Authenticated: always use Supabase as source of truth — never fall back to
-          // localStorage, which may contain a different user's data on shared devices.
-          const { data: row } = await supabase.from("participant_lists").select("participants").eq("user_id", d.user.id).single();
-          if (row?.participants && Array.isArray(row.participants)) {
-            setParticipants(row.participants);
-          }
-          // If no Supabase row exists yet, leave list empty (don't read localStorage).
-        } else {
-          // Unauthenticated / preview mode — fall back to localStorage.
-          const raw = localStorage.getItem("ndis_participants_list");
-          if (raw) {
-            try {
-              const parsed = JSON.parse(raw);
-              if (Array.isArray(parsed) && parsed.length > 0) setParticipants(parsed);
-            } catch {}
-          }
-        }
-      } catch {
-        // Network error while authenticated — stay empty rather than leak another user's data.
-      } finally {
-        hasLoadedRef.current = true;
-      }
-    }
-    load();
+        if (!d.user) return;
+        const { data: row } = await supabase.from("participant_lists").select("participants").eq("user_id", d.user.id).maybeSingle();
+        if (!Array.isArray(row?.participants)) return;
+        const cloud = row.participants.filter((p: any) => p?.id && !deletedIdsRef.current.has(p.id));
+        setParticipants((prev) => {
+          const cloudIds = new Set(cloud.map((p: any) => p.id));
+          const extras = prev.filter((p) => !cloudIds.has(p.id));
+          const next = [...cloud, ...extras];
+          const same = next.length === prev.length && next.every((p: any, i: number) => prev[i]?.id === p.id && prev[i]?.name === p.name && prev[i]?.ndisNumber === p.ndisNumber);
+          if (same) return prev;
+          skipNextSaveRef.current = true;
+          return next;
+        });
+      } catch {}
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
   }, []);
 
   // Realtime sync — keeps all open sessions in sync when 1 login is shared
@@ -165,7 +227,7 @@ export default function DashboardPage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "participant_lists", filter: `user_id=eq.${user.id}` }, (payload: any) => {
         if (Array.isArray(payload.new?.participants)) {
           skipNextSaveRef.current = true;
-          setParticipants(payload.new.participants);
+          setParticipants(payload.new.participants.filter((p: any) => p?.id && !deletedIdsRef.current.has(p.id)));
         }
       })
       .subscribe();
@@ -180,10 +242,22 @@ export default function DashboardPage() {
       try {
         const { data: d } = await supabase.auth.getUser();
         if (d.user) {
+          // Merge with the current cloud list before writing so a stale tab can
+          // never wipe participants added elsewhere. Same-session deletes are
+          // honoured via tombstones.
+          const { data: row } = await supabase.from("participant_lists").select("participants").eq("user_id", d.user.id).maybeSingle();
+          const cloud = Array.isArray(row?.participants) ? row.participants : [];
+          const localIds = new Set(participants.map((p) => p.id));
+          const missing = cloud.filter((p: any) => p?.id && !localIds.has(p.id) && !deletedIdsRef.current.has(p.id));
+          const merged = [...participants, ...missing];
           await supabase.from("participant_lists").upsert(
-            { user_id: d.user.id, participants: participants, updated_at: new Date().toISOString() },
+            { user_id: d.user.id, participants: merged, updated_at: new Date().toISOString() },
             { onConflict: "user_id" }
           );
+          if (missing.length > 0) {
+            skipNextSaveRef.current = true;
+            setParticipants(merged);
+          }
         }
       } catch (e) {
         console.error("Cloud save error:", e);
@@ -259,6 +333,7 @@ export default function DashboardPage() {
   };
 
   const loadSampleParticipant = () => {
+    if (loadError) return; // saving is paused until the list loads
     const id = uid();
     const today = new Date();
     const claimDate = (daysAgo: number) => new Date(today.getTime() - daysAgo * 86400000).toISOString().slice(0, 10);
@@ -308,6 +383,7 @@ export default function DashboardPage() {
   };
 
   const addParticipant = () => {
+    if (loadError) return; // saving is paused until the list loads
     if (!newName.trim()) return;
     const p: Participant = { id: uid(), name: newName.trim(), ndisNumber: newNdis.trim() };
     setParticipants((prev) => [...prev, p]);
@@ -319,6 +395,7 @@ export default function DashboardPage() {
   const deleteParticipant = (id: string) => {
     const p = participants.find((x) => x.id === id);
     if (!confirm(`Delete ${p?.name || "this participant"} and all their data? This cannot be undone.`)) return;
+    deletedIdsRef.current.add(id);
     setParticipants((prev) => prev.filter((x) => x.id !== id));
     try { localStorage.removeItem("ndis_participant_" + id); } catch {}
     // Also remove their calculator data from the cloud so it doesn't linger on other devices.
@@ -476,6 +553,25 @@ export default function DashboardPage() {
         <div className="text-sm mb-8" style={{ color: "#64748b" }}>
           Powered by <span style={{ color: "#d4a843" }}>Kevria</span> — Participant Overview
         </div>
+
+        {loadError && (
+          <div className="rounded-xl p-4 mb-6" style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.3)" }}>
+            <div style={{ color: "#dc2626", fontWeight: 600, marginBottom: "4px" }}>Couldn&apos;t load your participants</div>
+            <div className="text-sm" style={{ color: "#64748b" }}>Your list is safe in the cloud — this is a connection hiccup, nothing has been deleted. Saving is paused until the list loads, so nothing can be overwritten.</div>
+            <button onClick={loadList} className="kv-btn mt-3" style={{ background: "#dc2626", color: "#ffffff", border: "none", borderRadius: "8px", padding: "8px 18px", fontWeight: 600, cursor: "pointer" }}>Retry</button>
+          </div>
+        )}
+
+        {recoverable && recoverable.length > 0 && !loadError && (
+          <div className="rounded-xl p-4 mb-6" style={{ background: "rgba(245,158,11,0.07)", border: "1px solid rgba(245,158,11,0.35)" }}>
+            <div style={{ color: "#b45309", fontWeight: 600, marginBottom: "4px" }}>Found saved data for {recoverable.length} participant{recoverable.length === 1 ? "" : "s"} not shown on your list</div>
+            <div className="text-sm" style={{ color: "#64748b" }}>A past sync problem removed entries from this list, but every budget, roster and claim is still stored safely. Restore them (named by last-edited date — rename or delete the ones you don&apos;t need), or dismiss to hide this permanently.</div>
+            <div className="flex gap-2 mt-3 flex-wrap">
+              <button onClick={recoverParticipants} className="kv-btn" style={{ background: "#d4a843", color: "#241456", border: "none", borderRadius: "8px", padding: "8px 18px", fontWeight: 700, cursor: "pointer" }}>Restore {recoverable.length} participant{recoverable.length === 1 ? "" : "s"}</button>
+              <button onClick={dismissRecovery} style={{ background: "rgba(15,23,42,0.05)", border: "1px solid rgba(15,23,42,0.1)", color: "#334155", borderRadius: "8px", padding: "8px 18px", cursor: "pointer" }}>Dismiss</button>
+            </div>
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-8">
