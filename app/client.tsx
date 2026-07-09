@@ -194,6 +194,22 @@ const[uploadingPlan,setUploadingPlan]=useState(false);
 const[planExtract,setPlanExtract]=useState<any>(null);
 const[planUploadError,setPlanUploadError]=useState<string|null>(null);
 const[removeOnApply,setRemoveOnApply]=useState<Set<string>>(new Set());
+const[uploadStage,setUploadStage]=useState<string|null>(null);
+const[flashCodes,setFlashCodes]=useState<Set<string>>(new Set());
+const[undoState,setUndoState]=useState<null|{label:string;lines?:SupportLine[];planDates?:PlanDates;clinicalServices?:any[]}>(null);
+const rosterNotesRef=React.useRef<HTMLTextAreaElement>(null);
+useEffect(()=>{if(!undoState)return;const t=setTimeout(()=>setUndoState(null),30000);return()=>clearTimeout(t)},[undoState]);
+function undoLast(){
+  if(!undoState)return;
+  if(undoState.lines)setLines(undoState.lines);
+  if(undoState.planDates)setPlanDates(undoState.planDates);
+  if(undoState.clinicalServices)setClinicalServices(undoState.clinicalServices);
+  setUndoState(null);
+}
+function flashLines(codes:Set<string>){
+  setFlashCodes(codes);
+  setTimeout(()=>setFlashCodes(new Set()),2600);
+}
 const[autofilling,setAutofilling]=useState(false);
 const[autofillError,setAutofillError]=useState<string|null>(null);
 const[autofillResult,setAutofillResult]=useState<{rows:{code:string;description:string;budget:number;cost:number;remaining:number;summary:string}[];skipped:number}|null>(null);
@@ -251,6 +267,7 @@ async function autofillClinical(){
       return{id:uid(),code,description:String(s?.description||CATEGORY_PRESETS[code]?.name||"Service").slice(0,120),hours:Math.max(0,num(s?.hours)),rate:num(s?.rate)>0?num(s.rate):(CATEGORY_PRESETS[code]?.rates.weekdayOrd||0),note:String(s?.note||"").slice(0,120)};
     }).filter((s:any)=>s.hours>0);
     if(mapped.length===0){setClinicalAutofillError("Those notes didn't include usable hours — add how many hours or how often each service runs.");return;}
+    setUndoState({label:"Clinical services auto-filled",clinicalServices:JSON.parse(JSON.stringify(clinicalServices))});
     setClinicalServices(mapped);
     setClinicalAutofillResult({count:mapped.length,totalHours:mapped.reduce((s:number,x:any)=>s+x.hours,0),totalCost:mapped.reduce((s:number,x:any)=>s+x.hours*x.rate,0)});
   }catch(e:any){
@@ -273,8 +290,10 @@ async function autofillRoster(){
     if(proposal.length===0){setAutofillError("Couldn't read any roster supports from those notes — try describing days and hours, e.g. \"6 hrs community access each weekday\".");return;}
     const verdict=computeRosterVerdict(proposal);
     if(verdict.rows.length===0){setAutofillError("Those notes didn't match any of your support lines — check the hours describe core/roster supports.");return;}
+    setUndoState({label:"Roster auto-filled",lines:JSON.parse(JSON.stringify(lines))});
     applyRosterProposal(proposal);
     setAutofillResult(verdict);
+    flashLines(new Set(verdict.rows.map(r=>r.code)));
   }catch(e:any){
     setAutofillError(e.message||"Auto-fill failed. Please try again.");
   }finally{setAutofilling(false);}
@@ -393,8 +412,11 @@ function applyClaimsImport(){
   }));
   setClaimsImport(null);
 }
+const UPLOAD_STAGES=["Reading the plan PDF…","Finding funding components…","Extracting budgets…","Checking totals against the plan…","Nearly there…"];
 async function handlePlanUpload(file:File){
   setUploadingPlan(true);setPlanUploadError(null);
+  let si=0;setUploadStage(UPLOAD_STAGES[0]);
+  const stageTimer=setInterval(()=>{si=Math.min(si+1,UPLOAD_STAGES.length-1);setUploadStage(UPLOAD_STAGES[si]);},4500);
   try{
     const {data:{session}}=await supabase.auth.getSession();
     const fd=new FormData();fd.append("pdf",file);
@@ -409,10 +431,13 @@ async function handlePlanUpload(file:File){
     setPlanExtract(data);
   }catch(e:any){
     setPlanUploadError(e.message||"Failed to read plan. Please try again.");
-  }finally{setUploadingPlan(false);}
+  }finally{clearInterval(stageTimer);setUploadStage(null);setUploadingPlan(false);}
 }
 function applyPlanExtract(){
   if(!planExtract)return;
+  setUndoState({label:"Plan applied",lines:JSON.parse(JSON.stringify(lines)),planDates:{...planDates}});
+  if(Array.isArray(planExtract.supportLines))flashLines(new Set(planExtract.supportLines.map((s:any)=>String(s.code))));
+  if(showSil)setTimeout(()=>{document.getElementById("autofill-card")?.scrollIntoView({behavior:"smooth",block:"center"});rosterNotesRef.current?.focus();},400);
   if(planExtract.planStart)setPlanDates(p=>({...p,start:planExtract.planStart}));
   if(planExtract.planEnd)setPlanDates(p=>({...p,end:planExtract.planEnd}));
   if(planExtract.state)setPlanDates(p=>({...p,state:planExtract.state}));
@@ -969,13 +994,14 @@ return(
 <div style={{position:"sticky",top:0,zIndex:40,background:"rgba(245,246,250,0.88)",backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",borderBottom:"1px solid #e9eaf2",marginBottom:"24px"}}>
 <div className="mx-auto max-w-6xl px-6 py-2.5 flex items-center justify-between gap-3 flex-wrap">
 <div className="flex items-center gap-2 flex-wrap">
-{([["sec-plan","Plan details",!!(planDates.start&&planDates.end&&new Date(planDates.end)>new Date(planDates.start))],["sec-budget","Funding",totals.totalFunding>0],["sec-lines","Roster",totals.weekly>0]] as [string,string,boolean][]).map(([id,label,done],i)=>(
+{([["sec-plan","Plan details","Set plan dates",!!(planDates.start&&planDates.end&&new Date(planDates.end)>new Date(planDates.start))],["sec-budget","Funding","Add funding — upload the plan",totals.totalFunding>0],["sec-lines","Roster","Fill the weekly roster",totals.weekly>0]] as [string,string,string,boolean][]).map(([id,label,hint,done],i)=>(
 <button key={id} type="button" className={"kv-step"+(done?" done":"")} onClick={()=>document.getElementById(id)?.scrollIntoView({behavior:"smooth",block:"start"})}>
-<span className="dot">{done?"✓":i+1}</span>{label}
+<span className="dot">{done?"✓":i+1}</span>{done?label:hint}
 </button>
 ))}
 </div>
 <div className="flex items-center gap-2">
+{saveState!=="idle"&&<span className="text-xs" style={{color:saveState==="saving"?"#b8901a":"#94a3b8"}}>{saveState==="saving"?"Saving…":"Saved ✓"}</span>}
 <span className="kv-label">Remaining</span>
 <span className="kv-money font-bold" style={{color:totalStatus.color}}>{money(totals.remaining)}</span>
 <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full" style={{background:totalStatus.bg,color:totalStatus.color,border:"1px solid "+totalStatus.border}}>{totalStatus.label}</span>
@@ -1015,7 +1041,7 @@ return(
 <div className="flex items-center gap-3 flex-wrap">
 <input ref={planFileRef} type="file" accept=".pdf,application/pdf" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f)handlePlanUpload(f);e.target.value="";}}/>
 <button onClick={()=>planFileRef.current?.click()} disabled={uploadingPlan} className="kv-btn" style={{background:"rgba(212,168,67,0.12)",border:"1px solid rgba(212,168,67,0.35)",color:"#b8901a",padding:"10px 18px",borderRadius:"8px",cursor:"pointer",fontWeight:"600",fontSize:"0.9rem",opacity:uploadingPlan?0.7:1}}>
-{uploadingPlan?"⏳ Reading plan...":"📄 Upload NDIS Plan PDF"}
+{uploadingPlan?"⏳ "+(uploadStage||"Reading plan…"):"📄 Upload NDIS Plan PDF"}
 </button>
 <span style={{color:"#64748b",fontSize:"0.82rem"}}>Upload a plan PDF to auto-fill dates, state &amp; funding — then use ✨ Auto-fill roster (below) to fill the weekly hours from your notes</span>
 {planUploadError&&<div className="w-full mt-1"><span style={{color:"#ef4444",fontSize:"0.85rem"}}>{planUploadError}</span></div>}
@@ -1146,12 +1172,12 @@ return(
 </div>
 </details>
 <div id="sec-lines" className="flex items-center gap-3 mb-4 mt-2" style={{scrollMarginTop:"70px"}}><span className="kv-num">3</span><h2 className="text-xl font-semibold" style={{color:"#2d1b69"}}>Support Lines &amp; Weekly Roster</h2></div>
-<div className="kv-card p-4 mb-5">
+<div id="autofill-card" className="kv-card p-4 mb-5" style={{scrollMarginTop:"70px"}}>
 <div className="flex items-center gap-2 mb-2 flex-wrap">
 <span className="text-sm font-semibold" style={{color:"#2d1b69"}}>✨ Auto-fill roster from notes</span>
 <span className="text-xs" style={{color:"#94a3b8"}}>describe the supports and the roster fills itself — edit the text and run it again any time</span>
 </div>
-<textarea value={planNotes} onChange={e=>setPlanNotes(e.target.value)} rows={2} maxLength={2000}
+<textarea ref={rosterNotesRef} value={planNotes} onChange={e=>setPlanNotes(e.target.value)} rows={2} maxLength={2000}
 placeholder={'e.g. 6 hrs community access each weekday 9am–3pm, 4 hrs across the weekend, sleepover every night, 100 km per week'}
 className="kv-input w-full rounded-lg px-3 py-2 text-sm" style={{resize:"vertical"}}/>
 <div className="flex items-center gap-3 flex-wrap mt-2">
@@ -1190,7 +1216,7 @@ const lineMode=getLineMode(l.code);
 const rosterDays=lineMode==="weekday"?["mon","tue","wed","thu","fri"]:DAYS;
 const includedCount=holidays.length-l.excludedHolidays.length;
 return(
-<div key={l.id} className="rounded-2xl p-6" style={{background: "#ffffff",border:"1px solid "+status.border,boxShadow:"0 1px 2px rgba(23,16,61,0.04), 0 10px 28px -14px rgba(23,16,61,0.12)"}}>
+<div key={l.id} id={"line-"+l.id} className={"rounded-2xl p-6"+(flashCodes.has(l.code)?" kv-flash":"")} style={{background: "#ffffff",border:"1px solid "+status.border,boxShadow:"0 1px 2px rgba(23,16,61,0.04), 0 10px 28px -14px rgba(23,16,61,0.12)"}}>
 <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
 <div className="flex items-center gap-3">
 <div className="flex items-center gap-2 flex-wrap"><span className="kv-money text-xs font-bold px-2 py-1 rounded-md" style={{background:"rgba(45,27,105,0.07)",color:"#2d1b69",border:"1px solid rgba(45,27,105,0.14)"}}>{l.code}</span><span className="text-lg font-semibold" style={{color:"#1e293b"}}>{l.description}</span></div>
@@ -1801,6 +1827,14 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
   </div>
   {!providerDetails.orgName.trim()&&<div className="text-xs mt-2 text-center" style={{color:"#64748b"}}>Organisation name is required</div>}
 </div>
+</div>
+)}
+
+{undoState&&(
+<div style={{position:"fixed",bottom:"18px",left:"50%",transform:"translateX(-50%)",zIndex:250,background:"#241456",color:"#ffffff",borderRadius:"999px",padding:"9px 10px 9px 18px",boxShadow:"0 12px 32px rgba(20,10,60,0.45)",display:"flex",gap:"12px",alignItems:"center",maxWidth:"92vw"}}>
+<span className="text-sm" style={{whiteSpace:"nowrap"}}>{undoState.label}</span>
+<button onClick={undoLast} className="kv-btn" style={{background:"#d4a843",color:"#241456",border:"none",borderRadius:"999px",padding:"6px 14px",fontWeight:700,cursor:"pointer",fontSize:"0.85rem",whiteSpace:"nowrap"}}>↩ Undo</button>
+<button onClick={()=>setUndoState(null)} aria-label="Dismiss" style={{background:"none",border:"none",color:"rgba(255,255,255,0.55)",cursor:"pointer",fontSize:"0.9rem",padding:"2px 6px"}}>✕</button>
 </div>
 )}
 
