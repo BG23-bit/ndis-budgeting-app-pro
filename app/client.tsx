@@ -1095,18 +1095,18 @@ return(
 <div className="text-xs mt-1 text-right" style={{color:"rgba(255,255,255,0.6)"}}>{totals.totalFunding>0?((totals.planCost/totals.totalFunding)*100).toFixed(1):0}% used</div></div>
 <div className="mt-5 flex flex-wrap gap-2 items-stretch">
 <button onClick={addLine} className="kv-btn rounded-xl px-4 py-2 font-bold" style={{background:"#d4a843",border:"none",color:"#241456",cursor:"pointer"}}>+ Add support line</button>
-<button onClick={exportCSV} className="kv-btn rounded-xl px-4 py-2" style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.22)",color:"rgba(255,255,255,0.9)",cursor:"pointer"}}>Export CSV</button>
-<button onClick={exportPDF} className="kv-btn rounded-xl px-4 py-2" style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.22)",color:"rgba(255,255,255,0.9)",cursor:"pointer"}}>Export PDF</button>
+<button onClick={exportCSV} className="kv-btn rounded-xl px-4 py-2" style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.22)",color:"rgba(255,255,255,0.9)",cursor:"pointer"}}>Budget CSV</button>
+<button onClick={exportPDF} className="kv-btn rounded-xl px-4 py-2" style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.22)",color:"rgba(255,255,255,0.9)",cursor:"pointer"}} title="Internal budget report — for the signable Schedule of Supports use the SoS buttons">Budget Report PDF</button>
 <input ref={claimsFileRef} type="file" accept=".csv,text/csv" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f)handleClaimsCsv(f);e.target.value="";}}/>
 <button onClick={()=>claimsFileRef.current?.click()} className="kv-btn rounded-xl px-4 py-2" style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.22)",color:"rgba(255,255,255,0.9)",cursor:"pointer"}}>Import Claims CSV</button>
 {claimsImportError&&<div className="w-full text-sm" style={{color:"#fda4af"}}>{claimsImportError}</div>}
 <button onClick={()=>setShowSAModal(true)} className="kv-btn" style={{padding:"10px 14px",background:"#fdf6e3",border:"none",borderRadius:"12px",cursor:"pointer",textAlign:"left"}}>
-  <span style={{display:"block",color:"#b8901a",fontWeight:700,fontSize:"0.9rem"}}>📋 Roster / SIL / Core SoS</span>
-  <span style={{display:"block",color:"#475569",fontSize:"0.74rem",marginTop:"2px"}}>Hourly roster — day, night, weekend rates</span>
+  <span style={{display:"block",color:"#b8901a",fontWeight:700,fontSize:"0.9rem"}}>📋 Schedule of Supports (SIL / Core)</span>
+  <span style={{display:"block",color:"#475569",fontSize:"0.74rem",marginTop:"2px"}}>Signable agreement — roster, item numbers, signatures</span>
 </button>
 <button onClick={()=>setShowClinicalModal(true)} className="kv-btn" style={{padding:"10px 14px",background:"#eff6ff",border:"none",borderRadius:"12px",cursor:"pointer",textAlign:"left"}}>
-  <span style={{display:"block",color:"#1e40af",fontWeight:700,fontSize:"0.9rem"}}>🏥 Clinical / Therapy SoS</span>
-  <span style={{display:"block",color:"#475569",fontSize:"0.74rem",marginTop:"2px"}}>Behaviour support, allied health, therapy packages</span>
+  <span style={{display:"block",color:"#1e40af",fontWeight:700,fontSize:"0.9rem"}}>🏥 Schedule of Supports (Clinical)</span>
+  <span style={{display:"block",color:"#475569",fontSize:"0.74rem",marginTop:"2px"}}>Signable agreement — behaviour support, allied health, therapy</span>
 </button>
 </div>
 </div></div>
