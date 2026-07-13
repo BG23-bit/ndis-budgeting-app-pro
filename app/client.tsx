@@ -376,6 +376,8 @@ useEffect(()=>{(async()=>{
           orgName:merged.orgName||md.org_name||"",
           abn:merged.abn||md.abn||"",
           phone:merged.phone||md.org_phone||"",
+          registrationNumber:merged.registrationNumber||md.org_registration||"",
+          address:merged.address||md.org_address||"",
           email:merged.email||user.email||"",
         };
       });
