@@ -8,6 +8,9 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
+  const [orgName, setOrgName] = useState("");
+  const [orgAbn, setOrgAbn] = useState("");
+  const [orgPhone, setOrgPhone] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -33,10 +36,19 @@ export default function LoginPage() {
     setLoading(true);
 
     if (isSignUp) {
+      if (!orgName.trim()) {
+        setError("Please enter your organisation name — it pre-fills your Schedule of Supports documents.");
+        setLoading(false);
+        return;
+      }
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: window.location.origin + "/login" },
+        options: {
+          emailRedirectTo: window.location.origin + "/login",
+          // Stored as account metadata; pre-fills provider details in the app
+          data: { org_name: orgName.trim(), abn: orgAbn.trim(), org_phone: orgPhone.trim() },
+        },
       });
       if (error) {
         setError(error.message);
@@ -140,6 +152,52 @@ export default function LoginPage() {
             {showPassword ? "Hide" : "Show"}
           </button>
         </div>
+
+        {isSignUp && (
+          <div style={{ marginBottom: "20px" }}>
+            <p style={{ fontSize: "0.78rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "#64748b", margin: "0 0 8px" }}>
+              Your organisation
+            </p>
+            <p style={{ fontSize: "0.8rem", color: "#94a3b8", margin: "0 0 10px" }}>
+              Pre-fills your Schedule of Supports documents — editable any time.
+            </p>
+            <input
+              type="text"
+              placeholder="Organisation name *"
+              value={orgName}
+              onChange={(e) => setOrgName(e.target.value)}
+              style={{
+                width: "100%", padding: "12px", marginBottom: "10px", borderRadius: "6px",
+                border: "1px solid #cbd5e1", background: "#f8fafc", color: "#0f172a",
+                fontSize: "1rem", boxSizing: "border-box",
+              }}
+            />
+            <div style={{ display: "flex", gap: "10px" }}>
+              <input
+                type="text"
+                placeholder="ABN (optional)"
+                value={orgAbn}
+                onChange={(e) => setOrgAbn(e.target.value)}
+                style={{
+                  flex: 1, minWidth: 0, padding: "12px", borderRadius: "6px",
+                  border: "1px solid #cbd5e1", background: "#f8fafc", color: "#0f172a",
+                  fontSize: "0.95rem", boxSizing: "border-box",
+                }}
+              />
+              <input
+                type="tel"
+                placeholder="Phone (optional)"
+                value={orgPhone}
+                onChange={(e) => setOrgPhone(e.target.value)}
+                style={{
+                  flex: 1, minWidth: 0, padding: "12px", borderRadius: "6px",
+                  border: "1px solid #cbd5e1", background: "#f8fafc", color: "#0f172a",
+                  fontSize: "0.95rem", boxSizing: "border-box",
+                }}
+              />
+            </div>
+          </div>
+        )}
 
         <button
           type="submit"

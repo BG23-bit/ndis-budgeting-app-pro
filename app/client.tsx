@@ -361,6 +361,29 @@ const[clinicalPriceItems,setClinicalPriceItems]=useState<{id:string;itemCode:str
 const[clinicalScheduleItems,setClinicalScheduleItems]=useState<{id:string;description:string;hours:number;rate:number;note:string}[]>([{id:"cs1",description:"",hours:0,rate:0,note:""}]);
 useEffect(()=>{try{const raw=localStorage.getItem("kevria_provider_details");if(raw)setProviderDetails(p=>({...p,...JSON.parse(raw)}))}catch{}},[]);
 useEffect(()=>{try{localStorage.setItem("kevria_provider_details",JSON.stringify(providerDetails))}catch{}},[providerDetails]);
+// Provider details follow the account: the cloud copy wins, then signup
+// metadata (org name / ABN / phone entered at registration) fills any blanks.
+const[providerLoaded,setProviderLoaded]=useState(false);
+useEffect(()=>{(async()=>{
+  try{
+    const{data:{user}}=await supabase.auth.getUser();
+    if(user){
+      const{data:row}=await supabase.from("calculator_data").select("data").eq("user_id",user.id).eq("participant_id","ndis_provider_details").maybeSingle();
+      const md:any=user.user_metadata||{};
+      setProviderDetails(p=>{
+        const merged={...p,...((row?.data&&typeof row.data==="object")?row.data:{})};
+        return{...merged,
+          orgName:merged.orgName||md.org_name||"",
+          abn:merged.abn||md.abn||"",
+          phone:merged.phone||md.org_phone||"",
+          email:merged.email||user.email||"",
+        };
+      });
+    }
+  }catch{}
+  setProviderLoaded(true);
+})()},[]);
+useCloudSync(providerLoaded?"ndis_provider_details":"",providerDetails);
 useEffect(()=>{try{const raw=localStorage.getItem("kevria_item_numbers");if(raw)setSaItemNumbers(JSON.parse(raw))}catch{}},[]);
 useEffect(()=>{try{localStorage.setItem("kevria_item_numbers",JSON.stringify(saItemNumbers))}catch{}},[saItemNumbers]);
 useEffect(()=>{try{const raw=localStorage.getItem("kevria_clinical_prac");if(raw)setClinicalPractitioner((p:any)=>({...p,...JSON.parse(raw)}))}catch{}},[]);
@@ -1762,7 +1785,7 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
     <button onClick={()=>setShowSAModal(false)} style={{background:"rgba(15,23,42,0.05)",border:"1px solid rgba(15,23,42,0.1)",color:"#334155",borderRadius:"8px",padding:"6px 12px",cursor:"pointer"}}>✕</button>
   </div>
 
-  <div className="text-sm mb-5" style={{color:"#334155"}}>Your provider details are saved and reused for every participant. Fill them in once — they&apos;ll pre-fill next time.</div>
+  <div className="text-sm mb-5" style={{color:"#334155"}}>Your provider details are saved to your account and reused for every participant — pre-filled from signup, editable any time.</div>
   <div className="rounded-lg p-3 mb-4 text-xs" style={{background:"rgba(15,23,42,0.04)",border:"1px solid rgba(15,23,42,0.07)",color:"#475569"}}>
     A clean one-pager listing all funded supports and weekly schedule — attach it to your existing SA template. Works for every provider out of the box.
   </div>
