@@ -211,7 +211,7 @@ async function buyMoreUploads(){
 const[removeOnApply,setRemoveOnApply]=useState<Set<string>>(new Set());
 const[uploadStage,setUploadStage]=useState<string|null>(null);
 const[flashCodes,setFlashCodes]=useState<Set<string>>(new Set());
-const[undoState,setUndoState]=useState<null|{label:string;lines?:SupportLine[];planDates?:PlanDates;clinicalServices?:any[]}>(null);
+const[undoState,setUndoState]=useState<null|{label:string;lines?:SupportLine[];planDates?:PlanDates;clinicalServices?:any[];rates?:Rates;weeksOverride?:number|null;calcMode?:any;clinicalFunding?:number;clinicalBudgetLinked?:boolean;planNotes?:string;clinicalNotes?:string}>(null);
 const rosterNotesRef=React.useRef<HTMLTextAreaElement>(null);
 useEffect(()=>{if(!undoState)return;const t=setTimeout(()=>setUndoState(null),30000);return()=>clearTimeout(t)},[undoState]);
 function undoLast(){
@@ -219,7 +219,30 @@ function undoLast(){
   if(undoState.lines)setLines(undoState.lines);
   if(undoState.planDates)setPlanDates(undoState.planDates);
   if(undoState.clinicalServices)setClinicalServices(undoState.clinicalServices);
+  if(undoState.rates)setRates(undoState.rates);
+  if(undoState.weeksOverride!==undefined)setWeeksOverride(undoState.weeksOverride);
+  if(undoState.calcMode!==undefined)setCalcMode(undoState.calcMode);
+  if(typeof undoState.clinicalFunding==="number")setClinicalFunding(undoState.clinicalFunding);
+  if(typeof undoState.clinicalBudgetLinked==="boolean")setClinicalBudgetLinked(undoState.clinicalBudgetLinked);
+  if(typeof undoState.planNotes==="string")setPlanNotes(undoState.planNotes);
+  if(typeof undoState.clinicalNotes==="string")setClinicalNotes(undoState.clinicalNotes);
   setUndoState(null);
+}
+function resetCalculator(){
+  const who=participantName?` for ${participantName}`:"";
+  if(!confirm(`Reset the calculator${who}? This clears plan dates, support lines, roster, claims, notes and clinical services so you can start again. You can undo straight after.`))return;
+  setUndoState({label:"Calculator reset",lines:JSON.parse(JSON.stringify(lines)),planDates:{...planDates},rates:{...rates},weeksOverride,calcMode,clinicalServices:JSON.parse(JSON.stringify(clinicalServices)),clinicalFunding,clinicalBudgetLinked,planNotes,clinicalNotes});
+  setLines([{id:uid(),code:"01",description:"Core Supports",totalFunding:0,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:1.00,kmFreq:"every",claims:[],lineRates:NDIS_RATES_2026_27}]);
+  setPlanDates({start:new Date().toISOString().slice(0,10),end:new Date(Date.now()+365*24*60*60*1000).toISOString().slice(0,10),state:"NSW"});
+  setRates(NDIS_RATES_2026_27);
+  setWeeksOverride(null);
+  setClinicalFunding(0);setClinicalServices([]);setClinicalBudgetLinked(false);
+  setPlanNotes("");setClinicalNotes("");
+  setAutofillResult(null);setAutofillError(null);setClinicalAutofillResult(null);setClinicalAutofillError(null);
+  setPlanExtract(null);setPlanUploadError(null);setUploadLimitReached(false);
+  setClaimsImport(null);setClaimsImportError(null);setFlashCodes(new Set());
+  setCalcMode(null);
+  window.scrollTo({top:0,behavior:"smooth"});
 }
 function flashLines(codes:Set<string>){
   setFlashCodes(codes);
@@ -1052,7 +1075,10 @@ return(
 <div className="mx-auto max-w-6xl p-6 pt-0">
 
 <div className="kv-card p-6 mb-6">
-<div id="sec-plan" className="flex items-center justify-between mb-4" style={{scrollMarginTop:"70px"}}><div className="flex items-center gap-3"><span className="kv-num">1</span><h2 className="text-xl font-semibold" style={{color:"#2d1b69"}}>Plan Details</h2></div>{calcMode&&<button onClick={()=>setCalcMode(null)} style={{fontSize:"0.72rem",color:"#64748b",background:"rgba(15,23,42,0.04)",border:"1px solid rgba(15,23,42,0.1)",borderRadius:"6px",padding:"4px 10px",cursor:"pointer"}}>{calcMode==="sil"?"SIL / Core":calcMode==="clinical"?"Clinical / Therapy":"SIL + Clinical"} · change mode</button>}</div>
+<div id="sec-plan" className="flex items-center justify-between mb-4 flex-wrap gap-2" style={{scrollMarginTop:"70px"}}><div className="flex items-center gap-3"><span className="kv-num">1</span><h2 className="text-xl font-semibold" style={{color:"#2d1b69"}}>Plan Details</h2></div>{calcMode&&<div className="flex items-center gap-2">
+<button onClick={()=>setCalcMode(null)} style={{fontSize:"0.72rem",color:"#64748b",background:"rgba(15,23,42,0.04)",border:"1px solid rgba(15,23,42,0.1)",borderRadius:"6px",padding:"4px 10px",cursor:"pointer"}}>{calcMode==="sil"?"SIL / Core":calcMode==="clinical"?"Clinical / Therapy":"SIL + Clinical"} · change mode</button>
+<button onClick={resetCalculator} title="Clear everything for this participant and start again (undoable)" style={{fontSize:"0.72rem",color:"#dc2626",background:"rgba(239,68,68,0.06)",border:"1px solid rgba(239,68,68,0.25)",borderRadius:"6px",padding:"4px 10px",cursor:"pointer"}}>↺ Reset calculator</button>
+</div>}</div>
 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
 <DateField label="Plan Start Date" value={planDates.start} onChange={v=>setPlanDates(p=>({...p,start:v}))}/>
 <DateField label="Plan End Date" value={planDates.end} onChange={v=>setPlanDates(p=>({...p,end:v}))}/>
@@ -1288,12 +1314,12 @@ return(
 <div className="text-sm mb-3 font-semibold" style={{color:"#d4a843"}}>Service Hours<span style={{color:"#64748b",fontWeight:"normal",fontSize:"0.8rem",marginLeft:"8px"}}>flat hourly service — no day-by-day roster needed</span></div>
 <div className="flex items-center gap-2 flex-wrap">
 <span className="text-xs" style={{color:"#475569"}}>Hours per week:</span>
-<SmallField value={l.roster.mon?.hours||0} onChange={v=>updateRosterDay(l.id,"mon",{enabled:v>0,hours:v})}/>
+<SmallField value={DAYS.reduce((s,d)=>s+(l.roster[d]?.enabled?((l.roster[d].hours||0)+(l.roster[d].nightHours||0)):0),0)} onChange={v=>updateLine(l.id,{roster:{...defaultRoster(),mon:{enabled:v>0,hours:v,nightHours:0,frequency:l.roster.mon?.frequency||"every"}}})}/>
 <SmallSelect value={l.roster.mon?.frequency||"every"} options={Object.entries(FREQ).map(([k,v])=>({value:k,label:v.label}))} onChange={v=>updateRosterDay(l.id,"mon",{frequency:v})}/>
 <span className="text-xs" style={{color:"#475569"}}>@ <span className="kv-money font-semibold" style={{color:"#b8901a"}}>{money((l.lineRates?.weekdayOrd||0)/(RATIOS[l.ratio]?.divisor||1))}</span>/hr</span>
 </div>
 <div className="flex items-center gap-2 flex-wrap mt-2"><span className="text-xs" style={{color:"#475569"}}>KMs per week:</span><SmallField value={l.kmsPerWeek} step={1} onChange={v=>updateLine(l.id,{kmsPerWeek:v})}/><span className="text-xs" style={{color:"#475569"}}>@ $</span><SmallField value={l.kmRate} step={0.01} onChange={v=>updateLine(l.id,{kmRate:v})}/><span className="text-xs" style={{color:"#475569"}}>/km</span><SmallSelect value={l.kmFreq} options={Object.entries(FREQ).map(([k,v])=>({value:k,label:v.label}))} onChange={v=>updateLine(l.id,{kmFreq:v})}/></div>
-{DAYS.some(d=>d!=="mon"&&l.roster[d]?.enabled&&((l.roster[d].hours||0)>0||(l.roster[d].nightHours||0)>0))&&<div className="text-xs mt-2" style={{color:"#b45309"}}>This line also has hours saved on other days from an earlier roster — they still count toward the totals below.</div>}
+{DAYS.some(d=>d!=="mon"&&l.roster[d]?.enabled&&((l.roster[d].hours||0)>0||(l.roster[d].nightHours||0)>0))&&<div className="text-xs mt-2" style={{color:"#94a3b8"}}>Total includes hours saved across several days from an earlier roster — editing the number consolidates them into one weekly figure.</div>}
 <div className="mt-4 text-sm" style={{color:"#334155"}}>
 <div>Weekly total: <span className="kv-money font-semibold" style={{color: "#0f172a"}}>{money(l.weeklyWithGST)}</span></div>
 <div>Plan total: <span className="kv-money font-semibold" style={{color: "#0f172a"}}>{money(l.planTotal)}</span></div>
