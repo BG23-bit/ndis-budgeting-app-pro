@@ -6,16 +6,17 @@ type PlanDates = { start: string; end: string; state: string; serviceStart?: str
 type DayRoster = { enabled: boolean; hours: number; nightHours: number; frequency: string };
 type Claim = { id: string; date: string; amount: number; note: string };
 type SupportLine = { id: string; code: string; description: string; totalFunding: number; ratio: string; excludedHolidays: string[]; roster: { [key: string]: DayRoster }; activeSleepoverHours: number; activeSleepoverFreq: string; fixedSleepovers: number; fixedSleepoverFreq: string; kmsPerWeek: number; kmRate: number; kmFreq: string; claims: Claim[]; lineRates: Rates };
-type ProviderDetails = { orgName: string; abn: string; contactName: string; email: string; phone: string; address: string; registrationNumber: string };
+type CustomHoliday = { date: string; name: string };
+type ProviderDetails = { orgName: string; abn: string; contactName: string; email: string; phone: string; address: string; registrationNumber: string; defaultRates?: Partial<Rates>; customHolidays?: CustomHoliday[] };
 const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
 const DAY_DOW:{[k:string]:number}={mon:1,tue:2,wed:3,thu:4,fri:5,sat:6,sun:0};
 const DL: {[k:string]:string} = {mon:"Monday",tue:"Tuesday",wed:"Wednesday",thu:"Thursday",fri:"Friday",sat:"Saturday",sun:"Sunday"};
 const FREQ: {[k:string]:{label:string;multiplier:number}} = {"every":{label:"Every week",multiplier:1},"2nd":{label:"Every 2nd week",multiplier:0.5},"3rd":{label:"Every 3rd week",multiplier:0.333},"4th":{label:"Every 4th week",multiplier:0.25},"monthly":{label:"Monthly",multiplier:0.2308}};
-const RATIOS: {[k:string]:{label:string;divisor:number}} = {"1:1":{label:"1:1 (Full rate)",divisor:1},"2:1":{label:"2:1 (Double rate)",divisor:0.5},"1:2":{label:"1:2 (Half rate)",divisor:2},"1:3":{label:"1:3 (Third rate)",divisor:3},"1:4":{label:"1:4 (Quarter rate)",divisor:4}};
+const RATIOS: {[k:string]:{label:string;divisor:number}} = {"1:1":{label:"1:1 (Full rate)",divisor:1},"2:1":{label:"2:1 (Two workers — double rate)",divisor:0.5},"3:1":{label:"3:1 (Three workers — triple rate)",divisor:1/3},"2:3":{label:"2:3 (Two workers, three participants — ⅔ rate)",divisor:1.5},"1:2":{label:"1:2 (Shared — half rate)",divisor:2},"1:3":{label:"1:3 (Shared — third rate)",divisor:3},"1:4":{label:"1:4 (Shared — quarter rate)",divisor:4}};
 const STATES = [{value:"NSW",label:"New South Wales"},{value:"VIC",label:"Victoria"},{value:"QLD",label:"Queensland"},{value:"SA",label:"South Australia"},{value:"WA",label:"Western Australia"},{value:"TAS",label:"Tasmania"},{value:"NT",label:"Northern Territory"},{value:"ACT",label:"Australian Capital Territory"}];
 export function defaultRoster():{[k:string]:DayRoster}{const r:{[k:string]:DayRoster}={};DAYS.forEach(d=>{r[d]={enabled:false,hours:0,nightHours:0,frequency:"every"}});return r}
-import { getHolidaysInRange } from "@/lib/holidays";
-export { getHolidaysInRange };
+import { getHolidaysInRange, mergeCustomHolidays } from "@/lib/holidays";
+export { getHolidaysInRange, mergeCustomHolidays };
 function getDayName(d:number):string{return["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][d]}
 export function getWeeksInPlan(s:string,e:string):number{if(!s||!e)return 52;return Math.max(1,(new Date(e).getTime()-new Date(s).getTime()+86400000)/(7*24*60*60*1000))}
 function countDayOccurrences(start:string,end:string,dow:number):number{if(!start||!end)return 0;const sd=new Date(start);const ed=new Date(end);const daysToFirst=(dow-sd.getDay()+7)%7;const first=new Date(sd.getTime()+daysToFirst*86400000);if(first>ed)return 0;return Math.floor((ed.getTime()-first.getTime())/604800000)+1}
@@ -89,6 +90,18 @@ const CATEGORY_PRESETS:{[code:string]:{name:string;rates:Rates}}={
   "21":{name:"YPIRAC",rates:{weekdayOrd:73.58,weekdayNight:81.07,sat:103.54,sun:133.50,publicHoliday:163.46,activeSleepoverHourly:82.57,fixedSleepoverUnit:311.79,gstRate:0}},
 };
 export function getPresetRates(code:string):Rates{return CATEGORY_PRESETS[code]?.rates||NDIS_RATES_2026_27}
+// Overlay the organisation's default rates onto a category preset. Only fields that
+// still carry the standard core support-worker rate are replaced, so therapy /
+// coordination categories with their own price caps are left untouched.
+function applyProviderDefaults(preset:Rates,def?:Partial<Rates>|null):Rates{
+  if(!def)return preset;
+  const out={...preset};
+  (Object.keys(NDIS_RATES_2026_27) as (keyof Rates)[]).forEach(k=>{
+    const dv=def[k];
+    if(typeof dv==="number"&&dv>0&&NDIS_RATES_2026_27[k]>0&&preset[k]===NDIS_RATES_2026_27[k])(out as any)[k]=dv;
+  });
+  return out;
+}
 const NDIS_ITEM_DEFAULTS:{[code:string]:{[rateType:string]:string}}={
   "01":{weekday:"01_011_0107_1_1",weekdayNight:"01_015_0107_1_1",sat:"01_013_0107_1_1",satNight:"01_013_0107_1_1",sun:"01_014_0107_1_1",sunNight:"01_014_0107_1_1",publicHoliday:"01_012_0107_1_1",activeSleepover:"01_002_0107_1_1",fixedSleepover:"01_010_0107_1_1",lump:"01_821_0115_1_1"},
   "04":{weekday:"04_104_0125_6_1",weekdayNight:"04_103_0125_6_1",sat:"04_105_0125_6_1",satNight:"04_105_0125_6_1",sun:"04_106_0125_6_1",sunNight:"04_106_0125_6_1",publicHoliday:"04_102_0125_6_1"},
@@ -101,7 +114,10 @@ const NDIS_ITEM_DEFAULTS:{[code:string]:{[rateType:string]:string}}={
   "13":{weekday:"13_030_0102_4_3",lump:"13_030_0102_4_3"},
   "15":{weekday:"15_056_0128_1_3",lump:"15_056_0128_1_3"},
 };
-function getDefaultItemNumber(code:string,rateType:string):string{return NDIS_ITEM_DEFAULTS[code]?.[rateType]||""}
+// SIL-specific line items (01_8xx series) — used instead of the self-care 01 items
+// when the provider marks the schedule as a SIL roster.
+const SIL_ITEM_DEFAULTS:{[rateType:string]:string}={weekday:"01_801_0115_1_1",weekdayNight:"01_802_0115_1_1",sat:"01_804_0115_1_1",satNight:"01_804_0115_1_1",sun:"01_805_0115_1_1",sunNight:"01_805_0115_1_1",publicHoliday:"01_806_0115_1_1",activeSleepover:"01_803_0115_1_1",fixedSleepover:"01_832_0115_1_1",lump:"01_801_0115_1_1"};
+function getDefaultItemNumber(code:string,rateType:string,useSilItems?:boolean):string{if(useSilItems&&code==="01"&&SIL_ITEM_DEFAULTS[rateType])return SIL_ITEM_DEFAULTS[rateType];return NDIS_ITEM_DEFAULTS[code]?.[rateType]||""}
 // Merge proposedRoster entries (from plan-upload notes) for one category code into roster fields
 function rosterFromProposal(prs:any[]):{roster:{[k:string]:DayRoster};aso:number;fso:number;kms:number}{
   const roster=defaultRoster();
@@ -139,10 +155,12 @@ const[rates,setRates]=useState<Rates>({weekdayOrd:73.58,weekdayNight:81.07,sat:1
 const[lines,setLines]=useState<SupportLine[]>([{id:uid(),code:"01",description:"Core Supports",totalFunding:0,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:1.00,kmFreq:"every",claims:[],lineRates:NDIS_RATES_2026_27}]);
 const srvStart=planDates.serviceStart||planDates.start;const srvEnd=planDates.serviceEnd||planDates.end;
 const planWeeksCalc=useMemo(()=>getWeeksInPlan(srvStart,srvEnd),[srvStart,srvEnd]);const[weeksOverride,setWeeksOverride]=useState<number|null>(null);const planWeeks=weeksOverride!==null?weeksOverride:planWeeksCalc;
-const holidays=useMemo(()=>getHolidaysInRange(srvStart,srvEnd,planDates.state),[srvStart,srvEnd,planDates.state]);
-useEffect(()=>{async function load(){const cloud=await loadFromCloud(STORAGE_KEY);const raw=cloud||(()=>{try{const r=localStorage.getItem(STORAGE_KEY);return r?JSON.parse(r):null}catch{return null}})();if(!raw){setLoaded(true);return;}if(raw?.rates)setRates((r:any)=>({...r,...raw.rates}));if(raw?.planDates)setPlanDates((p:any)=>({...p,...raw.planDates}));if(Array.isArray(raw?.lines)&&raw.lines.length>0)setLines(raw.lines.map((l:any)=>({...l,ratio:l.ratio||"1:1",excludedHolidays:l.excludedHolidays||[],roster:l.roster||defaultRoster(),activeSleepoverFreq:l.activeSleepoverFreq||"every",fixedSleepoverFreq:l.fixedSleepoverFreq||"every",kmsPerWeek:l.kmsPerWeek||0,kmRate:l.kmRate||1.00,kmFreq:l.kmFreq||"every",claims:l.claims||[],lineRates:l.lineRates||getPresetRates(l.code)})));if(raw?.weeksOverride!=null)setWeeksOverride(raw.weeksOverride);if(raw?.calcMode!==undefined)setCalcMode(raw.calcMode as any);else{const hasLines=Array.isArray(raw?.lines)&&raw.lines.some((l:any)=>(l?.totalFunding||0)>0);const hasClinical=Array.isArray(raw?.clinicalServices)&&raw.clinicalServices.length>0;if(hasLines&&hasClinical)setCalcMode("both");else if(hasClinical&&!hasLines)setCalcMode("clinical");else if(hasLines)setCalcMode("sil");}if(typeof raw?.planNotes==="string")setPlanNotes(raw.planNotes);if(typeof raw?.clinicalNotes==="string")setClinicalNotes(raw.clinicalNotes);if(typeof raw?.clinicalFunding==="number")setClinicalFunding(raw.clinicalFunding);if(Array.isArray(raw?.clinicalServices))setClinicalServices(raw.clinicalServices);if(typeof raw?.clinicalBudgetLinked==="boolean")setClinicalBudgetLinked(raw.clinicalBudgetLinked);setLoaded(true);}load()},[]);
+const[providerDetails,setProviderDetails]=useState<ProviderDetails>({orgName:"",abn:"",contactName:"",email:"",phone:"",address:"",registrationNumber:""});
+const holidays=useMemo(()=>mergeCustomHolidays(getHolidaysInRange(srvStart,srvEnd,planDates.state),providerDetails.customHolidays,srvStart,srvEnd),[srvStart,srvEnd,planDates.state,providerDetails.customHolidays]);
+useEffect(()=>{async function load(){const cloud=await loadFromCloud(STORAGE_KEY);const raw=cloud||(()=>{try{const r=localStorage.getItem(STORAGE_KEY);return r?JSON.parse(r):null}catch{return null}})();if(!raw){isFreshRef.current=true;setLoaded(true);return;}if(raw?.rates)setRates((r:any)=>({...r,...raw.rates}));if(raw?.planDates)setPlanDates((p:any)=>({...p,...raw.planDates}));if(Array.isArray(raw?.lines)&&raw.lines.length>0)setLines(raw.lines.map((l:any)=>({...l,ratio:l.ratio||"1:1",excludedHolidays:l.excludedHolidays||[],roster:l.roster||defaultRoster(),activeSleepoverFreq:l.activeSleepoverFreq||"every",fixedSleepoverFreq:l.fixedSleepoverFreq||"every",kmsPerWeek:l.kmsPerWeek||0,kmRate:l.kmRate||1.00,kmFreq:l.kmFreq||"every",claims:l.claims||[],lineRates:l.lineRates||getPresetRates(l.code)})));if(raw?.weeksOverride!=null)setWeeksOverride(raw.weeksOverride);if(raw?.calcMode!==undefined)setCalcMode(raw.calcMode as any);else{const hasLines=Array.isArray(raw?.lines)&&raw.lines.some((l:any)=>(l?.totalFunding||0)>0);const hasClinical=Array.isArray(raw?.clinicalServices)&&raw.clinicalServices.length>0;if(hasLines&&hasClinical)setCalcMode("both");else if(hasClinical&&!hasLines)setCalcMode("clinical");else if(hasLines)setCalcMode("sil");}if(typeof raw?.planNotes==="string")setPlanNotes(raw.planNotes);if(typeof raw?.clinicalNotes==="string")setClinicalNotes(raw.clinicalNotes);if(typeof raw?.clinicalFunding==="number")setClinicalFunding(raw.clinicalFunding);if(Array.isArray(raw?.clinicalServices))setClinicalServices(raw.clinicalServices);if(typeof raw?.clinicalBudgetLinked==="boolean")setClinicalBudgetLinked(raw.clinicalBudgetLinked);setLoaded(true);}load()},[]);
 const[calcMode,setCalcMode]=useState<"sil"|"clinical"|"both"|null>(null);
 const[loaded,setLoaded]=useState(false);
+const isFreshRef=React.useRef(false);
 const[clinicalFunding,setClinicalFunding]=useState(0);
 const[clinicalServices,setClinicalServices]=useState<{id:string;code:string;description:string;hours:number;rate:number;note:string}[]>([]);
 const[clinicalBudgetLinked,setClinicalBudgetLinked]=useState(false);
@@ -179,8 +197,8 @@ function updateLine(id:string,patch:Partial<SupportLine>){setLines(prev=>prev.ma
 function updateRosterDay(lineId:string,day:string,patch:Partial<DayRoster>){setLines(prev=>prev.map(l=>{if(l.id!==lineId)return l;return{...l,roster:{...l.roster,[day]:{...l.roster[day],...patch}}}}))}
 function toggleHoliday(lineId:string,date:string){setLines(prev=>prev.map(l=>{if(l.id!==lineId)return l;const exc=l.excludedHolidays.includes(date)?l.excludedHolidays.filter(d=>d!==date):[...l.excludedHolidays,date];return{...l,excludedHolidays:exc}}))}
 function setAllHolidays(lineId:string,include:boolean){setLines(prev=>prev.map(l=>l.id!==lineId?l:{...l,excludedHolidays:include?[]:holidays.map(h=>h.date)}))}
-function addLine(){setLines(prev=>[...prev,{id:uid(),code:"01",description:"New Support Line",totalFunding:0,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:1.00,kmFreq:"every",claims:[],lineRates:NDIS_RATES_2026_27}])}
-function updateLineCode(id:string,code:string){setLines(prev=>prev.map(l=>l.id!==id?l:{...l,code,lineRates:getPresetRates(code)}))}
+function addLine(){setLines(prev=>[...prev,{id:uid(),code:"01",description:"New Support Line",totalFunding:0,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:1.00,kmFreq:"every",claims:[],lineRates:applyProviderDefaults(NDIS_RATES_2026_27,providerDetails.defaultRates)}])}
+function updateLineCode(id:string,code:string){setLines(prev=>prev.map(l=>l.id!==id?l:{...l,code,lineRates:applyProviderDefaults(getPresetRates(code),providerDetails.defaultRates)}))}
 function deleteLine(id:string){if(lines.length<=1)return;const l=lines.find(x=>x.id===id);const claimCount=l?.claims?.length||0;const msg='Delete support line "'+(l?.description||l?.code||"")+'"'+(claimCount>0?" and its "+claimCount+" logged claim"+(claimCount===1?"":"s"):"")+"? This cannot be undone.";if(!confirm(msg))return;setLines(prev=>(prev.length<=1?prev:prev.filter(x=>x.id!==id)))}
 const[openClaimsLines,setOpenClaimsLines]=useState<Set<string>>(new Set());
 const[openRatesLines,setOpenRatesLines]=useState<Set<string>>(new Set());
@@ -209,6 +227,20 @@ async function buyMoreUploads(){
   }finally{setBuyingUploads(false);}
 }
 const[removeOnApply,setRemoveOnApply]=useState<Set<string>>(new Set());
+const[newHolDate,setNewHolDate]=useState("");
+const[newHolName,setNewHolName]=useState("");
+// Regional/custom public holidays live on the organisation profile (cloud-synced),
+// so they apply across every participant whose plan covers the date.
+function addCustomHoliday(){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(newHolDate))return;
+  setProviderDetails(p=>{
+    if((p.customHolidays||[]).some(h=>h.date===newHolDate))return p;
+    const list=[...(p.customHolidays||[]),{date:newHolDate,name:newHolName.trim()||"Regional holiday"}].sort((a,b)=>a.date.localeCompare(b.date));
+    return{...p,customHolidays:list};
+  });
+  setNewHolDate("");setNewHolName("");
+}
+function removeCustomHoliday(date:string){setProviderDetails(p=>({...p,customHolidays:(p.customHolidays||[]).filter(h=>h.date!==date)}))}
 const[uploadStage,setUploadStage]=useState<string|null>(null);
 const[flashCodes,setFlashCodes]=useState<Set<string>>(new Set());
 const[undoState,setUndoState]=useState<null|{label:string;lines?:SupportLine[];planDates?:PlanDates;clinicalServices?:any[];rates?:Rates;weeksOverride?:number|null;calcMode?:any;clinicalFunding?:number;clinicalBudgetLinked?:boolean;planNotes?:string;clinicalNotes?:string}>(null);
@@ -232,9 +264,9 @@ function resetCalculator(){
   const who=participantName?` for ${participantName}`:"";
   if(!confirm(`Reset the calculator${who}? This clears plan dates, support lines, roster, claims, notes and clinical services so you can start again. You can undo straight after.`))return;
   setUndoState({label:"Calculator reset",lines:JSON.parse(JSON.stringify(lines)),planDates:{...planDates},rates:{...rates},weeksOverride,calcMode,clinicalServices:JSON.parse(JSON.stringify(clinicalServices)),clinicalFunding,clinicalBudgetLinked,planNotes,clinicalNotes});
-  setLines([{id:uid(),code:"01",description:"Core Supports",totalFunding:0,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:1.00,kmFreq:"every",claims:[],lineRates:NDIS_RATES_2026_27}]);
+  setLines([{id:uid(),code:"01",description:"Core Supports",totalFunding:0,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:1.00,kmFreq:"every",claims:[],lineRates:applyProviderDefaults(NDIS_RATES_2026_27,providerDetails.defaultRates)}]);
   setPlanDates({start:new Date().toISOString().slice(0,10),end:new Date(Date.now()+365*24*60*60*1000).toISOString().slice(0,10),state:"NSW"});
-  setRates(NDIS_RATES_2026_27);
+  setRates(applyProviderDefaults(NDIS_RATES_2026_27,providerDetails.defaultRates));
   setWeeksOverride(null);
   setClinicalFunding(0);setClinicalServices([]);setClinicalBudgetLinked(false);
   setPlanNotes("");setClinicalNotes("");
@@ -243,6 +275,15 @@ function resetCalculator(){
   setClaimsImport(null);setClaimsImportError(null);setFlashCodes(new Set());
   setCalcMode(null);
   window.scrollTo({top:0,behavior:"smooth"});
+}
+// Overlay the organisation's saved default rates onto this participant's global and
+// per-line rates (resets line rates to preset + defaults; undoable).
+function applyOrgDefaultsNow(){
+  const def=providerDetails.defaultRates;
+  if(!def||!Object.values(def).some(v=>typeof v==="number"&&v>0))return;
+  setUndoState({label:"Organisation default rates applied",lines:JSON.parse(JSON.stringify(lines)),rates:{...rates}});
+  setRates(applyProviderDefaults({...NDIS_RATES_2026_27},def));
+  setLines(prev=>prev.map(l=>({...l,lineRates:applyProviderDefaults(getPresetRates(l.code),def)})));
 }
 function flashLines(codes:Set<string>){
   setFlashCodes(codes);
@@ -341,7 +382,7 @@ function simulateExtractOutcome(extract:any):null|{rows:{code:string;description
   if(!Array.isArray(extract?.supportLines)||!Array.isArray(extract?.proposedRoster)||extract.proposedRoster.length===0)return null;
   const start=extract.planStart||planDates.start,end=extract.planEnd||planDates.end,state=extract.state||planDates.state;
   const weeks=getWeeksInPlan(start,end);
-  const hols=getHolidaysInRange(start,end,state);
+  const hols=mergeCustomHolidays(getHolidaysInRange(start,end,state),providerDetails.customHolidays,start,end);
   const rows:{code:string;description:string;budget:number;cost:number;remaining:number;summary:string}[]=[];
   for(const sl of extract.supportLines){
     if((sl?.totalFunding||0)<=0)continue;
@@ -372,11 +413,11 @@ function staleLinesForExtract(extract:any,cur:SupportLine[]):SupportLine[]{
 function lineHasData(l:SupportLine):boolean{
   return (l.claims||[]).length>0||Object.values(l.roster||{}).some((r:any)=>r?.enabled&&((r.hours||0)>0||(r.nightHours||0)>0))||(l.activeSleepoverHours||0)>0||(l.fixedSleepovers||0)>0;
 }
-const[providerDetails,setProviderDetails]=useState<ProviderDetails>({orgName:"",abn:"",contactName:"",email:"",phone:"",address:"",registrationNumber:""});
 const[showSAModal,setShowSAModal]=useState(false);
 const[saSpecificReqs,setSaSpecificReqs]=useState({behavioursOfConcern:false,regulatedRestrictivePractice:false,medicationManagement:false});
 const[saEstFee,setSaEstFee]=useState("");
 const[saItemNumbers,setSaItemNumbers]=useState<{[k:string]:string}>({});
+const[saUseSilItems,setSaUseSilItems]=useState(false);
 const[showClinicalModal,setShowClinicalModal]=useState(false);
 const[clinicalPractitioner,setClinicalPractitioner]=useState({name:"",title:"",qualifications:"",org:"",phone:"",email:""});
 const[clinicalOverview,setClinicalOverview]=useState("");
@@ -409,8 +450,20 @@ useEffect(()=>{(async()=>{
   setProviderLoaded(true);
 })()},[]);
 useCloudSync(providerLoaded?"ndis_provider_details":"",providerDetails);
+// A brand-new participant (nothing saved yet) starts on the organisation's default
+// rates instead of the raw price guide — applied once, still editable per line.
+useEffect(()=>{
+  if(!loaded||!providerLoaded||!isFreshRef.current)return;
+  const def=providerDetails.defaultRates;
+  if(!def||!Object.values(def).some(v=>typeof v==="number"&&v>0)){isFreshRef.current=false;return;}
+  isFreshRef.current=false;
+  setRates(r=>applyProviderDefaults(r,def));
+  setLines(prev=>prev.map(l=>({...l,lineRates:applyProviderDefaults(l.lineRates||getPresetRates(l.code),def)})));
+},[loaded,providerLoaded]);
 useEffect(()=>{try{const raw=localStorage.getItem("kevria_item_numbers");if(raw)setSaItemNumbers(JSON.parse(raw))}catch{}},[]);
 useEffect(()=>{try{localStorage.setItem("kevria_item_numbers",JSON.stringify(saItemNumbers))}catch{}},[saItemNumbers]);
+useEffect(()=>{try{setSaUseSilItems(localStorage.getItem("kevria_sa_use_sil")==="1")}catch{}},[]);
+useEffect(()=>{try{localStorage.setItem("kevria_sa_use_sil",saUseSilItems?"1":"0")}catch{}},[saUseSilItems]);
 useEffect(()=>{try{const raw=localStorage.getItem("kevria_clinical_prac");if(raw)setClinicalPractitioner((p:any)=>({...p,...JSON.parse(raw)}))}catch{}},[]);
 useEffect(()=>{try{localStorage.setItem("kevria_clinical_prac",JSON.stringify(clinicalPractitioner))}catch{}},[clinicalPractitioner]);
 const planFileRef=React.useRef<HTMLInputElement>(null);
@@ -513,7 +566,7 @@ function applyPlanExtract(){
         if((sl?.totalFunding||0)<=0)continue;
         const idx=updated.findIndex((_l:SupportLine,i:number)=>!used.has(i)&&_l.code===sl.code);
         if(idx>=0){updated[idx]={...updated[idx],totalFunding:sl.totalFunding,description:sl.description,lineRates:updated[idx].lineRates||getPresetRates(sl.code)};used.add(idx);}
-        else{updated.push({id:uid(),code:sl.code,description:sl.description,totalFunding:sl.totalFunding,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:1.00,kmFreq:"every",claims:[],lineRates:getPresetRates(sl.code)});}
+        else{updated.push({id:uid(),code:sl.code,description:sl.description,totalFunding:sl.totalFunding,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:1.00,kmFreq:"every",claims:[],lineRates:applyProviderDefaults(getPresetRates(sl.code),providerDetails.defaultRates)});}
       }
     }
     if(Array.isArray(planExtract.scheduleOfSupports)&&planExtract.scheduleOfSupports.length>0){
@@ -695,6 +748,7 @@ function generateScheduleOfSupports(){
     const div=RATIOS[l.ratio]?.divisor||1;
     const mode=getLineMode(l.code);
     const rows:SRow[]=[];
+    const desc=escapeHtml(l.description)+(l.ratio&&l.ratio!=="1:1"?" ("+escapeHtml(l.ratio)+")":"");
     if(mode==="lump"){
       rows.push({key:l.id+"_lump",code:l.code,rateType:"lump",category:escapeHtml(l.description),price:null,hours:null,total:l.totalFunding});
       return rows;
@@ -721,22 +775,22 @@ function generateScheduleOfSupports(){
     const adjSun=Math.max(0,sunHrs-phSunDay);
     const adjSunNight=Math.max(0,sunNightHrs-phSunNight);
     // Display rounded hours but compute totals from unrounded values to match the main calc
-    if(adjWkdOrd>0){const rate=(l.lineRates?.weekdayOrd||0)/div;rows.push({key:l.id+"_weekday",code:l.code,rateType:"weekday",category:escapeHtml(l.description)+" - Weekday Daytime",price:rate,hours:Math.round(adjWkdOrd),total:rate*adjWkdOrd});}
-    if(adjWkdNight>0){const rate=(l.lineRates?.weekdayNight||0)/div;rows.push({key:l.id+"_weekdayNight",code:l.code,rateType:"weekdayNight",category:escapeHtml(l.description)+" - Weekday Night",price:rate,hours:Math.round(adjWkdNight),total:rate*adjWkdNight});}
-    if(adjSat>0){const rate=(l.lineRates?.sat||0)/div;rows.push({key:l.id+"_sat",code:l.code,rateType:"sat",category:escapeHtml(l.description)+" - Saturday",price:rate,hours:Math.round(adjSat),total:rate*adjSat});}
-    if(adjSatNight>0){const rate=(l.lineRates?.sat||0)/div;rows.push({key:l.id+"_satNight",code:l.code,rateType:"satNight",category:escapeHtml(l.description)+" - Saturday Night",price:rate,hours:Math.round(adjSatNight),total:rate*adjSatNight});}
-    if(adjSun>0){const rate=(l.lineRates?.sun||0)/div;rows.push({key:l.id+"_sun",code:l.code,rateType:"sun",category:escapeHtml(l.description)+" - Sunday",price:rate,hours:Math.round(adjSun),total:rate*adjSun});}
-    if(adjSunNight>0){const rate=(l.lineRates?.sun||0)/div;rows.push({key:l.id+"_sunNight",code:l.code,rateType:"sunNight",category:escapeHtml(l.description)+" - Sunday Night",price:rate,hours:Math.round(adjSunNight),total:rate*adjSunNight});}
-    if(phHrs>0){const rate=(l.lineRates?.publicHoliday||0)/div;rows.push({key:l.id+"_ph",code:l.code,rateType:"publicHoliday",category:escapeHtml(l.description)+" - Public Holiday",price:rate,hours:Math.round(phHrs),total:rate*phHrs});}
-    const sf=FREQ[l.activeSleepoverFreq]?.multiplier||1;const activeSoHrs=(l.activeSleepoverHours||0)*sf*planWeeks;if(activeSoHrs>0&&(l.lineRates?.activeSleepoverHourly||0)>0){const rate=(l.lineRates?.activeSleepoverHourly||0)/div;rows.push({key:l.id+"_activeSleepover",code:l.code,rateType:"activeSleepover",category:escapeHtml(l.description)+" - Active Sleepover",price:rate,hours:Math.round(activeSoHrs),total:rate*activeSoHrs});}
-    const ff=FREQ[l.fixedSleepoverFreq]?.multiplier||1;const fixedSoUnits=(l.fixedSleepovers||0)*ff*planWeeks;if(fixedSoUnits>0&&(l.lineRates?.fixedSleepoverUnit||0)>0){const rate=l.lineRates?.fixedSleepoverUnit||0;rows.push({key:l.id+"_fixedSleepover",code:l.code,rateType:"fixedSleepover",category:escapeHtml(l.description)+" - Sleepover (Overnight)",price:rate,hours:Math.round(fixedSoUnits),total:rate*fixedSoUnits});}
+    if(adjWkdOrd>0){const rate=(l.lineRates?.weekdayOrd||0)/div;rows.push({key:l.id+"_weekday",code:l.code,rateType:"weekday",category:desc+" - Weekday Daytime",price:rate,hours:Math.round(adjWkdOrd),total:rate*adjWkdOrd});}
+    if(adjWkdNight>0){const rate=(l.lineRates?.weekdayNight||0)/div;rows.push({key:l.id+"_weekdayNight",code:l.code,rateType:"weekdayNight",category:desc+" - Weekday Night",price:rate,hours:Math.round(adjWkdNight),total:rate*adjWkdNight});}
+    if(adjSat>0){const rate=(l.lineRates?.sat||0)/div;rows.push({key:l.id+"_sat",code:l.code,rateType:"sat",category:desc+" - Saturday",price:rate,hours:Math.round(adjSat),total:rate*adjSat});}
+    if(adjSatNight>0){const rate=(l.lineRates?.sat||0)/div;rows.push({key:l.id+"_satNight",code:l.code,rateType:"satNight",category:desc+" - Saturday Night",price:rate,hours:Math.round(adjSatNight),total:rate*adjSatNight});}
+    if(adjSun>0){const rate=(l.lineRates?.sun||0)/div;rows.push({key:l.id+"_sun",code:l.code,rateType:"sun",category:desc+" - Sunday",price:rate,hours:Math.round(adjSun),total:rate*adjSun});}
+    if(adjSunNight>0){const rate=(l.lineRates?.sun||0)/div;rows.push({key:l.id+"_sunNight",code:l.code,rateType:"sunNight",category:desc+" - Sunday Night",price:rate,hours:Math.round(adjSunNight),total:rate*adjSunNight});}
+    if(phHrs>0){const rate=(l.lineRates?.publicHoliday||0)/div;rows.push({key:l.id+"_ph",code:l.code,rateType:"publicHoliday",category:desc+" - Public Holiday",price:rate,hours:Math.round(phHrs),total:rate*phHrs});}
+    const sf=FREQ[l.activeSleepoverFreq]?.multiplier||1;const activeSoHrs=(l.activeSleepoverHours||0)*sf*planWeeks;if(activeSoHrs>0&&(l.lineRates?.activeSleepoverHourly||0)>0){const rate=(l.lineRates?.activeSleepoverHourly||0)/div;rows.push({key:l.id+"_activeSleepover",code:l.code,rateType:"activeSleepover",category:desc+" - Active Sleepover",price:rate,hours:Math.round(activeSoHrs),total:rate*activeSoHrs});}
+    const ff=FREQ[l.fixedSleepoverFreq]?.multiplier||1;const fixedSoUnits=(l.fixedSleepovers||0)*ff*planWeeks;if(fixedSoUnits>0&&(l.lineRates?.fixedSleepoverUnit||0)>0){const rate=l.lineRates?.fixedSleepoverUnit||0;rows.push({key:l.id+"_fixedSleepover",code:l.code,rateType:"fixedSleepover",category:desc+" - Sleepover (Overnight)",price:rate,hours:Math.round(fixedSoUnits),total:rate*fixedSoUnits});}
     const kf=FREQ[l.kmFreq]?.multiplier||1;const totalKm=(l.kmsPerWeek||0)*kf*planWeeks;if(totalKm>0&&(l.kmRate||0)>0){rows.push({key:l.id+"_km",code:l.code,rateType:"km",category:escapeHtml(l.description)+" - Transport (km)",price:l.kmRate,hours:Math.round(totalKm)+"km",total:l.kmRate*totalKm});}
     if(rows.length===0){rows.push({key:l.id+"_lump",code:l.code,rateType:"lump",category:escapeHtml(l.description),price:null,hours:null,total:l.totalFunding});}
     return rows;
   });
 
   const supRowsHtml=supRows.map(r=>{
-    const itemNum=saItemNumbers[r.key]||getDefaultItemNumber(r.code,r.rateType);
+    const itemNum=saItemNumbers[r.key]||getDefaultItemNumber(r.code,r.rateType,saUseSilItems);
     return "<tr>"
     +"<td style=\"vertical-align:top\">"+r.category+"</td>"
     +"<td style=\"vertical-align:top;color:#475569;font-size:8.5pt\">"+(itemNum?"NDIS Item Number<br/>"+escapeHtml(itemNum):"<span style=\"color:#cbd5e1\">_______________</span>")+"</td>"
@@ -1114,9 +1168,33 @@ return(
 {uploadLimitReached&&<div className="w-full mt-1"><button onClick={buyMoreUploads} disabled={buyingUploads} className="kv-btn" style={{background:"#d4a843",border:"none",color:"#241456",padding:"9px 18px",borderRadius:"8px",cursor:"pointer",fontWeight:700,fontSize:"0.88rem"}}>{buyingUploads?"Opening checkout…":"➕ Add 25 more uploads — $4.99/mo"}</button></div>}
 </div>
 </div>
-{holidays.length>0&&(<details className="kv-fold mt-4">
-<summary className="flex items-center gap-2 text-sm font-semibold py-2" style={{color:"#334155"}}><span style={{color:"#d4a843"}}>▸</span>{holidays.length} public holidays in this plan period <span style={{color:"#94a3b8",fontWeight:"normal"}}>— view list</span></summary>
-<div className="grid grid-cols-1 gap-1 sm:grid-cols-2 lg:grid-cols-3 mt-1">{holidays.map((h,i)=>(<div key={i} className="text-sm py-1 px-2 rounded" style={{background:"rgba(15,23,42,0.03)"}}><span className="kv-money" style={{color:"#b8901a"}}>{h.date}</span> <span style={{color:"#94a3b8"}}>({getDayName(h.dayOfWeek).slice(0,3)})</span> <span style={{color:"#334155"}}>{h.name}</span></div>))}</div></details>)}
+<details className="kv-fold mt-4">
+<summary className="flex items-center gap-2 text-sm font-semibold py-2" style={{color:"#334155"}}><span style={{color:"#d4a843"}}>▸</span>{holidays.length} public holidays in this plan period <span style={{color:"#94a3b8",fontWeight:"normal"}}>— view list or add regional holidays</span></summary>
+<div className="grid grid-cols-1 gap-1 sm:grid-cols-2 lg:grid-cols-3 mt-1">{holidays.map((h,i)=>(<div key={i} className="text-sm py-1 px-2 rounded" style={{background:"rgba(15,23,42,0.03)"}}><span className="kv-money" style={{color:"#b8901a"}}>{h.date}</span> <span style={{color:"#94a3b8"}}>({getDayName(h.dayOfWeek).slice(0,3)})</span> <span style={{color:"#334155"}}>{h.name}</span></div>))}</div>
+<div className="mt-3 rounded-xl p-3" style={{background:"rgba(45,27,105,0.04)",border:"1px solid rgba(45,27,105,0.12)"}}>
+<div className="text-xs font-semibold mb-1" style={{color:"#2d1b69"}}>Regional public holidays</div>
+<div className="text-xs mb-2" style={{color:"#64748b"}}>Statewide and national holidays are added automatically. Add regional ones here (e.g. QLD show days like Ekka People&apos;s Day) — saved to your organisation and applied to every participant whose plan covers the date.</div>
+{(providerDetails.customHolidays||[]).length>0&&(
+<div className="grid grid-cols-1 gap-1 sm:grid-cols-2 mb-2">
+{(providerDetails.customHolidays||[]).map(h=>{
+const inRange=holidays.some(x=>x.date===h.date);
+return(
+<div key={h.date} className="flex items-center gap-2 text-sm py-1 px-2 rounded" style={{background:"rgba(15,23,42,0.03)"}}>
+<span className="kv-money" style={{color:"#b8901a"}}>{h.date}</span>
+<span style={{color:"#334155",flex:1}}>{h.name}</span>
+{!inRange&&<span className="text-xs" style={{color:"#94a3b8"}}>outside this plan</span>}
+<button onClick={()=>removeCustomHoliday(h.date)} title="Remove this holiday" style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.25)",color:"#ef4444",borderRadius:"4px",cursor:"pointer",fontSize:"0.72rem",padding:"1px 6px"}}>✕</button>
+</div>
+);})}
+</div>
+)}
+<div className="flex items-center gap-2 flex-wrap">
+<input type="date" value={newHolDate} onChange={e=>setNewHolDate(e.target.value)} className="kv-input rounded-lg px-2 py-1.5 text-sm"/>
+<input value={newHolName} onChange={e=>setNewHolName(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();addCustomHoliday();}}} placeholder="Holiday name — e.g. Ekka People's Day" className="kv-input rounded-lg px-2 py-1.5 text-sm" style={{minWidth:"220px",flex:1,maxWidth:"320px"}}/>
+<button onClick={addCustomHoliday} disabled={!/^\d{4}-\d{2}-\d{2}$/.test(newHolDate)} className="kv-btn" style={{background:/^\d{4}-\d{2}-\d{2}$/.test(newHolDate)?"#d4a843":"#ecdfb6",border:"none",color:"#241456",padding:"7px 14px",borderRadius:"8px",cursor:/^\d{4}-\d{2}-\d{2}$/.test(newHolDate)?"pointer":"not-allowed",fontWeight:700,fontSize:"0.82rem"}}>+ Add holiday</button>
+</div>
+</div>
+</details>
 </div>
 
 {showSil&&<><div className="rounded-2xl p-6 mb-6" id="sec-budget" style={{scrollMarginTop:"70px",background:"linear-gradient(135deg, #241456 0%, #2d1b69 55%, #3d2787 100%)",boxShadow:"0 14px 40px -18px rgba(35,20,86,0.55)",position:"relative",overflow:"hidden"}}>
@@ -1235,6 +1313,35 @@ return(
 <Field label="Active sleepover $/hr" value={rates.activeSleepoverHourly} onChange={v=>setRates(r=>({...r,activeSleepoverHourly:v}))} step={0.01}/>
 <Field label="Fixed sleepover $ (flat)" value={rates.fixedSleepoverUnit} onChange={v=>setRates(r=>({...r,fixedSleepoverUnit:v}))} step={0.01}/>
 <Field label="GST rate (0 or 0.1)" value={rates.gstRate} onChange={v=>setRates(r=>({...r,gstRate:v}))} step={0.01}/>
+</div>
+<div className="mt-5 rounded-xl p-4" style={{background:"rgba(45,27,105,0.04)",border:"1px solid rgba(45,27,105,0.14)"}}>
+<div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+<div className="text-sm font-semibold" style={{color:"#2d1b69"}}>Your organisation&apos;s default rates</div>
+{(()=>{const hasDef=!!providerDetails.defaultRates&&Object.values(providerDetails.defaultRates).some(v=>typeof v==="number"&&v>0);return(
+<button onClick={applyOrgDefaultsNow} disabled={!hasDef} className="kv-btn" style={{background:hasDef?"rgba(212,168,67,0.12)":"rgba(15,23,42,0.04)",border:"1px solid "+(hasDef?"rgba(212,168,67,0.35)":"rgba(15,23,42,0.08)"),color:hasDef?"#b8901a":"#94a3b8",padding:"7px 14px",borderRadius:"8px",cursor:hasDef?"pointer":"not-allowed",fontSize:"0.8rem",fontWeight:600}}>Apply to this participant now</button>
+);})()}
+</div>
+<div className="text-xs mb-3" style={{color:"#64748b"}}>Charge below the price guide? Set your standard rates once — saved to your account, and <strong>every new participant starts on these automatically</strong>. Leave a field blank to use the price guide. Therapy and coordination categories keep their own caps.</div>
+<div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+{([
+  {key:"weekdayOrd",label:"Weekday (Ord)"},
+  {key:"weekdayNight",label:"Weekday (Night)"},
+  {key:"sat",label:"Saturday"},
+  {key:"sun",label:"Sunday"},
+  {key:"publicHoliday",label:"Public Holiday"},
+  {key:"activeSleepoverHourly",label:"Active Sleepover"},
+  {key:"fixedSleepoverUnit",label:"Sleepover (flat)"},
+] as {key:keyof Rates;label:string}[]).map(({key,label})=>{
+const cur=providerDetails.defaultRates?.[key];
+return(
+<label key={key} className="block">
+<div className="text-xs mb-1" style={{color:"#334155"}}>{label} <span style={{color:"#94a3b8"}}>guide ${NDIS_RATES_2026_27[key]}</span></div>
+<input type="number" step={0.01} min={0} value={typeof cur==="number"&&cur>0?cur:""} placeholder={"$"+NDIS_RATES_2026_27[key]}
+onChange={e=>{const v=num(e.target.value);setProviderDetails(p=>{const d:any={...(p.defaultRates||{})};if(v>0)d[key]=v;else delete d[key];return{...p,defaultRates:d};});}}
+onFocus={e=>e.target.select()} className="kv-input w-full rounded-lg px-3 py-2"/>
+</label>
+);})}
+</div>
 </div>
 </div>
 </details>
@@ -1829,7 +1936,7 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
     ] as {label:string;key:keyof ProviderDetails;placeholder:string}[]).map(f=>(
       <div key={f.key}>
         <div className="text-xs mb-1 font-semibold" style={{color:"#334155"}}>{f.label}</div>
-        <input value={providerDetails[f.key]} onChange={e=>setProviderDetails(p=>({...p,[f.key]:e.target.value}))} placeholder={f.placeholder}
+        <input value={providerDetails[f.key] as string} onChange={e=>setProviderDetails(p=>({...p,[f.key]:e.target.value}))} placeholder={f.placeholder}
           className="kv-input w-full rounded-lg px-3 py-2 text-sm"/>
       </div>
     ))}
@@ -1854,12 +1961,16 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
 
   {saRows.length>0&&<div className="rounded-lg p-4 mb-5" style={{background:"rgba(15,23,42,0.03)",border:"1px solid rgba(15,23,42,0.07)"}}>
     <div className="text-xs font-semibold mb-1" style={{color:"#334155",textTransform:"uppercase",letterSpacing:"0.06em"}}>NDIS Item Numbers</div>
-    <div className="text-xs mb-3" style={{color:"#64748b"}}>Auto-filled from the 2026–27 pricing schedule. Override any item number below if needed.</div>
+    <div className="text-xs mb-2" style={{color:"#64748b"}}>Auto-filled from the 2026–27 pricing schedule. Override any item number below if needed.</div>
+    <label className="flex items-center gap-2 mb-3 cursor-pointer">
+      <input type="checkbox" checked={saUseSilItems} onChange={e=>setSaUseSilItems(e.target.checked)} style={{accentColor:"#d4a843",width:"15px",height:"15px",flexShrink:0}}/>
+      <span className="text-xs" style={{color:"#1e293b"}}>This is a SIL roster — use the SIL line items (01_801 series) for Assistance with Daily Life rows</span>
+    </label>
     {saRows.map(row=>(
       <div key={row.key} className="flex items-center gap-2 mb-2">
         <div className="text-xs flex-1 truncate" style={{color:"#1e293b",minWidth:0}}>{row.label}</div>
         <input value={saItemNumbers[row.key]||""} onChange={e=>setSaItemNumbers(p=>({...p,[row.key]:e.target.value}))}
-          placeholder={getDefaultItemNumber(row.code,row.rateType)||"e.g. 01_011_0107_1_1"}
+          placeholder={getDefaultItemNumber(row.code,row.rateType,saUseSilItems)||"e.g. 01_011_0107_1_1"}
           className="kv-input kv-money rounded px-2 py-1 text-xs"
           style={{width:"180px",flexShrink:0}}/>
       </div>

@@ -116,6 +116,24 @@ export function getPublicHolidays(year: number, state: string): Holiday[] {
   return h.sort((a, b) => a.date.localeCompare(b.date));
 }
 
+// Overlay user-entered regional holidays (e.g. QLD show days) onto the statewide
+// list. Custom dates that clash with an auto-generated holiday are skipped.
+export function mergeCustomHolidays(base: Holiday[], custom: { date: string; name: string }[] | undefined, start: string, end: string): Holiday[] {
+  if (!custom || custom.length === 0) return base;
+  const seen = new Set(base.map((h) => h.date));
+  const sd = start ? new Date(start) : null, ed = end ? new Date(end) : null;
+  const out = [...base];
+  for (const c of custom) {
+    if (!c?.date || !/^\d{4}-\d{2}-\d{2}$/.test(c.date) || seen.has(c.date)) continue;
+    const d = new Date(c.date);
+    if (sd && d < sd) continue;
+    if (ed && d > ed) continue;
+    seen.add(c.date);
+    out.push({ date: c.date, name: (c.name || "Regional holiday") + " (custom)", dayOfWeek: d.getDay() });
+  }
+  return out.sort((a, b) => a.date.localeCompare(b.date));
+}
+
 export function getHolidaysInRange(start: string, end: string, state: string): Holiday[] {
   if (!start || !end) return [];
   const sd = new Date(start), ed = new Date(end);

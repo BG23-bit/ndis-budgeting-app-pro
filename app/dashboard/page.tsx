@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import Client, { defaultRoster, getHolidaysInRange, getWeeksInPlan, calcDayCountPlanCost, calcPHImpact, getPresetRates, NDIS_RATES_2026_27 } from "../client";
+import Client, { defaultRoster, getHolidaysInRange, mergeCustomHolidays, getWeeksInPlan, calcDayCountPlanCost, calcPHImpact, getPresetRates, NDIS_RATES_2026_27 } from "../client";
 
 type Participant = {
   id: string;
@@ -25,7 +25,7 @@ const EMPTY_BUDGET: Budget = { totalFunding: 0, planCost: 0, remaining: 0, statu
 
 // Mirrors the per-line maths in client.tsx (roster data model + line rates + PH adjustment)
 // so the overview cards match what the calculator shows inside.
-function computeBudget(raw: any): Budget {
+function computeBudget(raw: any, customHolidays?: { date: string; name: string }[]): Budget {
   try {
     if (!raw) return EMPTY_BUDGET;
     const lines = Array.isArray(raw.lines) ? raw.lines : [];
@@ -33,7 +33,7 @@ function computeBudget(raw: any): Budget {
     const start = planDates.serviceStart || planDates.start || "";
     const end = planDates.serviceEnd || planDates.end || "";
     const planWeeks = raw.weeksOverride != null ? raw.weeksOverride : getWeeksInPlan(start, end);
-    const holidays = getHolidaysInRange(start, end, planDates.state || "NSW");
+    const holidays = mergeCustomHolidays(getHolidaysInRange(start, end, planDates.state || "NSW"), customHolidays, start, end);
     const globalRates = { ...NDIS_RATES_2026_27, ...(raw.rates || {}) };
 
     let totalFunding = 0;
@@ -272,15 +272,28 @@ export default function DashboardPage() {
     let cancelled = false;
     async function loadBudgets() {
       const map: { [id: string]: Budget } = {};
+      // Organisation-level custom holidays feed the same PH maths as the calculator.
+      let customHolidays: { date: string; name: string }[] = [];
+      try {
+        const rawProv = localStorage.getItem("kevria_provider_details");
+        if (rawProv) customHolidays = JSON.parse(rawProv)?.customHolidays || [];
+      } catch {}
       for (const p of participants) {
         try {
           const raw = localStorage.getItem("ndis_participant_" + p.id);
-          if (raw) map[p.id] = computeBudget(JSON.parse(raw));
+          if (raw) map[p.id] = computeBudget(JSON.parse(raw), customHolidays);
         } catch {}
       }
       try {
         const { data: d } = await supabase.auth.getUser();
         if (d.user) {
+          const { data: provRow } = await supabase
+            .from("calculator_data")
+            .select("data")
+            .eq("user_id", d.user.id)
+            .eq("participant_id", "ndis_provider_details")
+            .maybeSingle();
+          if (Array.isArray((provRow?.data as any)?.customHolidays)) customHolidays = (provRow!.data as any).customHolidays;
           const keys = participants.map((p) => "ndis_participant_" + p.id);
           const { data: rows } = await supabase
             .from("calculator_data")
@@ -289,7 +302,7 @@ export default function DashboardPage() {
             .in("participant_id", keys);
           for (const row of rows || []) {
             const id = String(row.participant_id).replace(/^ndis_participant_/, "");
-            map[id] = computeBudget(row.data);
+            map[id] = computeBudget(row.data, customHolidays);
           }
         }
       } catch {}
