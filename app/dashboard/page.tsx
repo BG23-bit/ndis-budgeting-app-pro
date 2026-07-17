@@ -96,6 +96,11 @@ export default function DashboardPage() {
   const [editName, setEditName] = useState("");
   const [editNdis, setEditNdis] = useState("");
   const [search, setSearch] = useState("");
+  // Unpaid users can dismiss the paywall into a 1-participant free preview.
+  const [previewDismissed, setPreviewDismissed] = useState(false);
+  useEffect(() => {
+    try { if (localStorage.getItem("kevria_free_preview") === "1") setPreviewDismissed(true); } catch {}
+  }, []);
   const [budgets, setBudgets] = useState<{ [id: string]: Budget }>({});
   const hasLoadedRef = useRef(false);
   const skipNextSaveRef = useRef(false);
@@ -348,6 +353,11 @@ export default function DashboardPage() {
 
   const loadSampleParticipant = () => {
     if (loadError) return; // saving is paused until the list loads
+    if (!paid && participants.length >= 1) {
+      alert("The free preview includes 1 participant. Subscribe ($9.90/mo, cancel anytime) for unlimited participants.");
+      setPreviewDismissed(false);
+      return;
+    }
     const id = uid();
     const today = new Date();
     const claimDate = (daysAgo: number) => new Date(today.getTime() - daysAgo * 86400000).toISOString().slice(0, 10);
@@ -399,6 +409,12 @@ export default function DashboardPage() {
   const addParticipant = () => {
     if (loadError) return; // saving is paused until the list loads
     if (!newName.trim()) return;
+    if (!paid && participants.length >= 1) {
+      alert("The free preview includes 1 participant. Subscribe ($9.90/mo, cancel anytime) for unlimited participants.");
+      setShowAddForm(false);
+      setPreviewDismissed(false); // reopen the plan picker
+      return;
+    }
     const p: Participant = { id: uid(), name: newName.trim(), ndisNumber: newNdis.trim() };
     setParticipants((prev) => [...prev, p]);
     setNewName("");
@@ -443,7 +459,7 @@ export default function DashboardPage() {
     );
   }
 
-  if (!paid) {
+  if (!paid && !previewDismissed) {
     return (
       <div style={{ position: "relative", minHeight: "100vh", overflow: "hidden" }}>
         {/* Static skeleton behind the paywall — cheaper than rendering the real calculator */}
@@ -511,6 +527,11 @@ export default function DashboardPage() {
             }}>
               {checkoutLoading ? "Redirecting..." : selectedPlan === "annual" ? "Subscribe — $79/yr" : "Subscribe — $9.90/mo"}
             </button>
+            <button
+              onClick={() => { try { localStorage.setItem("kevria_free_preview", "1"); } catch {} setPreviewDismissed(true); }}
+              style={{ marginTop: "14px", width: "100%", padding: "11px", background: "none", border: "1px dashed rgba(212,168,67,0.5)", color: "#d4a843", borderRadius: "8px", cursor: "pointer", fontSize: "0.92rem", fontWeight: 600 }}>
+              Try the free preview first → <span style={{ color: "#94a3b8", fontWeight: 400 }}>1 participant, no card needed</span>
+            </button>
             <p onClick={handleLogout} style={{ marginTop: "15px", color: "#64748b", cursor: "pointer", fontSize: "0.9rem" }}>Log out</p>
           </div>
         </div>
@@ -567,6 +588,18 @@ export default function DashboardPage() {
         <div className="text-sm mb-8" style={{ color: "#64748b" }}>
           Powered by <span style={{ color: "#d4a843" }}>Kevria</span> — Participant Overview
         </div>
+
+        {!paid && (
+          <div className="rounded-xl p-4 mb-6 flex flex-wrap items-center justify-between gap-3" style={{ background: "rgba(212,168,67,0.08)", border: "1px solid rgba(212,168,67,0.4)" }}>
+            <div>
+              <div style={{ color: "#b8901a", fontWeight: 700 }}>Free preview — 1 participant</div>
+              <div className="text-sm" style={{ color: "#64748b" }}>Everything works except AI plan uploads &amp; auto-fill. Subscribe for unlimited participants and 25 plan uploads a month.</div>
+            </div>
+            <button onClick={() => setPreviewDismissed(false)} style={{ background: "#d4a843", color: "#241456", border: "none", borderRadius: "8px", padding: "10px 20px", fontWeight: 700, cursor: "pointer" }}>
+              Subscribe — $9.90/mo
+            </button>
+          </div>
+        )}
 
         {loadError && (
           <div className="rounded-xl p-4 mb-6" style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.3)" }}>
