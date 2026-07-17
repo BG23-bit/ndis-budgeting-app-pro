@@ -3,7 +3,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 type Rates = { weekdayOrd: number; weekdayNight: number; sat: number; sun: number; publicHoliday: number; activeSleepoverHourly: number; fixedSleepoverUnit: number; gstRate: number };
 type PlanDates = { start: string; end: string; state: string; serviceStart?: string; serviceEnd?: string };
-type DayRoster = { enabled: boolean; hours: number; nightHours: number; frequency: string; times?: string };
+type Shift = { s: string; e: string };
+type DayRoster = { enabled: boolean; hours: number; nightHours: number; frequency: string; times?: string; shifts?: Shift[] };
 type Claim = { id: string; date: string; amount: number; note: string };
 type SupportLine = { id: string; code: string; description: string; totalFunding: number; ratio: string; excludedHolidays: string[]; roster: { [key: string]: DayRoster }; activeSleepoverHours: number; activeSleepoverFreq: string; fixedSleepovers: number; fixedSleepoverFreq: string; kmsPerWeek: number; kmRate: number; kmFreq: string; claims: Claim[]; lineRates: Rates };
 type CustomHoliday = { date: string; name: string };
@@ -140,9 +141,12 @@ function rosterFromProposal(prs:any[]):{roster:{[k:string]:DayRoster};aso:number
 function keepRosterTimes(newRoster:{[k:string]:DayRoster},oldRoster?:{[k:string]:DayRoster}):{[k:string]:DayRoster}{
   if(!oldRoster)return newRoster;
   const out={...newRoster};
-  for(const d of DAYS){const t=oldRoster[d]?.times;if(t)out[d]={...out[d],times:t};}
+  for(const d of DAYS){const o=oldRoster[d];if(!o)continue;const patch:Partial<DayRoster>={};if(o.times)patch.times=o.times;if(o.shifts&&o.shifts.length)patch.shifts=o.shifts;if(Object.keys(patch).length)out[d]={...out[d],...patch};}
   return out;
 }
+// Shift times are display-only (Schedule of Supports); `times` is the legacy free-text form.
+function shiftsToText(shifts?:Shift[],legacy?:string):string{const v=(shifts||[]).filter(x=>x.s&&x.e).map(x=>x.s+"–"+x.e);return v.length?v.join(", "):(legacy||"")}
+function shiftHoursTotal(shifts?:Shift[]):number{let t=0;for(const x of shifts||[]){if(!x.s||!x.e)continue;const[sh,sm]=x.s.split(":").map(Number);const[eh,em]=x.e.split(":").map(Number);if([sh,sm,eh,em].some(n=>!Number.isFinite(n)))continue;let mins=eh*60+em-(sh*60+sm);if(mins<=0)mins+=24*60;t+=mins/60;}return Math.round(t*100)/100}
 function proposalDaysSummary(prs:any[]):string{
   const{roster,aso,fso,kms}=rosterFromProposal(prs);
   const parts:string[]=[];
@@ -915,7 +919,8 @@ tbody td{padding:9px 10px;vertical-align:top}
         let inner="";
         if(dh>0)inner+=`<div style="font-weight:600;color:${dayColour}">${dh}h</div>`;
         if(nh>0)inner+=`<div style="color:#64748b;font-size:8pt">+${nh}n</div>`;
-        if(r.times)inner+=`<div style="color:#475569;font-size:6.8pt;margin-top:1px;line-height:1.35">${escapeHtml(r.times)}</div>`;
+        const timesTxt=shiftsToText(r.shifts,r.times);
+        if(timesTxt)inner+=`<div style="color:#475569;font-size:6.8pt;margin-top:1px;line-height:1.35">${escapeHtml(timesTxt)}</div>`;
         if(!inner)inner=`<div style="color:#cbd5e1">—</div>`;
         return`<td style="text-align:center;vertical-align:top;padding:6px 4px">${inner}${freq}</td>`;
       }).join("");
@@ -1453,7 +1458,27 @@ return(
 <div className="flex items-center gap-1"><span className="text-xs" style={{color:"#475569"}}>Hrs:</span><SmallField value={r.hours} onChange={v=>updateRosterDay(l.id,d,{hours:v})} disabled={!r.enabled}/></div>
 {lineMode==="full"&&<div className="flex items-center gap-1"><span className="text-xs" style={{color:"#475569"}}>Night:</span><SmallField value={r.nightHours} onChange={v=>updateRosterDay(l.id,d,{nightHours:v})} disabled={!r.enabled}/></div>}
 <SmallSelect value={r.frequency} options={Object.entries(FREQ).map(([k,v])=>({value:k,label:v.label}))} onChange={v=>updateRosterDay(l.id,d,{frequency:v})} disabled={!r.enabled}/>
-<input value={r.times||""} onChange={e=>updateRosterDay(l.id,d,{times:e.target.value})} disabled={!r.enabled} maxLength={60} placeholder="times, e.g. 0600–0900" title="Shift times shown on the Schedule of Supports — doesn't change costs" className="kv-input rounded-lg px-2 py-1" style={{fontSize:"0.78rem",width:"150px",opacity:r.enabled?1:0.5}}/>
+{r.enabled&&(()=>{
+const shifts:Shift[]=r.shifts||[];
+const sHrs=shiftHoursTotal(shifts);
+const dayHrs=(r.hours||0)+(r.nightHours||0);
+const mismatch=sHrs>0&&Math.abs(sHrs-dayHrs)>0.01;
+return(<div className="flex items-center gap-1 flex-wrap">
+{r.times&&shifts.length===0&&(
+<span className="flex items-center gap-1 rounded-lg px-2 py-0.5" title="Shift times shown on the Schedule of Supports" style={{background:"rgba(45,27,105,0.05)",border:"1px solid rgba(45,27,105,0.12)",fontSize:"0.74rem",color:"#334155"}}>🕐 {r.times}<button onClick={()=>updateRosterDay(l.id,d,{times:""})} title="Remove times" style={{background:"none",border:"none",color:"#94a3b8",cursor:"pointer",fontSize:"0.72rem",padding:"0 0 0 2px"}}>✕</button></span>
+)}
+{shifts.map((sh,si)=>(
+<span key={si} className="flex items-center gap-0.5 rounded-lg px-1.5 py-0.5" title="Shift times shown on the Schedule of Supports — doesn't change costs" style={{background:"rgba(45,27,105,0.05)",border:"1px solid rgba(45,27,105,0.12)"}}>
+<input type="time" value={sh.s} onChange={e=>{const v=e.target.value;updateRosterDay(l.id,d,{shifts:shifts.map((x,j)=>j===si?{...x,s:v}:x)})}} className="kv-input" style={{fontSize:"0.72rem",border:"none",background:"transparent",padding:"0",width:"70px"}}/>
+<span style={{color:"#94a3b8",fontSize:"0.72rem"}}>–</span>
+<input type="time" value={sh.e} onChange={e=>{const v=e.target.value;updateRosterDay(l.id,d,{shifts:shifts.map((x,j)=>j===si?{...x,e:v}:x)})}} className="kv-input" style={{fontSize:"0.72rem",border:"none",background:"transparent",padding:"0",width:"70px"}}/>
+<button onClick={()=>updateRosterDay(l.id,d,{shifts:shifts.filter((_,j)=>j!==si)})} title="Remove this shift" style={{background:"none",border:"none",color:"#94a3b8",cursor:"pointer",fontSize:"0.72rem",padding:"0 0 0 2px"}}>✕</button>
+</span>
+))}
+<button onClick={()=>updateRosterDay(l.id,d,{shifts:[...shifts,{s:"",e:""}]})} title="Add shift times for this day — they appear on the Schedule of Supports and don't change costs" style={{background:"none",border:"1px dashed rgba(45,27,105,0.25)",color:"#64748b",borderRadius:"8px",cursor:"pointer",fontSize:"0.72rem",padding:"2px 8px"}}>🕐 {shifts.length>0?"+":"+ times"}</button>
+{mismatch&&<button onClick={()=>updateRosterDay(l.id,d,{hours:Math.max(0,Math.round((sHrs-(r.nightHours||0))*100)/100)})} title="Set this day's hours to match the shift times" style={{background:"rgba(212,168,67,0.1)",border:"1px solid rgba(212,168,67,0.3)",color:"#b8901a",borderRadius:"8px",cursor:"pointer",fontSize:"0.72rem",padding:"2px 8px"}}>= {sHrs%1===0?sHrs:sHrs.toFixed(2)}h · match hours</button>}
+</div>);
+})()}
 </div>)})}
 </div>
 <div className="mt-3 grid grid-cols-1 gap-2">
