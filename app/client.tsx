@@ -815,7 +815,7 @@ function generateScheduleOfSupports(){
     if(adjSun>0){const rate=(l.lineRates?.sun||0)/div;rows.push({key:l.id+"_sun",code:l.code,rateType:"sun",category:desc+" - Sunday",price:rate,hours:Math.round(adjSun),total:rate*adjSun});}
     if(adjSunNight>0){const rate=(l.lineRates?.sun||0)/div;rows.push({key:l.id+"_sunNight",code:l.code,rateType:"sunNight",category:desc+" - Sunday Evening",price:rate,hours:Math.round(adjSunNight),total:rate*adjSunNight});}
     if(phHrs>0){const rate=(l.lineRates?.publicHoliday||0)/div;rows.push({key:l.id+"_ph",code:l.code,rateType:"publicHoliday",category:desc+" - Public Holiday",price:rate,hours:Math.round(phHrs),total:rate*phHrs});}
-    const sf=FREQ[l.activeSleepoverFreq]?.multiplier||1;const activeSoHrs=(l.activeSleepoverHours||0)*sf*planWeeks;if(activeSoHrs>0&&(l.lineRates?.activeSleepoverHourly||0)>0){const rate=(l.lineRates?.activeSleepoverHourly||0)/div;rows.push({key:l.id+"_activeSleepover",code:l.code,rateType:"activeSleepover",category:desc+" - Active Sleepover",price:rate,hours:Math.round(activeSoHrs),total:rate*activeSoHrs});}
+    const sf=FREQ[l.activeSleepoverFreq]?.multiplier||1;const activeSoHrs=(l.activeSleepoverHours||0)*sf*planWeeks;if(activeSoHrs>0&&(l.lineRates?.activeSleepoverHourly||0)>0){const rate=(l.lineRates?.activeSleepoverHourly||0)/div;rows.push({key:l.id+"_activeSleepover",code:l.code,rateType:"activeSleepover",category:desc+" - Active Overnight (Night)",price:rate,hours:Math.round(activeSoHrs),total:rate*activeSoHrs});}
     const ff=FREQ[l.fixedSleepoverFreq]?.multiplier||1;const fixedSoUnits=(l.fixedSleepovers||0)*ff*planWeeks;if(fixedSoUnits>0&&(l.lineRates?.fixedSleepoverUnit||0)>0){const rate=l.lineRates?.fixedSleepoverUnit||0;rows.push({key:l.id+"_fixedSleepover",code:l.code,rateType:"fixedSleepover",category:desc+" - Sleepover (Overnight)",price:rate,hours:Math.round(fixedSoUnits),total:rate*fixedSoUnits});}
     const kf=FREQ[l.kmFreq]?.multiplier||1;const totalKm=(l.kmsPerWeek||0)*kf*planWeeks;if(totalKm>0&&(l.kmRate||0)>0){rows.push({key:l.id+"_km",code:l.code,rateType:"km",category:escapeHtml(l.description)+" - Transport (km)",price:l.kmRate,hours:Math.round(totalKm)+"km",total:l.kmRate*totalKm});}
     if(rows.length===0){rows.push({key:l.id+"_lump",code:l.code,rateType:"lump",category:escapeHtml(l.description),price:null,hours:null,total:l.totalFunding});}
@@ -952,8 +952,8 @@ tbody td{padding:9px 10px;vertical-align:top}
       const totalDisplay=`<div style="font-weight:700">${totalLine>0?(totalLine%1===0?totalLine:totalLine.toFixed(1))+"h":"—"}</div>${weeklyNightHrs>0?`<div style="color:#64748b;font-size:8pt">(${weeklyNightHrs%1===0?weeklyNightHrs:weeklyNightHrs.toFixed(1)}e)</div>`:""}${weeklyKm>0?`<div style="color:#1e40af;font-size:8pt;margin-top:2px">${weeklyKm%1===0?weeklyKm:weeklyKm.toFixed(1)} km</div>`:""}`;
 
       let soNote="";
-      const sf=FREQ[l.activeSleepoverFreq]?.multiplier||1;if((l.activeSleepoverHours||0)>0)soNote+=`Active SO: ${l.activeSleepoverHours}h × ${l.activeSleepoverFreq}`;
-      const ff=FREQ[l.fixedSleepoverFreq]?.multiplier||1;if((l.fixedSleepovers||0)>0)soNote+=(soNote?", ":"")+`Fixed SO: ${l.fixedSleepovers} × ${l.fixedSleepoverFreq}`;
+      const sf=FREQ[l.activeSleepoverFreq]?.multiplier||1;if((l.activeSleepoverHours||0)>0)soNote+=`Active o/night: ${l.activeSleepoverHours}h × ${l.activeSleepoverFreq}`;
+      const ff=FREQ[l.fixedSleepoverFreq]?.multiplier||1;if((l.fixedSleepovers||0)>0)soNote+=(soNote?", ":"")+`Sleepovers: ${l.fixedSleepovers} × ${l.fixedSleepoverFreq}`;
       return`<tr><td style="vertical-align:top;font-size:9pt;padding:6px 8px">${escapeHtml(l.description)}${soNote?`<div style="font-size:7.5pt;color:#94a3b8;margin-top:2px">${soNote}</div>`:""}</td>${cells}<td style="text-align:right;vertical-align:top;padding:6px 8px">${totalDisplay}</td></tr>`;
     }).join("");
     const headCells=dLabel.map((d,i)=>`<th style="text-align:center;width:7%">${d}</th>`).join("");
@@ -1345,7 +1345,7 @@ return(
 <Field label="Saturday $/hr" value={rates.sat} onChange={v=>setRates(r=>({...r,sat:v}))} step={0.01}/>
 <Field label="Sunday $/hr" value={rates.sun} onChange={v=>setRates(r=>({...r,sun:v}))} step={0.01}/>
 <Field label="Public Holiday $/hr" value={rates.publicHoliday} onChange={v=>setRates(r=>({...r,publicHoliday:v}))} step={0.01}/>
-<Field label="Active sleepover $/hr" value={rates.activeSleepoverHourly} onChange={v=>setRates(r=>({...r,activeSleepoverHourly:v}))} step={0.01}/>
+<Field label="Night — active overnight $/hr" value={rates.activeSleepoverHourly} onChange={v=>setRates(r=>({...r,activeSleepoverHourly:v}))} step={0.01}/>
 <Field label="Fixed sleepover $ (flat)" value={rates.fixedSleepoverUnit} onChange={v=>setRates(r=>({...r,fixedSleepoverUnit:v}))} step={0.01}/>
 <Field label="GST rate (0 or 0.1)" value={rates.gstRate} onChange={v=>setRates(r=>({...r,gstRate:v}))} step={0.01}/>
 </div>
@@ -1364,7 +1364,7 @@ return(
   {key:"sat",label:"Saturday"},
   {key:"sun",label:"Sunday"},
   {key:"publicHoliday",label:"Public Holiday"},
-  {key:"activeSleepoverHourly",label:"Active Sleepover"},
+  {key:"activeSleepoverHourly",label:"Night (overnight)"},
   {key:"fixedSleepoverUnit",label:"Sleepover (flat)"},
 ] as {key:keyof Rates;label:string}[]).map(({key,label})=>{
 const cur=providerDetails.defaultRates?.[key];
@@ -1508,8 +1508,8 @@ return(<div className="flex items-center gap-1 flex-wrap">
 </div>)})}
 </div>
 <div className="mt-3 grid grid-cols-1 gap-2">
-{lineMode==="full"&&<div className="flex items-center gap-2 flex-wrap"><span className="text-xs" style={{color:"#475569"}}>Active sleepover hrs/wk:</span><SmallField value={l.activeSleepoverHours} onChange={v=>updateLine(l.id,{activeSleepoverHours:v})}/><SmallSelect value={l.activeSleepoverFreq} options={Object.entries(FREQ).map(([k,v])=>({value:k,label:v.label}))} onChange={v=>updateLine(l.id,{activeSleepoverFreq:v})}/></div>}
-{lineMode==="full"&&<div className="flex items-center gap-2 flex-wrap"><span className="text-xs" style={{color:"#475569"}}>Fixed sleepovers/wk:</span><SmallField value={l.fixedSleepovers} step={1} onChange={v=>updateLine(l.id,{fixedSleepovers:v})}/><SmallSelect value={l.fixedSleepoverFreq} options={Object.entries(FREQ).map(([k,v])=>({value:k,label:v.label}))} onChange={v=>updateLine(l.id,{fixedSleepoverFreq:v})}/></div>}
+{lineMode==="full"&&<div className="flex items-center gap-2 flex-wrap"><span className="text-xs" style={{color:"#475569"}}>Night hrs/wk (active overnight):</span><SmallField value={l.activeSleepoverHours} onChange={v=>updateLine(l.id,{activeSleepoverHours:v})}/><SmallSelect value={l.activeSleepoverFreq} options={Object.entries(FREQ).map(([k,v])=>({value:k,label:v.label}))} onChange={v=>updateLine(l.id,{activeSleepoverFreq:v})}/></div>}
+{lineMode==="full"&&<div className="flex items-center gap-2 flex-wrap"><span className="text-xs" style={{color:"#475569"}}>Sleepovers/wk (staff asleep, flat rate):</span><SmallField value={l.fixedSleepovers} step={1} onChange={v=>updateLine(l.id,{fixedSleepovers:v})}/><SmallSelect value={l.fixedSleepoverFreq} options={Object.entries(FREQ).map(([k,v])=>({value:k,label:v.label}))} onChange={v=>updateLine(l.id,{fixedSleepoverFreq:v})}/></div>}
 <div className="flex items-center gap-2 flex-wrap"><span className="text-xs" style={{color:"#475569"}}>KMs per week:</span><SmallField value={l.kmsPerWeek} step={1} onChange={v=>updateLine(l.id,{kmsPerWeek:v})}/><span className="text-xs" style={{color:"#475569"}}>@ $</span><SmallField value={l.kmRate} step={0.01} onChange={v=>updateLine(l.id,{kmRate:v})}/><span className="text-xs" style={{color:"#475569"}}>/km</span><SmallSelect value={l.kmFreq} options={Object.entries(FREQ).map(([k,v])=>({value:k,label:v.label}))} onChange={v=>updateLine(l.id,{kmFreq:v})}/></div>
 </div>
 <div className="mt-4 text-sm" style={{color:"#334155"}}>
@@ -1541,7 +1541,7 @@ return(<div className="flex items-center gap-1 flex-wrap">
       {key:"sat",label:"Saturday $/hr"},
       {key:"sun",label:"Sunday $/hr"},
       {key:"publicHoliday",label:"Public Holiday $/hr"},
-      {key:"activeSleepoverHourly",label:"Active Sleepover $/hr"},
+      {key:"activeSleepoverHourly",label:"Night — Active Overnight $/hr"},
       {key:"fixedSleepoverUnit",label:"Fixed Sleepover $ (flat)"},
     ] as {key:keyof Rates;label:string}[]).map(({key,label})=>{
       const guideVal=(CATEGORY_PRESETS[l.code]?.rates as any)?.[key]||0;
