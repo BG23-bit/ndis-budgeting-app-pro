@@ -95,6 +95,7 @@ export default function DashboardPage() {
   const [editingParticipant, setEditingParticipant] = useState<Participant | null>(null);
   const [editName, setEditName] = useState("");
   const [editNdis, setEditNdis] = useState("");
+  const [search, setSearch] = useState("");
   const [budgets, setBudgets] = useState<{ [id: string]: Budget }>({});
   const hasLoadedRef = useRef(false);
   const skipNextSaveRef = useRef(false);
@@ -608,6 +609,22 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Search — only once the list is big enough to need it */}
+        {participants.length >= 6 && (
+          <div className="mb-4 flex items-center gap-3 flex-wrap">
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="🔍 Search participants by name or NDIS number…"
+              className="rounded-xl px-4 py-2.5 outline-none"
+              style={{ background: "#ffffff", border: "1px solid rgba(212,168,67,0.35)", color: "#0f172a", width: "100%", maxWidth: "420px", fontSize: "0.92rem" }}
+            />
+            {search && (
+              <button onClick={() => setSearch("")} style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: "0.85rem", textDecoration: "underline" }}>clear</button>
+            )}
+          </div>
+        )}
+
         {/* Participant Cards */}
         {participants.length === 0 ? (
           <div className="kv-card p-12 text-center">
@@ -627,7 +644,15 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="grid gap-4">
-            {participants.map((p) => {
+            {(() => {
+              const q = search.trim().toLowerCase();
+              const shown = q ? participants.filter((p) => p.name.toLowerCase().includes(q) || (p.ndisNumber || "").toLowerCase().includes(q)) : participants;
+              if (q && shown.length === 0) return (
+                <div className="kv-card p-8 text-center" style={{ color: "#64748b" }}>
+                  No participants match &ldquo;{search}&rdquo;
+                </div>
+              );
+              return shown.map((p) => {
               const budget = budgetFor(p.id);
               const statusColors = budget.status === "over"
                 ? { color: "#ef4444", bg: "rgba(239,68,68,0.1)", label: "OVER BUDGET", border: "rgba(239,68,68,0.3)" }
@@ -710,7 +735,8 @@ export default function DashboardPage() {
                   )}
                 </div>
               );
-            })}
+              });
+            })()}
 
             {/* Add button */}
             <button onClick={() => setShowAddForm(true)} className="rounded-2xl p-5" style={{
@@ -730,7 +756,12 @@ export default function DashboardPage() {
             position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
             background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100,
           }}>
-            <div style={{
+            <div
+              onKeyDown={(e) => {
+                if (e.key === "Escape") { setShowAddForm(false); setNewName(""); setNewNdis(""); }
+                if (e.key === "Enter" && newName.trim()) { e.preventDefault(); addParticipant(); }
+              }}
+              style={{
               background: "#f8fafc", padding: "32px", borderRadius: "16px",
               border: "1px solid rgba(212,168,67,0.3)", maxWidth: "400px", width: "90%",
             }}>
@@ -738,7 +769,7 @@ export default function DashboardPage() {
 
               <div className="mb-4">
                 <div className="text-sm mb-1" style={{ color: "#334155" }}>Participant Name *</div>
-                <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g. John Smith"
+                <input autoFocus value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g. John Smith"
                   className="w-full rounded-lg px-3 py-2 outline-none"
                   style={{ background: "#ffffff", border: "1px solid rgba(212,168,67,0.45)", color: "#0f172a" }}
                 />
@@ -753,9 +784,9 @@ export default function DashboardPage() {
               </div>
 
               <div className="flex gap-3">
-                <button onClick={addParticipant} style={{
-                  flex: 1, padding: "12px", backgroundColor: "#d4a843", color: "#0f172a",
-                  border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold",
+                <button onClick={addParticipant} disabled={!newName.trim()} style={{
+                  flex: 1, padding: "12px", backgroundColor: newName.trim() ? "#d4a843" : "#ecdfb6", color: "#0f172a",
+                  border: "none", borderRadius: "8px", cursor: newName.trim() ? "pointer" : "not-allowed", fontWeight: "bold",
                 }}>Add Participant</button>
                 <button onClick={() => { setShowAddForm(false); setNewName(""); setNewNdis(""); }} style={{
                   flex: 1, padding: "12px", background: "rgba(15,23,42,0.05)",
@@ -772,7 +803,12 @@ export default function DashboardPage() {
             position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
             background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100,
           }}>
-            <div style={{
+            <div
+              onKeyDown={(e) => {
+                if (e.key === "Escape") setEditingParticipant(null);
+                if (e.key === "Enter" && editName.trim()) { e.preventDefault(); saveEdit(); }
+              }}
+              style={{
               background: "#f8fafc", padding: "32px", borderRadius: "16px",
               border: "1px solid rgba(212,168,67,0.3)", maxWidth: "400px", width: "90%",
             }}>
@@ -780,7 +816,7 @@ export default function DashboardPage() {
 
               <div className="mb-4">
                 <div className="text-sm mb-1" style={{ color: "#334155" }}>Participant Name *</div>
-                <input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="e.g. John Smith"
+                <input autoFocus value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="e.g. John Smith"
                   className="w-full rounded-lg px-3 py-2 outline-none"
                   style={{ background: "#ffffff", border: "1px solid rgba(212,168,67,0.45)", color: "#0f172a" }}
                 />
@@ -795,9 +831,9 @@ export default function DashboardPage() {
               </div>
 
               <div className="flex gap-3">
-                <button onClick={saveEdit} style={{
-                  flex: 1, padding: "12px", backgroundColor: "#d4a843", color: "#0f172a",
-                  border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold",
+                <button onClick={saveEdit} disabled={!editName.trim()} style={{
+                  flex: 1, padding: "12px", backgroundColor: editName.trim() ? "#d4a843" : "#ecdfb6", color: "#0f172a",
+                  border: "none", borderRadius: "8px", cursor: editName.trim() ? "pointer" : "not-allowed", fontWeight: "bold",
                 }}>Save Changes</button>
                 <button onClick={() => setEditingParticipant(null)} style={{
                   flex: 1, padding: "12px", background: "rgba(15,23,42,0.05)",

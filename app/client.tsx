@@ -211,6 +211,27 @@ function toggleHoliday(lineId:string,date:string){setLines(prev=>prev.map(l=>{if
 function setAllHolidays(lineId:string,include:boolean){setLines(prev=>prev.map(l=>l.id!==lineId?l:{...l,excludedHolidays:include?[]:holidays.map(h=>h.date)}))}
 function addLine(){setLines(prev=>[...prev,{id:uid(),code:"01",description:"New Support Line",totalFunding:0,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:1.00,kmFreq:"every",claims:[],lineRates:applyProviderDefaults(NDIS_RATES_2026_27,providerDetails.defaultRates)}])}
 function updateLineCode(id:string,code:string){setLines(prev=>prev.map(l=>l.id!==id?l:{...l,code,lineRates:applyProviderDefaults(getPresetRates(code),providerDetails.defaultRates)}))}
+// Copy one weekday's hours, frequency and shift times across Mon–Fri (SIL rosters
+// are usually identical on weekdays).
+function copyDayToWeekdays(lineId:string,src:string){
+  setLines(prev=>prev.map(l=>{
+    if(l.id!==lineId)return l;
+    const s=l.roster[src];if(!s)return l;
+    const roster={...l.roster};
+    for(const d of ["mon","tue","wed","thu","fri"])roster[d]={...s,shifts:s.shifts?s.shifts.map(x=>({...x})):undefined};
+    return{...l,roster};
+  }));
+}
+function duplicateLine(id:string){
+  setLines(prev=>{
+    const l=prev.find(x=>x.id===id);if(!l)return prev;
+    const copy:SupportLine=JSON.parse(JSON.stringify(l));
+    copy.id=uid();copy.claims=[];copy.description=l.description+" (copy)";
+    const idx=prev.findIndex(x=>x.id===id);
+    const out=[...prev];out.splice(idx+1,0,copy);
+    return out;
+  });
+}
 function deleteLine(id:string){if(lines.length<=1)return;const l=lines.find(x=>x.id===id);const claimCount=l?.claims?.length||0;const msg='Delete support line "'+(l?.description||l?.code||"")+'"'+(claimCount>0?" and its "+claimCount+" logged claim"+(claimCount===1?"":"s"):"")+"? This cannot be undone.";if(!confirm(msg))return;setLines(prev=>(prev.length<=1?prev:prev.filter(x=>x.id!==id)))}
 const[openClaimsLines,setOpenClaimsLines]=useState<Set<string>>(new Set());
 const[openRatesLines,setOpenRatesLines]=useState<Set<string>>(new Set());
@@ -1410,7 +1431,10 @@ return(
 <div className="flex items-center gap-2 flex-wrap"><span className="kv-money text-xs font-bold px-2 py-1 rounded-md" style={{background:"rgba(45,27,105,0.07)",color:"#2d1b69",border:"1px solid rgba(45,27,105,0.14)"}}>{l.code}</span><span className="text-lg font-semibold" style={{color:"#1e293b"}}>{l.description}</span></div>
 <span className="text-xs font-semibold px-2 py-1 rounded-full" style={{background:status.bg,color:status.color,border:"1px solid "+status.border}}>{status.label}</span>
 </div>
+<div className="flex items-center gap-2">
+<button onClick={()=>duplicateLine(l.id)} title="Duplicate this support line (roster and rates copied, claims left behind)" className="rounded-xl px-3 py-2" style={{background:"rgba(212,168,67,0.08)",border:"1px solid rgba(212,168,67,0.3)",color:"#b8901a",cursor:"pointer",fontSize:"0.85rem"}}>⧉ Duplicate</button>
 <button onClick={()=>deleteLine(l.id)} disabled={lines.length<=1} className="rounded-xl px-3 py-2 disabled:opacity-40" style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",color:"#ef4444"}}>Delete</button>
+</div>
 </div>
 
 <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -1477,6 +1501,7 @@ return(<div className="flex items-center gap-1 flex-wrap">
 ))}
 <button onClick={()=>updateRosterDay(l.id,d,{shifts:[...shifts,{s:"",e:""}]})} title="Add shift times for this day — they appear on the Schedule of Supports and don't change costs" style={{background:"none",border:"1px dashed rgba(45,27,105,0.25)",color:"#64748b",borderRadius:"8px",cursor:"pointer",fontSize:"0.72rem",padding:"2px 8px"}}>🕐 {shifts.length>0?"+":"+ times"}</button>
 {mismatch&&<button onClick={()=>updateRosterDay(l.id,d,{hours:Math.max(0,Math.round((sHrs-(r.nightHours||0))*100)/100)})} title="Set this day's hours to match the shift times" style={{background:"rgba(212,168,67,0.1)",border:"1px solid rgba(212,168,67,0.3)",color:"#b8901a",borderRadius:"8px",cursor:"pointer",fontSize:"0.72rem",padding:"2px 8px"}}>= {sHrs%1===0?sHrs:sHrs.toFixed(2)}h · match hours</button>}
+{d!=="sat"&&d!=="sun"&&((r.hours||0)>0||(r.nightHours||0)>0)&&<button onClick={()=>copyDayToWeekdays(l.id,d)} title={"Copy "+DL[d]+"'s hours, frequency and times to every weekday (Mon–Fri)"} style={{background:"none",border:"1px dashed rgba(45,27,105,0.25)",color:"#64748b",borderRadius:"8px",cursor:"pointer",fontSize:"0.72rem",padding:"2px 8px"}}>⇒ all weekdays</button>}
 </div>);
 })()}
 </div>)})}

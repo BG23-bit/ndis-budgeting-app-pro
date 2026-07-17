@@ -105,6 +105,7 @@ export default function LoginPage() {
         <input
           type="email"
           placeholder="Email"
+          autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -125,6 +126,7 @@ export default function LoginPage() {
           <input
             type={showPassword ? "text" : "password"}
             placeholder="Password"
+            autoComplete={isSignUp ? "new-password" : "current-password"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -164,6 +166,7 @@ export default function LoginPage() {
             <input
               type="text"
               placeholder="Organisation name *"
+              autoComplete="organization"
               value={orgName}
               onChange={(e) => setOrgName(e.target.value)}
               style={{
