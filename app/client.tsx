@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 type Rates = { weekdayOrd: number; weekdayNight: number; sat: number; sun: number; publicHoliday: number; activeSleepoverHourly: number; fixedSleepoverUnit: number; gstRate: number };
 type PlanDates = { start: string; end: string; state: string; serviceStart?: string; serviceEnd?: string };
-type DayRoster = { enabled: boolean; hours: number; nightHours: number; frequency: string };
+type DayRoster = { enabled: boolean; hours: number; nightHours: number; frequency: string; times?: string };
 type Claim = { id: string; date: string; amount: number; note: string };
 type SupportLine = { id: string; code: string; description: string; totalFunding: number; ratio: string; excludedHolidays: string[]; roster: { [key: string]: DayRoster }; activeSleepoverHours: number; activeSleepoverFreq: string; fixedSleepovers: number; fixedSleepoverFreq: string; kmsPerWeek: number; kmRate: number; kmFreq: string; claims: Claim[]; lineRates: Rates };
 type CustomHoliday = { date: string; name: string };
@@ -134,6 +134,14 @@ function rosterFromProposal(prs:any[]):{roster:{[k:string]:DayRoster};aso:number
     aso+=num(r?.activeSleepoverHoursPerWeek);fso+=num(r?.sleepoversPerWeek);kms+=num(r?.kmsPerWeek);
   }
   return{roster,aso,fso,kms};
+}
+// Auto-fill rebuilds the roster from notes; carry the display-only shift times across
+// so they aren't lost (they don't affect costs, only the Schedule of Supports).
+function keepRosterTimes(newRoster:{[k:string]:DayRoster},oldRoster?:{[k:string]:DayRoster}):{[k:string]:DayRoster}{
+  if(!oldRoster)return newRoster;
+  const out={...newRoster};
+  for(const d of DAYS){const t=oldRoster[d]?.times;if(t)out[d]={...out[d],times:t};}
+  return out;
 }
 function proposalDaysSummary(prs:any[]):string{
   const{roster,aso,fso,kms}=rosterFromProposal(prs);
@@ -320,7 +328,7 @@ function applyRosterProposal(proposal:any[]){
       if(prs.length===0||doneCodes.has(l.code))return l;
       doneCodes.add(l.code);
       const{roster,aso,fso,kms}=rosterFromProposal(prs);
-      return{...l,roster,activeSleepoverHours:aso,fixedSleepovers:fso,kmsPerWeek:kms>0?kms:l.kmsPerWeek};
+      return{...l,roster:keepRosterTimes(roster,l.roster),activeSleepoverHours:aso,fixedSleepovers:fso,kmsPerWeek:kms>0?kms:l.kmsPerWeek};
     });
   });
 }
@@ -586,7 +594,7 @@ function applyPlanExtract(){
         if(prs.length===0||doneCodes.has(l.code))return l;
         doneCodes.add(l.code);
         const{roster,aso,fso,kms}=rosterFromProposal(prs);
-        return{...l,roster,activeSleepoverHours:aso,fixedSleepovers:fso,kmsPerWeek:kms>0?kms:l.kmsPerWeek};
+        return{...l,roster:keepRosterTimes(roster,l.roster),activeSleepoverHours:aso,fixedSleepovers:fso,kmsPerWeek:kms>0?kms:l.kmsPerWeek};
       });
     }
     return updated;
@@ -907,6 +915,7 @@ tbody td{padding:9px 10px;vertical-align:top}
         let inner="";
         if(dh>0)inner+=`<div style="font-weight:600;color:${dayColour}">${dh}h</div>`;
         if(nh>0)inner+=`<div style="color:#64748b;font-size:8pt">+${nh}n</div>`;
+        if(r.times)inner+=`<div style="color:#475569;font-size:6.8pt;margin-top:1px;line-height:1.35">${escapeHtml(r.times)}</div>`;
         if(!inner)inner=`<div style="color:#cbd5e1">—</div>`;
         return`<td style="text-align:center;vertical-align:top;padding:6px 4px">${inner}${freq}</td>`;
       }).join("");
@@ -1444,6 +1453,7 @@ return(
 <div className="flex items-center gap-1"><span className="text-xs" style={{color:"#475569"}}>Hrs:</span><SmallField value={r.hours} onChange={v=>updateRosterDay(l.id,d,{hours:v})} disabled={!r.enabled}/></div>
 {lineMode==="full"&&<div className="flex items-center gap-1"><span className="text-xs" style={{color:"#475569"}}>Night:</span><SmallField value={r.nightHours} onChange={v=>updateRosterDay(l.id,d,{nightHours:v})} disabled={!r.enabled}/></div>}
 <SmallSelect value={r.frequency} options={Object.entries(FREQ).map(([k,v])=>({value:k,label:v.label}))} onChange={v=>updateRosterDay(l.id,d,{frequency:v})} disabled={!r.enabled}/>
+<input value={r.times||""} onChange={e=>updateRosterDay(l.id,d,{times:e.target.value})} disabled={!r.enabled} maxLength={60} placeholder="times, e.g. 0600–0900" title="Shift times shown on the Schedule of Supports — doesn't change costs" className="kv-input rounded-lg px-2 py-1" style={{fontSize:"0.78rem",width:"150px",opacity:r.enabled?1:0.5}}/>
 </div>)})}
 </div>
 <div className="mt-3 grid grid-cols-1 gap-2">
