@@ -197,11 +197,11 @@ const saRows=useMemo(()=>perLine.flatMap((l:any)=>{
   const sunHrs=sunR?.enabled?(sunR.hours||0)*(FREQ[sunR.frequency]?.multiplier||1)*planWeeks:0;
   const sunNightHrs=sunR?.enabled?(sunR.nightHours||0)*(FREQ[sunR.frequency]?.multiplier||1)*planWeeks:0;
   if(wkdOrdHrs>0)rows.push({key:l.id+"_weekday",code:l.code,rateType:"weekday",label:l.description+" - Weekday Daytime"});
-  if(wkdNightHrs>0)rows.push({key:l.id+"_weekdayNight",code:l.code,rateType:"weekdayNight",label:l.description+" - Weekday Night"});
+  if(wkdNightHrs>0)rows.push({key:l.id+"_weekdayNight",code:l.code,rateType:"weekdayNight",label:l.description+" - Weekday Evening"});
   if(satHrs>0)rows.push({key:l.id+"_sat",code:l.code,rateType:"sat",label:l.description+" - Saturday"});
-  if(satNightHrs>0)rows.push({key:l.id+"_satNight",code:l.code,rateType:"satNight",label:l.description+" - Saturday Night"});
+  if(satNightHrs>0)rows.push({key:l.id+"_satNight",code:l.code,rateType:"satNight",label:l.description+" - Saturday Evening"});
   if(sunHrs>0)rows.push({key:l.id+"_sun",code:l.code,rateType:"sun",label:l.description+" - Sunday"});
-  if(sunNightHrs>0)rows.push({key:l.id+"_sunNight",code:l.code,rateType:"sunNight",label:l.description+" - Sunday Night"});
+  if(sunNightHrs>0)rows.push({key:l.id+"_sunNight",code:l.code,rateType:"sunNight",label:l.description+" - Sunday Evening"});
   if(rows.length===0)rows.push({key:l.id+"_lump",code:l.code,rateType:"lump",label:l.description});
   return rows;
 }),[perLine,planWeeks]);
@@ -809,11 +809,11 @@ function generateScheduleOfSupports(){
     const adjSunNight=Math.max(0,sunNightHrs-phSunNight);
     // Display rounded hours but compute totals from unrounded values to match the main calc
     if(adjWkdOrd>0){const rate=(l.lineRates?.weekdayOrd||0)/div;rows.push({key:l.id+"_weekday",code:l.code,rateType:"weekday",category:desc+" - Weekday Daytime",price:rate,hours:Math.round(adjWkdOrd),total:rate*adjWkdOrd});}
-    if(adjWkdNight>0){const rate=(l.lineRates?.weekdayNight||0)/div;rows.push({key:l.id+"_weekdayNight",code:l.code,rateType:"weekdayNight",category:desc+" - Weekday Night",price:rate,hours:Math.round(adjWkdNight),total:rate*adjWkdNight});}
+    if(adjWkdNight>0){const rate=(l.lineRates?.weekdayNight||0)/div;rows.push({key:l.id+"_weekdayNight",code:l.code,rateType:"weekdayNight",category:desc+" - Weekday Evening",price:rate,hours:Math.round(adjWkdNight),total:rate*adjWkdNight});}
     if(adjSat>0){const rate=(l.lineRates?.sat||0)/div;rows.push({key:l.id+"_sat",code:l.code,rateType:"sat",category:desc+" - Saturday",price:rate,hours:Math.round(adjSat),total:rate*adjSat});}
-    if(adjSatNight>0){const rate=(l.lineRates?.sat||0)/div;rows.push({key:l.id+"_satNight",code:l.code,rateType:"satNight",category:desc+" - Saturday Night",price:rate,hours:Math.round(adjSatNight),total:rate*adjSatNight});}
+    if(adjSatNight>0){const rate=(l.lineRates?.sat||0)/div;rows.push({key:l.id+"_satNight",code:l.code,rateType:"satNight",category:desc+" - Saturday Evening",price:rate,hours:Math.round(adjSatNight),total:rate*adjSatNight});}
     if(adjSun>0){const rate=(l.lineRates?.sun||0)/div;rows.push({key:l.id+"_sun",code:l.code,rateType:"sun",category:desc+" - Sunday",price:rate,hours:Math.round(adjSun),total:rate*adjSun});}
-    if(adjSunNight>0){const rate=(l.lineRates?.sun||0)/div;rows.push({key:l.id+"_sunNight",code:l.code,rateType:"sunNight",category:desc+" - Sunday Night",price:rate,hours:Math.round(adjSunNight),total:rate*adjSunNight});}
+    if(adjSunNight>0){const rate=(l.lineRates?.sun||0)/div;rows.push({key:l.id+"_sunNight",code:l.code,rateType:"sunNight",category:desc+" - Sunday Evening",price:rate,hours:Math.round(adjSunNight),total:rate*adjSunNight});}
     if(phHrs>0){const rate=(l.lineRates?.publicHoliday||0)/div;rows.push({key:l.id+"_ph",code:l.code,rateType:"publicHoliday",category:desc+" - Public Holiday",price:rate,hours:Math.round(phHrs),total:rate*phHrs});}
     const sf=FREQ[l.activeSleepoverFreq]?.multiplier||1;const activeSoHrs=(l.activeSleepoverHours||0)*sf*planWeeks;if(activeSoHrs>0&&(l.lineRates?.activeSleepoverHourly||0)>0){const rate=(l.lineRates?.activeSleepoverHourly||0)/div;rows.push({key:l.id+"_activeSleepover",code:l.code,rateType:"activeSleepover",category:desc+" - Active Sleepover",price:rate,hours:Math.round(activeSoHrs),total:rate*activeSoHrs});}
     const ff=FREQ[l.fixedSleepoverFreq]?.multiplier||1;const fixedSoUnits=(l.fixedSleepovers||0)*ff*planWeeks;if(fixedSoUnits>0&&(l.lineRates?.fixedSleepoverUnit||0)>0){const rate=l.lineRates?.fixedSleepoverUnit||0;rows.push({key:l.id+"_fixedSleepover",code:l.code,rateType:"fixedSleepover",category:desc+" - Sleepover (Overnight)",price:rate,hours:Math.round(fixedSoUnits),total:rate*fixedSoUnits});}
@@ -939,7 +939,7 @@ tbody td{padding:9px 10px;vertical-align:top}
         const dayColour=isSat?"#1e40af":isSun?"#d4a843":"inherit";
         let inner="";
         if(dh>0)inner+=`<div style="font-weight:600;color:${dayColour}">${dh}h</div>`;
-        if(nh>0)inner+=`<div style="color:#64748b;font-size:8pt">+${nh}n</div>`;
+        if(nh>0)inner+=`<div style="color:#64748b;font-size:8pt">+${nh}e</div>`;
         const timesTxt=shiftsToText(r.shifts,r.times);
         if(timesTxt)inner+=`<div style="color:#475569;font-size:6.8pt;margin-top:1px;line-height:1.35">${escapeHtml(timesTxt)}</div>`;
         if(!inner)inner=`<div style="color:#cbd5e1">—</div>`;
@@ -949,7 +949,7 @@ tbody td{padding:9px 10px;vertical-align:top}
       const weeklyNightHrs=dOrder.reduce((s:number,d:string)=>{const r=l.roster[d];if(!r?.enabled)return s;const fm=FREQ[r.frequency]?.multiplier||1;return s+(r.nightHours||0)*fm;},0);
       const totalLine=weeklyDayHrs+weeklyNightHrs;
       const kmf=FREQ[l.kmFreq]?.multiplier||1;const weeklyKm=(l.kmsPerWeek||0)*kmf;
-      const totalDisplay=`<div style="font-weight:700">${totalLine>0?(totalLine%1===0?totalLine:totalLine.toFixed(1))+"h":"—"}</div>${weeklyNightHrs>0?`<div style="color:#64748b;font-size:8pt">(${weeklyNightHrs%1===0?weeklyNightHrs:weeklyNightHrs.toFixed(1)}n)</div>`:""}${weeklyKm>0?`<div style="color:#1e40af;font-size:8pt;margin-top:2px">${weeklyKm%1===0?weeklyKm:weeklyKm.toFixed(1)} km</div>`:""}`;
+      const totalDisplay=`<div style="font-weight:700">${totalLine>0?(totalLine%1===0?totalLine:totalLine.toFixed(1))+"h":"—"}</div>${weeklyNightHrs>0?`<div style="color:#64748b;font-size:8pt">(${weeklyNightHrs%1===0?weeklyNightHrs:weeklyNightHrs.toFixed(1)}e)</div>`:""}${weeklyKm>0?`<div style="color:#1e40af;font-size:8pt;margin-top:2px">${weeklyKm%1===0?weeklyKm:weeklyKm.toFixed(1)} km</div>`:""}`;
 
       let soNote="";
       const sf=FREQ[l.activeSleepoverFreq]?.multiplier||1;if((l.activeSleepoverHours||0)>0)soNote+=`Active SO: ${l.activeSleepoverHours}h × ${l.activeSleepoverFreq}`;
@@ -962,7 +962,7 @@ tbody td{padding:9px 10px;vertical-align:top}
     <thead><tr><th style="width:22%;text-align:left">Support Category</th>${headCells}<th style="width:9%;text-align:right">Weekly Hrs</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>
-  <div class="note" style="margin-top:6px">h = daytime hours &nbsp;|&nbsp; n = night hours &nbsp;|&nbsp; ftn = fortnightly &nbsp;|&nbsp; mth = monthly. Sat shown in blue, Sun in gold.</div>`;
+  <div class="note" style="margin-top:6px">h = daytime hours &nbsp;|&nbsp; e = evening hours &nbsp;|&nbsp; ftn = fortnightly &nbsp;|&nbsp; mth = monthly. Sat shown in blue, Sun in gold.</div>`;
   })()}
 
   <div class="section-heading" style="margin-top:16px">Signatures</div>
@@ -1326,7 +1326,7 @@ return(
 <summary className="p-5 flex flex-wrap items-center justify-between gap-3">
   <div className="flex items-center gap-3 flex-wrap">
     <h2 className="text-base font-semibold" style={{color:"#2d1b69"}}>Default hourly rates</h2>
-    <span className="text-xs" style={{color:"#94a3b8"}}>2026–27 preset — each support line also has its own editable rates</span>
+    <span className="text-xs" style={{color:"#94a3b8"}}>price guide presets & your organisation’s defaults — every support line can still override its own rates</span>
   </div>
   <span className="text-xs font-semibold" style={{color:"#d4a843"}}>Show ▾</span>
 </summary>
@@ -1341,7 +1341,7 @@ return(
 </div>
 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
 <Field label="Weekday (Ord) $/hr" value={rates.weekdayOrd} onChange={v=>setRates(r=>({...r,weekdayOrd:v}))} step={0.01}/>
-<Field label="Weekday (Night) $/hr" value={rates.weekdayNight} onChange={v=>setRates(r=>({...r,weekdayNight:v}))} step={0.01}/>
+<Field label="Weekday (Evening) $/hr" value={rates.weekdayNight} onChange={v=>setRates(r=>({...r,weekdayNight:v}))} step={0.01}/>
 <Field label="Saturday $/hr" value={rates.sat} onChange={v=>setRates(r=>({...r,sat:v}))} step={0.01}/>
 <Field label="Sunday $/hr" value={rates.sun} onChange={v=>setRates(r=>({...r,sun:v}))} step={0.01}/>
 <Field label="Public Holiday $/hr" value={rates.publicHoliday} onChange={v=>setRates(r=>({...r,publicHoliday:v}))} step={0.01}/>
@@ -1360,7 +1360,7 @@ return(
 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
 {([
   {key:"weekdayOrd",label:"Weekday (Ord)"},
-  {key:"weekdayNight",label:"Weekday (Night)"},
+  {key:"weekdayNight",label:"Weekday (Evening)"},
   {key:"sat",label:"Saturday"},
   {key:"sun",label:"Sunday"},
   {key:"publicHoliday",label:"Public Holiday"},
@@ -1481,7 +1481,7 @@ return(
 <button type="button" onClick={()=>updateRosterDay(l.id,d,{enabled:!r.enabled})} role="checkbox" aria-checked={r.enabled} aria-label={"Include "+DL[d]+" in roster"} style={{width:"22px",height:"22px",borderRadius:"4px",flexShrink:0,padding:0,background:r.enabled?"#22c55e":"rgba(239,68,68,0.2)",border:"1px solid "+(r.enabled?"#22c55e":"rgba(239,68,68,0.4)"),display:"flex",alignItems:"center",justifyContent:"center",color: "#0f172a",fontSize:"12px",cursor:"pointer"}}>{r.enabled?"✓":""}</button>
 <div style={{width:"80px",color:r.enabled?"#d4a843":"#64748b",fontWeight:"600",fontSize:"0.85rem"}}>{DL[d]}</div>
 <div className="flex items-center gap-1"><span className="text-xs" style={{color:"#475569"}}>Hrs:</span><SmallField value={r.hours} onChange={v=>updateRosterDay(l.id,d,{hours:v})} disabled={!r.enabled}/></div>
-{lineMode==="full"&&<div className="flex items-center gap-1"><span className="text-xs" style={{color:"#475569"}}>Night:</span><SmallField value={r.nightHours} onChange={v=>updateRosterDay(l.id,d,{nightHours:v})} disabled={!r.enabled}/></div>}
+{lineMode==="full"&&<div className="flex items-center gap-1"><span className="text-xs" style={{color:"#475569"}} title="Evening hours (after 8pm) — billed at the evening rate">Eve:</span><SmallField value={r.nightHours} onChange={v=>updateRosterDay(l.id,d,{nightHours:v})} disabled={!r.enabled}/></div>}
 <SmallSelect value={r.frequency} options={Object.entries(FREQ).map(([k,v])=>({value:k,label:v.label}))} onChange={v=>updateRosterDay(l.id,d,{frequency:v})} disabled={!r.enabled}/>
 {r.enabled&&(()=>{
 const shifts:Shift[]=r.shifts||[];
@@ -1537,7 +1537,7 @@ return(<div className="flex items-center gap-1 flex-wrap">
   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 mb-3">
     {([
       {key:"weekdayOrd",label:"Weekday (Ord) $/hr"},
-      {key:"weekdayNight",label:"Weekday (Night) $/hr"},
+      {key:"weekdayNight",label:"Weekday (Evening) $/hr"},
       {key:"sat",label:"Saturday $/hr"},
       {key:"sun",label:"Sunday $/hr"},
       {key:"publicHoliday",label:"Public Holiday $/hr"},
