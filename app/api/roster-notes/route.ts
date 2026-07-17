@@ -26,6 +26,24 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "An active subscription is required." }, { status: 403 });
     }
 
+    // Generous monthly cap (500) as runaway/abuse protection — stored in
+    // calculator_data so no schema change is needed. ~0.5c per call.
+    const MONTHLY_NOTES_LIMIT = 500;
+    const month = new Date().toISOString().slice(0, 7);
+    const { data: usageRow } = await supabase
+      .from("calculator_data").select("data")
+      .eq("user_id", user.id).eq("participant_id", "roster_notes_usage").maybeSingle();
+    const usage = (usageRow?.data as any)?.month === month ? Number((usageRow?.data as any)?.count) || 0 : 0;
+    if (usage >= MONTHLY_NOTES_LIMIT) {
+      return Response.json({
+        error: `You've hit this month's auto-fill limit (${MONTHLY_NOTES_LIMIT}). It resets at the start of next month — you can still fill the roster manually.`,
+      }, { status: 429 });
+    }
+    await supabase.from("calculator_data").upsert(
+      { user_id: user.id, participant_id: "roster_notes_usage", data: { month, count: usage + 1 }, updated_at: new Date().toISOString() },
+      { onConflict: "user_id,participant_id" }
+    );
+
     const body = await req.json();
     const mode = body?.mode === "clinical" ? "clinical" : "roster";
     const notes = String(body?.notes || "").slice(0, 2000).trim();

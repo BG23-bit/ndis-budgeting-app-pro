@@ -156,7 +156,7 @@ export default function DashboardPage() {
         const dismissedSet = new Set(dismissed);
         const orphans = (rows || [])
           .map((r: any) => ({ id: String(r.participant_id).replace("ndis_participant_", ""), updated: String(r.updated_at || "") }))
-          .filter((o: any) => String(o.id) !== "ndis_preview" && !listIds.has(o.id) && !dismissedSet.has(o.id) && o.id.length > 8)
+          .filter((o: any) => !["ndis_preview", "ndis_provider_details", "roster_notes_usage"].includes(String(o.id)) && !listIds.has(o.id) && !dismissedSet.has(o.id) && o.id.length > 8)
           .sort((a: any, b: any) => b.updated.localeCompare(a.updated));
         if (orphans.length > 0) setRecoverable(orphans);
       } else {
