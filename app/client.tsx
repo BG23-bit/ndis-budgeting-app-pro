@@ -1478,11 +1478,15 @@ return(
 <div className="grid gap-2">
 {rosterDays.map(d=>{const r=l.roster[d];return(
 <div key={d} className="flex flex-wrap items-center gap-2 py-1" style={{borderBottom:"1px solid rgba(15,23,42,0.03)"}}>
+<div className="flex items-center gap-2" style={{flexShrink:0}}>
 <button type="button" onClick={()=>updateRosterDay(l.id,d,{enabled:!r.enabled})} role="checkbox" aria-checked={r.enabled} aria-label={"Include "+DL[d]+" in roster"} style={{width:"22px",height:"22px",borderRadius:"4px",flexShrink:0,padding:0,background:r.enabled?"#22c55e":"rgba(239,68,68,0.2)",border:"1px solid "+(r.enabled?"#22c55e":"rgba(239,68,68,0.4)"),display:"flex",alignItems:"center",justifyContent:"center",color: "#0f172a",fontSize:"12px",cursor:"pointer"}}>{r.enabled?"✓":""}</button>
 <div style={{width:"80px",color:r.enabled?"#d4a843":"#64748b",fontWeight:"600",fontSize:"0.85rem"}}>{DL[d]}</div>
+</div>
+<div className="flex items-center gap-2" style={{flexWrap:"nowrap"}}>
 <div className="flex items-center gap-1"><span className="text-xs" style={{color:"#475569"}}>Hrs:</span><SmallField value={r.hours} onChange={v=>updateRosterDay(l.id,d,{hours:v})} disabled={!r.enabled}/></div>
 {lineMode==="full"&&<div className="flex items-center gap-1"><span className="text-xs" style={{color:"#475569"}} title="Evening hours (after 8pm) — billed at the evening rate">Eve:</span><SmallField value={r.nightHours} onChange={v=>updateRosterDay(l.id,d,{nightHours:v})} disabled={!r.enabled}/></div>}
 <SmallSelect value={r.frequency} options={Object.entries(FREQ).map(([k,v])=>({value:k,label:v.label}))} onChange={v=>updateRosterDay(l.id,d,{frequency:v})} disabled={!r.enabled}/>
+</div>
 {r.enabled&&(()=>{
 const shifts:Shift[]=r.shifts||[];
 const sHrs=shiftHoursTotal(shifts);
