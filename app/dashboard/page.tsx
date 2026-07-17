@@ -9,6 +9,7 @@ type Participant = {
   id: string;
   name: string;
   ndisNumber: string;
+  archived?: boolean;
 };
 
 function uid(): string {
@@ -319,6 +320,9 @@ export default function DashboardPage() {
   }, [participants, activeParticipant]);
 
   const budgetFor = (id: string): Budget => budgets[id] || EMPTY_BUDGET;
+  const activeParticipants = participants.filter((p) => !p.archived);
+  const archivedParticipants = participants.filter((p) => p.archived);
+  const [showArchived, setShowArchived] = useState(false);
 
   const handleCheckout = async () => {
     setCheckoutLoading(true);
@@ -420,6 +424,17 @@ export default function DashboardPage() {
     setNewName("");
     setNewNdis("");
     setShowAddForm(false);
+  };
+
+  // Archiving hides a participant from the list and totals but keeps every
+  // budget, roster and claim — participants leave and come back.
+  const archiveParticipant = (id: string) => {
+    if (loadError) return;
+    setParticipants((prev) => prev.map((x) => x.id === id ? { ...x, archived: true } : x));
+  };
+  const restoreParticipant = (id: string) => {
+    if (loadError) return;
+    setParticipants((prev) => prev.map((x) => x.id === id ? { ...x, archived: false } : x));
   };
 
   const deleteParticipant = (id: string) => {
@@ -624,26 +639,26 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-8">
           <div className="kv-card p-5">
             <div className="text-sm" style={{ color: "#334155" }}>Total Participants</div>
-            <div className="text-3xl font-bold" style={{ color: "#d4a843" }}>{participants.length}</div>
+            <div className="text-3xl font-bold" style={{ color: "#d4a843" }}>{activeParticipants.length}</div>
           </div>
           <div className="kv-card p-5">
             <div className="text-sm" style={{ color: "#334155" }}>Total Funding</div>
             <div className="text-3xl font-bold" style={{ color: "#d4a843" }}>
-              {money(participants.reduce((a, p) => a + budgetFor(p.id).totalFunding, 0))}
+              {money(activeParticipants.reduce((a, p) => a + budgetFor(p.id).totalFunding, 0))}
             </div>
           </div>
           <div className="kv-card p-5">
             <div className="text-sm" style={{ color: "#334155" }}>Total Remaining</div>
             <div className="text-3xl font-bold" style={{
-              color: participants.reduce((a, p) => a + budgetFor(p.id).remaining, 0) < 0 ? "#ef4444" : "#22c55e"
+              color: activeParticipants.reduce((a, p) => a + budgetFor(p.id).remaining, 0) < 0 ? "#ef4444" : "#22c55e"
             }}>
-              {money(participants.reduce((a, p) => a + budgetFor(p.id).remaining, 0))}
+              {money(activeParticipants.reduce((a, p) => a + budgetFor(p.id).remaining, 0))}
             </div>
           </div>
         </div>
 
         {/* Search — only once the list is big enough to need it */}
-        {participants.length >= 6 && (
+        {activeParticipants.length >= 6 && (
           <div className="mb-4 flex items-center gap-3 flex-wrap">
             <input
               value={search}
@@ -679,7 +694,7 @@ export default function DashboardPage() {
           <div className="grid gap-4">
             {(() => {
               const q = search.trim().toLowerCase();
-              const shown = q ? participants.filter((p) => p.name.toLowerCase().includes(q) || (p.ndisNumber || "").toLowerCase().includes(q)) : participants;
+              const shown = q ? activeParticipants.filter((p) => p.name.toLowerCase().includes(q) || (p.ndisNumber || "").toLowerCase().includes(q)) : activeParticipants;
               if (q && shown.length === 0) return (
                 <div className="kv-card p-8 text-center" style={{ color: "#64748b" }}>
                   No participants match &ldquo;{search}&rdquo;
@@ -743,11 +758,12 @@ export default function DashboardPage() {
                           cursor: "pointer", fontSize: "0.8rem",
                         }}>Edit</button>
                       <button
-                        onClick={(e) => { e.stopPropagation(); deleteParticipant(p.id); }}
+                        onClick={(e) => { e.stopPropagation(); archiveParticipant(p.id); }}
+                        title="Hide from the list but keep all budgets, rosters and claims — restore any time from Archived"
                         className="rounded-lg px-3 py-2" style={{
-                          background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444",
+                          background: "rgba(100,116,139,0.08)", border: "1px solid rgba(100,116,139,0.3)", color: "#64748b",
                           cursor: "pointer", fontSize: "0.8rem",
-                        }}>Delete</button>
+                        }}>Archive</button>
                     </div>
                   </div>
 
@@ -780,6 +796,32 @@ export default function DashboardPage() {
               background: "none", border: "none", color: "#64748b", cursor: "pointer",
               fontSize: "0.82rem", textDecoration: "underline", textAlign: "center", padding: "2px",
             }}>Load a sample participant</button>
+
+            {archivedParticipants.length > 0 && (
+              <div className="mt-2">
+                <button onClick={() => setShowArchived((v) => !v)} style={{
+                  background: "none", border: "none", color: "#64748b", cursor: "pointer",
+                  fontSize: "0.85rem", textDecoration: "underline", padding: "2px",
+                }}>{showArchived ? "▾" : "▸"} Archived ({archivedParticipants.length})</button>
+                {showArchived && (
+                  <div className="grid gap-2 mt-2">
+                    {archivedParticipants.map((p) => (
+                      <div key={p.id} className="rounded-xl px-4 py-3 flex flex-wrap items-center justify-between gap-2" style={{ background: "rgba(15,23,42,0.03)", border: "1px solid rgba(15,23,42,0.08)" }}>
+                        <div>
+                          <span style={{ color: "#334155", fontWeight: 600 }}>{p.name}</span>
+                          {p.ndisNumber && <span className="text-sm" style={{ color: "#94a3b8", marginLeft: "8px" }}>NDIS: {p.ndisNumber}</span>}
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => restoreParticipant(p.id)} className="rounded-lg px-3 py-1.5" style={{ background: "rgba(212,168,67,0.1)", border: "1px solid rgba(212,168,67,0.3)", color: "#b8901a", cursor: "pointer", fontSize: "0.8rem", fontWeight: 600 }}>Restore</button>
+                          <button onClick={() => deleteParticipant(p.id)} className="rounded-lg px-3 py-1.5" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444", cursor: "pointer", fontSize: "0.8rem" }}>Delete permanently</button>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="text-xs" style={{ color: "#94a3b8" }}>Archived participants keep all their data and are excluded from totals. Delete permanently removes everything.</div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
