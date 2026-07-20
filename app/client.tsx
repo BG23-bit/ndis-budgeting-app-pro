@@ -2121,7 +2121,7 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
 )}
 
 <div className="text-xs mt-8" style={{color:saveState==="saving"?"#d4a843":"#64748b"}}>{saveState==="saving"?"Saving changes…":saveState==="saved"?"All changes saved ✓":"Auto-saves as you work."}</div>
-<div className="text-xs mt-2 mb-8" style={{color:"#64748b"}}>Powered by <span style={{color:"#d4a843"}}>Kevria</span></div>
+<div className="text-xs mt-2 mb-8" style={{color:"#64748b"}}>Powered by <span style={{color:"#d4a843"}}>Kevria</span> <span style={{color:"#cbd5e1"}}>· build {(process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA||"dev").slice(0,7)}</span></div>
 </div>
 
 {calcMode===null&&loaded&&(
