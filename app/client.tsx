@@ -1593,7 +1593,16 @@ return(
 </div>
 ):(
 <div className="kv-sub rounded-xl p-4 lg:col-span-2">
-<div className="text-sm mb-1 font-semibold" style={{color:"#d4a843"}}>Weekly Roster{lineMode==="weekday"&&<span style={{color:"#64748b",fontWeight:"normal",fontSize:"0.8rem",marginLeft:"8px"}}>Weekdays only</span>}</div>
+<div className="flex items-center justify-between mb-1 flex-wrap gap-2">
+<div className="text-sm font-semibold" style={{color:"#d4a843"}}>Weekly Roster{lineMode==="weekday"&&<span style={{color:"#64748b",fontWeight:"normal",fontSize:"0.8rem",marginLeft:"8px"}}>Weekdays only</span>}</div>
+{(()=>{
+const dh=rosterDays.filter((d:string)=>l.roster[d]?.enabled&&((l.roster[d].hours||0)+(l.roster[d].nightHours||0))>0);
+if(dh.length===0)return null;
+const dt=dh.filter((d:string)=>(l.roster[d].shifts||[]).some((x:any)=>x.s&&x.e)||l.roster[d].times);
+const done=dt.length===dh.length;
+return(<span className="text-xs px-2.5 py-1 rounded-full" style={{background:done?"rgba(34,197,94,0.08)":"rgba(212,168,67,0.1)",border:"1px solid "+(done?"rgba(34,197,94,0.3)":"rgba(212,168,67,0.4)"),color:done?"#16a34a":"#b8901a",fontWeight:600}}>🕐 shift times on {dt.length}/{dh.length} days{done?" ✓":" — add them to print on the SoS"}</span>);
+})()}
+</div>
 <div className="text-xs mb-3" style={{color:"#94a3b8",lineHeight:1.5}}>Tick the days worked and enter the hours. <span style={{color:"#64748b",fontWeight:600}}>+ add times</span> puts shift times (e.g. 6am–9am) on the Schedule of Supports — costs come from the hours, not the times. <span style={{color:"#64748b",fontWeight:600}}>Copy to Mon–Fri</span> fills every weekday the same.</div>
 <div className="grid gap-2">
 {rosterDays.map(d=>{const r=l.roster[d];return(
@@ -1624,7 +1633,12 @@ return(<div className="flex items-center gap-1 flex-wrap">
 <button onClick={()=>updateRosterDay(l.id,d,{shifts:shifts.filter((_,j)=>j!==si)})} title="Remove this shift" style={{background:"none",border:"none",color:"#94a3b8",cursor:"pointer",fontSize:"0.72rem",padding:"0 0 0 2px"}}>✕</button>
 </span>
 ))}
-<button onClick={()=>updateRosterDay(l.id,d,{shifts:[...shifts,{s:"",e:""}]})} title="Add shift times for this day — they appear on the Schedule of Supports and don't change costs" style={{background:"none",border:"1px dashed rgba(45,27,105,0.25)",color:"#64748b",borderRadius:"8px",cursor:"pointer",fontSize:"0.72rem",padding:"2px 8px"}}>🕐 {shifts.length>0?"+":"+ add times"}</button>
+{(()=>{
+const needs=((r.hours||0)+(r.nightHours||0))>0&&shifts.length===0&&!r.times;
+return(<button onClick={()=>updateRosterDay(l.id,d,{shifts:[...shifts,{s:"",e:""}]})} title="Add shift times for this day — they appear on the Schedule of Supports and don't change costs" style={needs
+?{background:"rgba(212,168,67,0.12)",border:"1px solid rgba(212,168,67,0.5)",color:"#b8901a",borderRadius:"8px",cursor:"pointer",fontSize:"0.72rem",padding:"2px 9px",fontWeight:600}
+:{background:"none",border:"1px dashed rgba(45,27,105,0.25)",color:"#64748b",borderRadius:"8px",cursor:"pointer",fontSize:"0.72rem",padding:"2px 8px"}}>🕐 {shifts.length>0?"+":needs?"add times (for SoS)":"+ add times"}</button>);
+})()}
 {mismatch&&<button onClick={()=>updateRosterDay(l.id,d,{hours:Math.max(0,Math.round((sHrs-(r.nightHours||0))*100)/100)})} title="Set this day's hours to match the shift times" style={{background:"rgba(212,168,67,0.1)",border:"1px solid rgba(212,168,67,0.3)",color:"#b8901a",borderRadius:"8px",cursor:"pointer",fontSize:"0.72rem",padding:"2px 8px"}}>= {sHrs%1===0?sHrs:sHrs.toFixed(2)}h · match hours</button>}
 {d!=="sat"&&d!=="sun"&&((r.hours||0)>0||(r.nightHours||0)>0)&&["mon","tue","wed","thu","fri"].some(wd=>{const o=l.roster[wd];return !o?.enabled||(o.hours||0)!==(r.hours||0)||(o.nightHours||0)!==(r.nightHours||0)||(o.frequency||"every")!==(r.frequency||"every")||shiftsToText(o.shifts,o.times)!==shiftsToText(r.shifts,r.times)})&&<button onClick={()=>copyDayToWeekdays(l.id,d)} title={"Copy "+DL[d]+"'s hours, frequency and times to every weekday (Mon–Fri)"} style={{background:"none",border:"1px dashed rgba(45,27,105,0.25)",color:"#64748b",borderRadius:"8px",cursor:"pointer",fontSize:"0.72rem",padding:"2px 8px"}}>⇒ copy to Mon–Fri</button>}
 </div>);
