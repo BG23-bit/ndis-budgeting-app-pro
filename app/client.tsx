@@ -130,7 +130,14 @@ function rosterFromProposal(prs:any[]):{roster:{[k:string]:DayRoster};aso:number
       const hv=num((v as any)?.hours),nv=num((v as any)?.nightHours);
       if(hv<=0&&nv<=0)continue;
       const prev=roster[d];
-      roster[d]={enabled:true,hours:(prev.enabled?prev.hours:0)+hv,nightHours:(prev.enabled?prev.nightHours:0)+nv,frequency:freq};
+      // Carry AI-extracted shift times (from notes like "9am-3pm") into the chips
+      const sh:Shift[]=Array.isArray((v as any)?.shifts)
+        ?(v as any).shifts
+          .map((x:any)=>({s:String(x?.s||"").padStart(5,"0"),e:String(x?.e||"").padStart(5,"0")}))
+          .filter((x:Shift)=>/^\d{2}:\d{2}$/.test(x.s)&&/^\d{2}:\d{2}$/.test(x.e))
+        :[];
+      const mergedShifts=[...(prev.enabled&&prev.shifts?prev.shifts:[]),...sh];
+      roster[d]={enabled:true,hours:(prev.enabled?prev.hours:0)+hv,nightHours:(prev.enabled?prev.nightHours:0)+nv,frequency:freq,...(mergedShifts.length?{shifts:mergedShifts}:{})};
     }
     aso+=num(r?.activeSleepoverHoursPerWeek);fso+=num(r?.sleepoversPerWeek);kms+=num(r?.kmsPerWeek);
   }
@@ -141,7 +148,7 @@ function rosterFromProposal(prs:any[]):{roster:{[k:string]:DayRoster};aso:number
 function keepRosterTimes(newRoster:{[k:string]:DayRoster},oldRoster?:{[k:string]:DayRoster}):{[k:string]:DayRoster}{
   if(!oldRoster)return newRoster;
   const out={...newRoster};
-  for(const d of DAYS){const o=oldRoster[d];if(!o)continue;const patch:Partial<DayRoster>={};if(o.times)patch.times=o.times;if(o.shifts&&o.shifts.length)patch.shifts=o.shifts;if(Object.keys(patch).length)out[d]={...out[d],...patch};}
+  for(const d of DAYS){const o=oldRoster[d];if(!o)continue;const hasNew=(out[d]?.shifts||[]).length>0;const patch:Partial<DayRoster>={};if(o.times&&!hasNew)patch.times=o.times;if(o.shifts&&o.shifts.length&&!hasNew)patch.shifts=o.shifts;if(Object.keys(patch).length)out[d]={...out[d],...patch};}
   return out;
 }
 // Shift times are display-only (Schedule of Supports); `times` is the legacy free-text form.
