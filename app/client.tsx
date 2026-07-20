@@ -929,7 +929,7 @@ function generateScheduleOfSupports(){
       const mode=getLineMode(l.code);
       const div=RATIOS[l.ratio]?.divisor||1;
       const ratioSuf=l.ratio&&l.ratio!=="1:1"?" ("+escapeHtml(l.ratio)+")":"";
-      body+=`<tr><td colspan="8" style="background:#eef2f7;font-weight:700;color:#2d1b69;padding:7px 10px">${escapeHtml(l.description)}${ratioSuf}${mode==="lump"?"":" &mdash; "+escapeHtml(money(l.totalFunding))+" funded"}</td></tr>`;
+      body+=`<tr><td colspan="8" style="background:#eef2f7;font-weight:700;color:#2d1b69;padding:7px 10px">${escapeHtml(l.description)}${ratioSuf}${mode==="lump"||!(l.totalFunding>0)?"":" &mdash; "+escapeHtml(money(l.totalFunding))+" funded"}</td></tr>`;
       if(mode==="lump"){
         body+=rowH([cell("&mdash;"),cell("&mdash;"),cell(escapeHtml(saItemNumbers[l.id+"_lump"]||getDefaultItemNumber(l.code,"lump",saUseSilItems)),"left","font-family:monospace;font-size:8pt"),cell("&mdash;","right"),cell("&mdash;","right"),cell("Lump sum"),cell("&mdash;","right"),cell("<strong>"+escapeHtml(money(l.totalFunding))+"</strong>","right")]);
         continue;
