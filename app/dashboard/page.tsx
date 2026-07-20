@@ -97,11 +97,9 @@ export default function DashboardPage() {
   const [editName, setEditName] = useState("");
   const [editNdis, setEditNdis] = useState("");
   const [search, setSearch] = useState("");
-  // Unpaid users can dismiss the paywall into a 1-participant free preview.
-  const [previewDismissed, setPreviewDismissed] = useState(false);
-  useEffect(() => {
-    try { if (localStorage.getItem("kevria_free_preview") === "1") setPreviewDismissed(true); } catch {}
-  }, []);
+  // Trial-first: unpaid users land straight in the 1-participant free preview.
+  // The plan picker opens on demand (banner CTA, or hitting the participant gate).
+  const [previewDismissed, setPreviewDismissed] = useState(true);
   const [budgets, setBudgets] = useState<{ [id: string]: Budget }>({});
   const hasLoadedRef = useRef(false);
   const skipNextSaveRef = useRef(false);
@@ -543,9 +541,9 @@ export default function DashboardPage() {
               {checkoutLoading ? "Redirecting..." : selectedPlan === "annual" ? "Subscribe — $79/yr" : "Subscribe — $9.90/mo"}
             </button>
             <button
-              onClick={() => { try { localStorage.setItem("kevria_free_preview", "1"); } catch {} setPreviewDismissed(true); }}
+              onClick={() => setPreviewDismissed(true)}
               style={{ marginTop: "14px", width: "100%", padding: "11px", background: "none", border: "1px dashed rgba(212,168,67,0.5)", color: "#d4a843", borderRadius: "8px", cursor: "pointer", fontSize: "0.92rem", fontWeight: 600 }}>
-              Try the free preview first → <span style={{ color: "#94a3b8", fontWeight: 400 }}>1 participant, no card needed</span>
+              ← Back to the free preview <span style={{ color: "#94a3b8", fontWeight: 400 }}>1 participant, no card needed</span>
             </button>
             <p onClick={handleLogout} style={{ marginTop: "15px", color: "#64748b", cursor: "pointer", fontSize: "0.9rem" }}>Log out</p>
           </div>
