@@ -158,7 +158,15 @@ function proposalDaysSummary(prs:any[]):string{
 }
 function getLineMode(code:string):"full"|"weekday"|"hourly"|"lump"{if(["02","03","05","06","17","18","19"].includes(code))return"lump";if(["07","11","12","13","14","15","20"].includes(code))return"hourly";if(code==="10")return"weekday";return"full"}
 function isBelowGuide(lr:Rates,code:string):boolean{const p=CATEGORY_PRESETS[code]?.rates;if(!p)return false;return(p.weekdayOrd>0&&lr.weekdayOrd<p.weekdayOrd)||(p.weekdayNight>0&&lr.weekdayNight<p.weekdayNight)||(p.sat>0&&lr.sat<p.sat)||(p.sun>0&&lr.sun<p.sun)||(p.publicHoliday>0&&lr.publicHoliday<p.publicHoliday)||(p.activeSleepoverHourly>0&&lr.activeSleepoverHourly<p.activeSleepoverHourly)}
-export default function PageClient({storageKey,participantName,ndisNumber}:{storageKey?:string;participantName?:string;ndisNumber?:string}){
+export default function PageClient({storageKey,participantName,ndisNumber,paid}:{storageKey?:string;participantName?:string;ndisNumber?:string;paid?:boolean}){
+// Free preview: full manual calculator, but document exports and AI features are
+// paid-only (AI endpoints are also enforced server-side).
+const isPaid=paid!==false;
+function requireSub():boolean{
+  if(isPaid)return true;
+  alert("Document exports and AI plan uploads are part of the paid plan — $9.90/mo, cancel anytime.\n\nGo back to All Participants and click Subscribe on the banner.");
+  return false;
+}
 const STORAGE_KEY=storageKey||"ndis_budget_calc_pro_v7";
 const[userEmail,setUserEmail]=useState<string|null>(null);
 useEffect(()=>{supabase.auth.getUser().then(({data})=>{setUserEmail(data.user?.email??null)});const{data:sub}=supabase.auth.onAuthStateChange((_ev,session)=>{setUserEmail(session?.user?.email??null)});return()=>{sub.subscription.unsubscribe()}},[]);
@@ -1195,8 +1203,8 @@ return(
 <div className="text-xs font-semibold mb-2" style={{color:"#64748b",textTransform:"uppercase",letterSpacing:"0.06em"}}>Optional — Auto-fill from plan PDF</div>
 <div className="flex items-center gap-3 flex-wrap">
 <input ref={planFileRef} type="file" accept=".pdf,application/pdf" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f)handlePlanUpload(f);e.target.value="";}}/>
-<button onClick={()=>planFileRef.current?.click()} disabled={uploadingPlan} className="kv-btn" style={{background:"rgba(212,168,67,0.12)",border:"1px solid rgba(212,168,67,0.35)",color:"#b8901a",padding:"10px 18px",borderRadius:"8px",cursor:"pointer",fontWeight:"600",fontSize:"0.9rem",opacity:uploadingPlan?0.7:1}}>
-{uploadingPlan?"⏳ "+(uploadStage||"Reading plan…"):"📄 Upload NDIS Plan PDF"}
+<button onClick={()=>{if(!requireSub())return;planFileRef.current?.click()}} disabled={uploadingPlan} className="kv-btn" style={{background:"rgba(212,168,67,0.12)",border:"1px solid rgba(212,168,67,0.35)",color:"#b8901a",padding:"10px 18px",borderRadius:"8px",cursor:"pointer",fontWeight:"600",fontSize:"0.9rem",opacity:uploadingPlan?0.7:1}}>
+{uploadingPlan?"⏳ "+(uploadStage||"Reading plan…"):(isPaid?"📄 Upload NDIS Plan PDF":"🔒 Upload NDIS Plan PDF — paid plan")}
 </button>
 <span style={{color:"#64748b",fontSize:"0.82rem"}}>Upload a plan PDF to auto-fill dates, state &amp; funding — then use ✨ Auto-fill roster (below) to fill the weekly hours from your notes</span>
 {planUploadError&&<div className="w-full mt-1"><span style={{color:"#ef4444",fontSize:"0.85rem"}}>{planUploadError}</span></div>}
@@ -1259,17 +1267,17 @@ return(
 <div className="text-xs mt-1 text-right" style={{color:"rgba(255,255,255,0.6)"}}>{totals.totalFunding>0?((totals.planCost/totals.totalFunding)*100).toFixed(1):0}% used</div></div>
 <div className="mt-5 flex flex-wrap gap-2 items-stretch">
 <button onClick={addLine} className="kv-btn rounded-xl px-4 py-2 font-bold" style={{background:"#d4a843",border:"none",color:"#241456",cursor:"pointer"}}>+ Add support line</button>
-<button onClick={exportCSV} className="kv-btn rounded-xl px-4 py-2" style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.22)",color:"rgba(255,255,255,0.9)",cursor:"pointer"}}>Budget CSV</button>
-<button onClick={exportPDF} className="kv-btn rounded-xl px-4 py-2" style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.22)",color:"rgba(255,255,255,0.9)",cursor:"pointer"}} title="Internal budget report — for the signable Schedule of Supports use the SoS buttons">Budget Report PDF</button>
+<button onClick={()=>{if(!requireSub())return;exportCSV()}} className="kv-btn rounded-xl px-4 py-2" style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.22)",color:"rgba(255,255,255,0.9)",cursor:"pointer"}}>{isPaid?"":"🔒 "}Budget CSV</button>
+<button onClick={()=>{if(!requireSub())return;exportPDF()}} className="kv-btn rounded-xl px-4 py-2" style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.22)",color:"rgba(255,255,255,0.9)",cursor:"pointer"}} title="Internal budget report — for the signable Schedule of Supports use the SoS buttons">{isPaid?"":"🔒 "}Budget Report PDF</button>
 <input ref={claimsFileRef} type="file" accept=".csv,text/csv" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f)handleClaimsCsv(f);e.target.value="";}}/>
 <button onClick={()=>claimsFileRef.current?.click()} className="kv-btn rounded-xl px-4 py-2" style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.22)",color:"rgba(255,255,255,0.9)",cursor:"pointer"}}>Import Claims CSV</button>
 {claimsImportError&&<div className="w-full text-sm" style={{color:"#fda4af"}}>{claimsImportError}</div>}
-<button onClick={()=>setShowSAModal(true)} className="kv-btn" style={{padding:"10px 14px",background:"#fdf6e3",border:"none",borderRadius:"12px",cursor:"pointer",textAlign:"left"}}>
-  <span style={{display:"block",color:"#b8901a",fontWeight:700,fontSize:"0.9rem"}}>📋 Schedule of Supports (SIL / Core)</span>
+<button onClick={()=>{if(!requireSub())return;setShowSAModal(true)}} className="kv-btn" style={{padding:"10px 14px",background:"#fdf6e3",border:"none",borderRadius:"12px",cursor:"pointer",textAlign:"left"}}>
+  <span style={{display:"block",color:"#b8901a",fontWeight:700,fontSize:"0.9rem"}}>{isPaid?"":"🔒 "}📋 Schedule of Supports (SIL / Core)</span>
   <span style={{display:"block",color:"#475569",fontSize:"0.74rem",marginTop:"2px"}}>Signable agreement — roster, item numbers, signatures</span>
 </button>
-<button onClick={()=>setShowClinicalModal(true)} className="kv-btn" style={{padding:"10px 14px",background:"#eff6ff",border:"none",borderRadius:"12px",cursor:"pointer",textAlign:"left"}}>
-  <span style={{display:"block",color:"#1e40af",fontWeight:700,fontSize:"0.9rem"}}>🏥 Schedule of Supports (Clinical)</span>
+<button onClick={()=>{if(!requireSub())return;setShowClinicalModal(true)}} className="kv-btn" style={{padding:"10px 14px",background:"#eff6ff",border:"none",borderRadius:"12px",cursor:"pointer",textAlign:"left"}}>
+  <span style={{display:"block",color:"#1e40af",fontWeight:700,fontSize:"0.9rem"}}>{isPaid?"":"🔒 "}🏥 Schedule of Supports (Clinical)</span>
   <span style={{display:"block",color:"#475569",fontSize:"0.74rem",marginTop:"2px"}}>Signable agreement — behaviour support, allied health, therapy</span>
 </button>
 </div>
@@ -1390,7 +1398,7 @@ onFocus={e=>e.target.select()} className="kv-input w-full rounded-lg px-3 py-2"/
 placeholder={'e.g. 6 hrs community access each weekday 9am–3pm, 4 hrs across the weekend, sleepover every night, 100 km per week'}
 className="kv-input w-full rounded-lg px-3 py-2 text-sm" style={{resize:"vertical"}}/>
 <div className="flex items-center gap-3 flex-wrap mt-2">
-<button onClick={autofillRoster} disabled={autofilling||!planNotes.trim()} className="kv-btn rounded-xl px-4 py-2 font-bold" style={{background:planNotes.trim()&&!autofilling?"#d4a843":"#ecdfb6",border:"none",color:"#241456",cursor:planNotes.trim()&&!autofilling?"pointer":"not-allowed"}}>{autofilling?"⏳ Filling roster…":"✨ Auto-fill roster"}</button>
+<button onClick={()=>{if(!requireSub())return;autofillRoster()}} disabled={autofilling||!planNotes.trim()} className="kv-btn rounded-xl px-4 py-2 font-bold" style={{background:planNotes.trim()&&!autofilling?"#d4a843":"#ecdfb6",border:"none",color:"#241456",cursor:planNotes.trim()&&!autofilling?"pointer":"not-allowed"}}>{autofilling?"⏳ Filling roster…":"✨ Auto-fill roster"}</button>
 <span className="text-xs" style={{color:"#64748b"}}>Replaces the weekly roster on matching support lines and shows whether it fits the budget.</span>
 </div>
 {autofillError&&<div className="text-sm mt-2" style={{color:"#ef4444"}}>{autofillError}</div>}
@@ -1878,7 +1886,7 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
       placeholder="e.g. 20 hrs comprehensive BSP development, fortnightly 1 hr OT sessions across the plan, 6 psychology sessions of 1.5 hrs"
       className="kv-input w-full rounded-lg px-3 py-2 text-sm" style={{resize:"vertical"}}/>
     <div className="flex items-center gap-3 flex-wrap mt-2">
-      <button onClick={autofillClinical} disabled={clinicalAutofilling||!clinicalNotes.trim()} className="kv-btn rounded-xl px-4 py-2 font-bold" style={{background:clinicalNotes.trim()&&!clinicalAutofilling?"#1e40af":"#c7d7f5",border:"none",color:"#ffffff",cursor:clinicalNotes.trim()&&!clinicalAutofilling?"pointer":"not-allowed"}}>{clinicalAutofilling?"⏳ Filling services…":"✨ Auto-fill services"}</button>
+      <button onClick={()=>{if(!requireSub())return;autofillClinical()}} disabled={clinicalAutofilling||!clinicalNotes.trim()} className="kv-btn rounded-xl px-4 py-2 font-bold" style={{background:clinicalNotes.trim()&&!clinicalAutofilling?"#1e40af":"#c7d7f5",border:"none",color:"#ffffff",cursor:clinicalNotes.trim()&&!clinicalAutofilling?"pointer":"not-allowed"}}>{clinicalAutofilling?"⏳ Filling services…":"✨ Auto-fill services"}</button>
       {clinicalAutofillResult&&(()=>{
         const over=!clinicalBudgetLinked&&clinicalFunding>0&&clinicalAutofillResult.totalCost>clinicalFunding;
         return(<span className="text-sm kv-money" style={{color:over?"#dc2626":"#16a34a"}}>✓ {clinicalAutofillResult.count} service{clinicalAutofillResult.count===1?"":"s"} — {clinicalAutofillResult.totalHours%1===0?clinicalAutofillResult.totalHours:clinicalAutofillResult.totalHours.toFixed(1)}h, {money(clinicalAutofillResult.totalCost)}{!clinicalBudgetLinked&&clinicalFunding>0?(over?" — OVER the "+money(clinicalFunding)+" funding":" — fits the "+money(clinicalFunding)+" funding"):""}</span>);
@@ -1939,8 +1947,8 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
   </div>
   )}
 
-  <button onClick={()=>{if(clinicalServices.length>0)setClinicalScheduleItems(clinicalServices.map(s=>({...s})));setShowClinicalModal(true)}} style={{padding:"10px 16px",background:"rgba(100,150,212,0.1)",border:"1px solid rgba(100,150,212,0.35)",borderRadius:"12px",cursor:"pointer",textAlign:"left"}}>
-    <span style={{display:"block",color:"#1e40af",fontWeight:700,fontSize:"0.88rem"}}>🏥 Generate Clinical Schedule of Supports</span>
+  <button onClick={()=>{if(!requireSub())return;if(clinicalServices.length>0)setClinicalScheduleItems(clinicalServices.map(s=>({...s})));setShowClinicalModal(true)}} style={{padding:"10px 16px",background:"rgba(100,150,212,0.1)",border:"1px solid rgba(100,150,212,0.35)",borderRadius:"12px",cursor:"pointer",textAlign:"left"}}>
+    <span style={{display:"block",color:"#1e40af",fontWeight:700,fontSize:"0.88rem"}}>{isPaid?"":"🔒 "}🏥 Generate Clinical Schedule of Supports</span>
     <span style={{display:"block",color:"#64748b",fontSize:"0.72rem",marginTop:"2px"}}>Services pre-filled from your list above</span>
   </button>
 </div>

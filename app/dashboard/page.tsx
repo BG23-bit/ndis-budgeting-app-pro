@@ -569,7 +569,7 @@ export default function DashboardPage() {
             {p?.name} {p?.ndisNumber ? "(" + p.ndisNumber + ")" : ""}
           </div>
         </div>
-        <Client storageKey={"ndis_participant_" + activeParticipant} participantName={p?.name} ndisNumber={p?.ndisNumber} />
+        <Client storageKey={"ndis_participant_" + activeParticipant} participantName={p?.name} ndisNumber={p?.ndisNumber} paid={paid} />
       </div>
     );
   }
