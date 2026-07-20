@@ -940,19 +940,24 @@ function generateScheduleOfSupports(){
       if((l.fixedSleepovers||0)>0&&(l.lineRates?.fixedSleepoverUnit||0)>0){const rate=l.lineRates.fixedSleepoverUnit;const wkly=l.fixedSleepovers*rate*ff;body+=rowH([cell("Sleepover (staff asleep)"),cell("&mdash;"),cell(escapeHtml(saItemNumbers[l.id+"_fixedSleepover"]||getDefaultItemNumber(l.code,"fixedSleepover",saUseSilItems)),"left","font-family:monospace;font-size:8pt"),cell(String(l.fixedSleepovers)+"/wk","right"),cell(escapeHtml(money(rate))+"/night","right"),cell(escapeHtml(FREQ[l.fixedSleepoverFreq]?.label||"Every week")),cell(escapeHtml(money(wkly)),"right"),cell(escapeHtml(money(wkly*wk)),"right")]);}
       const kf=FREQ[l.kmFreq]?.multiplier||1;
       if((l.kmsPerWeek||0)>0&&(l.kmRate||0)>0){const wkly=l.kmsPerWeek*l.kmRate*kf;body+=rowH([cell("Transport (km)"),cell("&mdash;"),cell("&mdash;"),cell(String(l.kmsPerWeek)+"km/wk","right"),cell(escapeHtml(money(l.kmRate))+"/km","right"),cell(escapeHtml(FREQ[l.kmFreq]?.label||"Every week")),cell(escapeHtml(money(wkly)),"right"),cell(escapeHtml(money(wkly*wk)),"right")]);}
-      body+=`<tr class="total-row"><td colspan="7">${escapeHtml(l.description)} &mdash; plan total (excl. public holiday uplift)</td><td style="text-align:right">${escapeHtml(money(l.basePlanCost||0))}</td></tr>`;
+      body+=`<tr class="total-row"><td colspan="7">${escapeHtml(l.description)} &mdash; weekly ${escapeHtml(money(l.weeklyWithGST||0))} &nbsp;&middot;&nbsp; plan total (excl. public holiday uplift)</td><td style="text-align:right">${escapeHtml(money(l.basePlanCost||0))}</td></tr>`;
     }
-    let phRows="",phTotal=0;
+    // One row per holiday DATE (uplift summed across support lines) so the PH
+    // section stays a compact list of the actual dates, like provider SOS docs.
+    const phByDate:{[date:string]:{day:string;name:string;amt:number}}={};
+    let phTotal=0;
     for(const l of perLine as any[]){
       for(const h of (l.phImpact?.details||[])){
         if(!h.included||!h.impact)continue;
         phTotal+=h.impact;
-        phRows+=`<tr><td>${escapeHtml(h.date)}</td><td>${escapeHtml(h.day)}</td><td>${escapeHtml(h.name)}</td><td>${escapeHtml(l.description)}</td><td style="text-align:right">+${escapeHtml(money(h.impact))}</td></tr>`;
+        const e=phByDate[h.date]||(phByDate[h.date]={day:h.day,name:h.name,amt:0});
+        e.amt+=h.impact;
       }
     }
+    const phRows=Object.entries(phByDate).sort((a,b)=>a[0].localeCompare(b[0])).map(([date,e])=>`<tr><td>${escapeHtml(date)}</td><td>${escapeHtml(e.day)}</td><td>${escapeHtml(e.name)}</td><td style="text-align:right">+${escapeHtml(money(e.amt))}</td></tr>`).join("");
     const phSection=phRows?`<div class="section-heading" style="margin-top:14px">Public Holidays &mdash; dates in this plan</div>
-  <table style="font-size:8.5pt"><thead><tr><th>Date</th><th>Day</th><th>Holiday</th><th>Support line</th><th style="text-align:right">PH uplift</th></tr></thead>
-  <tbody>${phRows}<tr class="total-row"><td colspan="4">Public holiday uplift &mdash; rostered hours on these dates billed at the public holiday rate</td><td style="text-align:right">+${escapeHtml(money(phTotal))}</td></tr></tbody></table>`:"";
+  <table style="font-size:8.5pt"><thead><tr><th>Date</th><th>Day</th><th>Holiday</th><th style="text-align:right">PH uplift</th></tr></thead>
+  <tbody>${phRows}<tr class="total-row"><td colspan="3">Public holiday uplift &mdash; rostered hours on these dates billed at the public holiday rate</td><td style="text-align:right">+${escapeHtml(money(phTotal))}</td></tr></tbody></table>`:"";
     return `<div class="section-heading">Schedule of Supports &mdash; Day by Day</div>
   <table style="font-size:8.5pt">
     <thead><tr><th>Day</th><th>Times</th><th>Line Item</th><th style="text-align:right">Hrs</th><th style="text-align:right">Price</th><th>Frequency</th><th style="text-align:right">Weekly</th><th style="text-align:right">Plan Total</th></tr></thead>
@@ -2149,6 +2154,11 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
         </label>
       ))}
     </div>
+    {saLayout==="daily"&&!lines.some(l=>Object.values(l.roster||{}).some((r:any)=>r?.enabled&&(r.shifts||[]).some((x:any)=>x.s&&x.e)))&&(
+      <div className="text-xs mt-2 rounded-lg px-3 py-2" style={{background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.3)",color:"#b45309"}}>
+        ⚠ No shift times entered yet, so the Times column will print &ldquo;—&rdquo;. Close this and add times on each roster day with the <strong>🕐 + add times</strong> chips (use <strong>⇒ copy to Mon–Fri</strong> to fill the week), then each shift prints as its own row with its times.
+      </div>
+    )}
   </div>
 
   {saRows.length>0&&<div className="rounded-lg p-4 mb-5" style={{background:"rgba(15,23,42,0.03)",border:"1px solid rgba(15,23,42,0.07)"}}>
