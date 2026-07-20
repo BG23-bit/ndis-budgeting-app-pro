@@ -360,27 +360,61 @@ function computeRosterVerdict(proposal:any[]){
     const prs=proposal.filter((r:any)=>r?.categoryCode===l.code);
     if(prs.length===0||doneCodes.has(l.code))continue;
     doneCodes.add(l.code);
-    const{roster,aso,fso,kms}=rosterFromProposal(prs);
-    const simLine:any={...l,roster,activeSleepoverHours:aso,fixedSleepovers:fso,kmsPerWeek:kms>0?kms:l.kmsPerWeek};
+    // Cost each stated ratio separately so the verdict prices multi-ratio notes correctly
+    const groups=new Map<string,any[]>();
+    for(const r of prs){const key=r?.ratio&&RATIOS[r.ratio]?r.ratio:l.ratio;const g=groups.get(key)||[];g.push(r);groups.set(key,g);}
     const lr=l.lineRates||rates;
-    const base=calcDayCountPlanCost(simLine,srvStart,srvEnd,planWeeks,lr)*(1+(lr.gstRate||0));
-    const ph=calcPHImpact(simLine,holidays,lr);
-    const cost=base+ph.extraCost-ph.savedCost;
-    rows.push({code:l.code,description:l.description,budget:l.totalFunding,cost,remaining:l.totalFunding-cost,summary:proposalDaysSummary(prs)});
+    let cost=0;
+    for(const[k,g]of groups){
+      const{roster,aso,fso,kms}=rosterFromProposal(g);
+      const simLine:any={...l,ratio:k,roster,activeSleepoverHours:aso,fixedSleepovers:fso,kmsPerWeek:kms>0?kms:l.kmsPerWeek};
+      const base=calcDayCountPlanCost(simLine,srvStart,srvEnd,planWeeks,lr)*(1+(lr.gstRate||0));
+      const ph=calcPHImpact(simLine,holidays,lr);
+      cost+=base+ph.extraCost-ph.savedCost;
+    }
+    const ratioNote=groups.size>1?" · splits into "+[...groups.keys()].join(" + ")+" lines":"";
+    rows.push({code:l.code,description:l.description,budget:l.totalFunding,cost,remaining:l.totalFunding-cost,summary:proposalDaysSummary(prs)+ratioNote});
   }
   const matchedCodes=new Set(rows.map(r=>r.code));
   const skipped=proposal.filter((r:any)=>!matchedCodes.has(r?.categoryCode)).length;
   return{rows,skipped};
 }
+// Apply proposal entries to one line. When the notes state MULTIPLE ratios for
+// the same budget (e.g. mornings 1:3, afternoons 1:2) the line splits into one
+// per ratio, with funding divided pro-rata to each ratio's projected cost —
+// that's the only way per-band ratios can price honestly.
+function applyProposalToLine(l:SupportLine,prs:any[]):SupportLine[]{
+  const groups=new Map<string,any[]>();
+  for(const r of prs){const key=r?.ratio&&RATIOS[r.ratio]?r.ratio:l.ratio;const g=groups.get(key)||[];g.push(r);groups.set(key,g);}
+  const keys=[...groups.keys()];
+  if(keys.length<=1){
+    const{roster,aso,fso,kms}=rosterFromProposal(prs);
+    return[{...l,ratio:keys[0]||l.ratio,roster:keepRosterTimes(roster,l.roster),activeSleepoverHours:aso,fixedSleepovers:fso,kmsPerWeek:kms>0?kms:l.kmsPerWeek}];
+  }
+  const lr=l.lineRates||rates;
+  const built=keys.map(k=>{
+    const{roster,aso,fso,kms}=rosterFromProposal(groups.get(k)!);
+    const sim:any={...l,ratio:k,roster,activeSleepoverHours:aso,fixedSleepovers:fso,kmsPerWeek:kms};
+    const base=calcDayCountPlanCost(sim,srvStart,srvEnd,planWeeks,lr)*(1+(lr.gstRate||0));
+    const ph=calcPHImpact(sim,holidays,lr);
+    return{k,roster,aso,fso,kms,cost:Math.max(0,base+ph.extraCost-ph.savedCost)};
+  });
+  const totalCost=built.reduce((s,b)=>s+b.cost,0)||1;
+  let remaining=l.totalFunding;
+  return built.map((b,i)=>{
+    const funding=i===built.length-1?Math.round(remaining*100)/100:Math.round(l.totalFunding*(b.cost/totalCost)*100)/100;
+    remaining-=funding;
+    return{...l,id:i===0?l.id:uid(),ratio:b.k,totalFunding:funding,roster:keepRosterTimes(b.roster,l.roster),activeSleepoverHours:b.aso,fixedSleepovers:b.fso,kmsPerWeek:b.kms>0?b.kms:l.kmsPerWeek,claims:i===0?(l.claims||[]):[]};
+  });
+}
 function applyRosterProposal(proposal:any[]){
   setLines(prev=>{
     const doneCodes=new Set<string>();
-    return prev.map(l=>{
+    return prev.flatMap(l=>{
       const prs=proposal.filter((r:any)=>r?.categoryCode===l.code);
-      if(prs.length===0||doneCodes.has(l.code))return l;
+      if(prs.length===0||doneCodes.has(l.code))return[l];
       doneCodes.add(l.code);
-      const{roster,aso,fso,kms}=rosterFromProposal(prs);
-      return{...l,roster:keepRosterTimes(roster,l.roster),activeSleepoverHours:aso,fixedSleepovers:fso,kmsPerWeek:kms>0?kms:l.kmsPerWeek};
+      return applyProposalToLine(l,prs);
     });
   });
 }
@@ -644,12 +678,11 @@ function applyPlanExtract(){
     // Apply the roster proposed from the provider's notes (first line per category code)
     if(Array.isArray(planExtract.proposedRoster)&&planExtract.proposedRoster.length>0){
       const doneCodes=new Set<string>();
-      updated=updated.map((l:SupportLine)=>{
+      updated=updated.flatMap((l:SupportLine)=>{
         const prs=planExtract.proposedRoster.filter((r:any)=>r?.categoryCode===l.code);
-        if(prs.length===0||doneCodes.has(l.code))return l;
+        if(prs.length===0||doneCodes.has(l.code))return[l];
         doneCodes.add(l.code);
-        const{roster,aso,fso,kms}=rosterFromProposal(prs);
-        return{...l,roster:keepRosterTimes(roster,l.roster),activeSleepoverHours:aso,fixedSleepovers:fso,kmsPerWeek:kms>0?kms:l.kmsPerWeek};
+        return applyProposalToLine(l,prs);
       });
     }
     return updated;

@@ -51,6 +51,7 @@ Return ONLY a valid JSON object — no markdown, no extra text:
   "proposedRoster": [
     {
       "categoryCode": "2-digit string — MUST be one of the codes listed above",
+      "ratio": "staff:participant ratio if the notes state one — 1:1, 1:2, 1:3, 1:4, 2:1, 2:3 or 3:1 (e.g. 'shared 1 to 2' = 1:2, 'two workers across three participants' = 2:3). Omit when not mentioned.",
       "days": { "mon": {"hours": number, "nightHours": number, "shifts": [{"s": "HH:MM", "e": "HH:MM"}]}, "tue": {"hours": number, "nightHours": number} },
       "frequency": "every|2nd|3rd|4th|monthly",
       "activeSleepoverHoursPerWeek": number,
@@ -64,6 +65,7 @@ Rules:
 - "each weekday" / "weekdays" = mon, tue, wed, thu, fri. "weekend" = sat and sun. An amount "per weekend" with no per-day split means that many hours across the whole weekend (split evenly between sat and sun); "each weekend day" means that many hours on sat AND sun.
 - Hours delivered between 6am and 8pm are daytime "hours". Any portion between 8pm and midnight is "nightHours". A sleepover / overnight stay = sleepoversPerWeek (e.g. "sleepover every night" = 7). Awake overnight support = activeSleepoverHoursPerWeek.
 - Put hours on the line whose budget they draw from: under a flexible Core budget, daily living AND community access hours both draw from that Core line — combine hours for the same code by summing per day. Only roster-based core supports (codes 01, 04, 08, 16, 21) get entries; ignore therapy, coordination or plan-management hours.
+- When different parts of the day run at DIFFERENT ratios (e.g. mornings 1:3, afternoons 1:2), return a SEPARATE proposedRoster entry per ratio containing only the days/hours delivered at that ratio.
 - When the notes state times of day (e.g. "9am-3pm", "0600-0900 and 5pm to 8.30pm"), also return them per day as "shifts" in 24-hour HH:MM. The day's hours/nightHours must equal the shift durations (6am-8pm portions are daytime "hours", 8pm-midnight portions are "nightHours"). Omit "shifts" entirely when the notes give no times.
 - Round hours to the nearest quarter hour. Do not invent supports that are not described in the notes. If the notes don't describe any roster supports, return {"proposedRoster": []}.`;
 }
@@ -90,6 +92,7 @@ Extract the following and return ONLY a valid JSON object — no markdown, no ex
   "proposedRoster": [
     {
       "categoryCode": "2-digit string matching a supportLines code",
+      "ratio": "staff:participant ratio if the notes state one — 1:1, 1:2, 1:3, 1:4, 2:1, 2:3 or 3:1. Omit when not mentioned.",
       "days": { "mon": {"hours": number, "nightHours": number, "shifts": [{"s": "HH:MM", "e": "HH:MM"}]}, "tue": {"hours": number, "nightHours": number} },
       "frequency": "every|2nd|3rd|4th|monthly",
       "activeSleepoverHoursPerWeek": number,
@@ -167,6 +170,7 @@ Translate these notes into proposedRoster entries using these rules:
 - Hours delivered between 6am and 8pm are daytime "hours". Any portion between 8pm and midnight is "nightHours". A sleepover / overnight stay = sleepoversPerWeek (e.g. "sleepover every night" = 7). Awake overnight support = activeSleepoverHoursPerWeek.
 - Set categoryCode to the supportLines code whose budget those hours draw from. Under a flexible Core budget, daily living AND community access hours both draw from that Core line (usually 01) — combine hours for the same code by summing per day.
 - Only roster-based core supports (codes 01, 04, 08, 16, 21) get proposedRoster entries. Ignore therapy, coordination or plan-management hours here.
+- When different parts of the day run at DIFFERENT ratios (e.g. mornings 1:3, afternoons 1:2), return a SEPARATE proposedRoster entry per ratio containing only the days/hours delivered at that ratio.
 - When the notes state times of day (e.g. "9am-3pm", "0600-0900 and 5pm to 8.30pm"), also return them per day as "shifts" in 24-hour HH:MM. The day's hours/nightHours must equal the shift durations. Omit "shifts" entirely when the notes give no times.
 - Round hours to the nearest quarter hour. Do not invent supports that are not described in the notes. If the notes don't describe any roster supports, return [].`;
   }
