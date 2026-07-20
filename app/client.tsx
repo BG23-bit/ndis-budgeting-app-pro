@@ -505,6 +505,9 @@ useEffect(()=>{try{const raw=localStorage.getItem("kevria_item_numbers");if(raw)
 useEffect(()=>{try{localStorage.setItem("kevria_item_numbers",JSON.stringify(saItemNumbers))}catch{}},[saItemNumbers]);
 useEffect(()=>{try{setSaUseSilItems(localStorage.getItem("kevria_sa_use_sil")==="1")}catch{}},[]);
 useEffect(()=>{try{localStorage.setItem("kevria_sa_use_sil",saUseSilItems?"1":"0")}catch{}},[saUseSilItems]);
+const[saLayout,setSaLayout]=useState<"summary"|"daily">("summary");
+useEffect(()=>{try{if(localStorage.getItem("kevria_sa_layout")==="daily")setSaLayout("daily")}catch{}},[]);
+useEffect(()=>{try{localStorage.setItem("kevria_sa_layout",saLayout)}catch{}},[saLayout]);
 useEffect(()=>{try{const raw=localStorage.getItem("kevria_clinical_prac");if(raw)setClinicalPractitioner((p:any)=>({...p,...JSON.parse(raw)}))}catch{}},[]);
 useEffect(()=>{try{localStorage.setItem("kevria_clinical_prac",JSON.stringify(clinicalPractitioner))}catch{}},[clinicalPractitioner]);
 const planFileRef=React.useRef<HTMLInputElement>(null);
@@ -857,7 +860,71 @@ function generateScheduleOfSupports(){
   <div style="font-size:12pt;font-weight:700;color:#0f172a;white-space:nowrap;margin-left:16px">${escapeHtml(money(estFee))}</div>
   </div>`:"";
 
-  const grandTotal=supRows.reduce((s,r)=>s+(r.total||0),0)+(estFee||0);
+  const grandTotal=saLayout==="daily"
+    ?perLine.reduce((s:number,l:any)=>s+(getLineMode(l.code)==="lump"?(l.totalFunding||0):(l.planTotal||0)),0)+(estFee||0)
+    :supRows.reduce((s,r)=>s+(r.total||0),0)+(estFee||0);
+
+  // Day-by-day layout (Big Tree style): one row per rostered day per rate band,
+  // with shift times, item numbers, ratio-adjusted price and per-day plan totals.
+  // Public holiday dates are listed in their own section as an uplift.
+  const dailySectionHtml=(()=>{
+    if(saLayout!=="daily")return"";
+    const wk=planWeeks;
+    const cell=(v:string,align:string="left",extra:string="")=>`<td style="text-align:${align};${extra}">${v}</td>`;
+    const rowH=(cells:string[])=>`<tr>${cells.join("")}</tr>`;
+    let body="";
+    for(const l of perLine as any[]){
+      const mode=getLineMode(l.code);
+      const div=RATIOS[l.ratio]?.divisor||1;
+      const ratioSuf=l.ratio&&l.ratio!=="1:1"?" ("+escapeHtml(l.ratio)+")":"";
+      body+=`<tr><td colspan="8" style="background:#eef2f7;font-weight:700;color:#2d1b69;padding:7px 10px">${escapeHtml(l.description)}${ratioSuf}${mode==="lump"?"":" &mdash; "+escapeHtml(money(l.totalFunding))+" funded"}</td></tr>`;
+      if(mode==="lump"){
+        body+=rowH([cell("&mdash;"),cell("&mdash;"),cell(escapeHtml(saItemNumbers[l.id+"_lump"]||getDefaultItemNumber(l.code,"lump",saUseSilItems)),"left","font-family:monospace;font-size:8pt"),cell("&mdash;","right"),cell("&mdash;","right"),cell("Lump sum"),cell("&mdash;","right"),cell("<strong>"+escapeHtml(money(l.totalFunding))+"</strong>","right")]);
+        continue;
+      }
+      for(const d of DAYS){
+        const r=l.roster[d];if(!r?.enabled)continue;
+        const occ=countDayOccurrences(srvStart,srvEnd,DAY_DOW[d])*(FREQ[r.frequency]?.multiplier||1);
+        const isSat=d==="sat",isSun=d==="sun";
+        const times=shiftsToText(r.shifts,r.times);
+        const freqLbl=FREQ[r.frequency]?.label||"Every week";
+        const bands:[number,number,string,string][]=[];
+        if((r.hours||0)>0)bands.push([r.hours,(isSat?l.lineRates?.sat:isSun?l.lineRates?.sun:l.lineRates?.weekdayOrd)||0,isSat?"sat":isSun?"sun":"weekday",""]);
+        if((r.nightHours||0)>0)bands.push([r.nightHours,(isSat?l.lineRates?.sat:isSun?l.lineRates?.sun:l.lineRates?.weekdayNight)||0,isSat?"satNight":isSun?"sunNight":"weekdayNight"," &mdash; evening"]);
+        for(const[hrs,rate0,rt,lbl]of bands){
+          const rate=rate0/div;
+          const item=saItemNumbers[l.id+"_"+rt]||getDefaultItemNumber(l.code,rt,saUseSilItems);
+          body+=rowH([cell(DL[d]+lbl),cell(times?escapeHtml(times):"&mdash;"),cell(escapeHtml(item)+ratioSuf,"left","font-family:monospace;font-size:8pt"),cell(String(hrs),"right"),cell(escapeHtml(money(rate))+"/hr","right"),cell(escapeHtml(freqLbl)),cell(escapeHtml(money(hrs*rate)),"right"),cell(escapeHtml(money(hrs*rate*occ)),"right")]);
+        }
+      }
+      const sf=FREQ[l.activeSleepoverFreq]?.multiplier||1;
+      if((l.activeSleepoverHours||0)>0&&(l.lineRates?.activeSleepoverHourly||0)>0){const rate=(l.lineRates.activeSleepoverHourly||0)/div;const wkly=l.activeSleepoverHours*rate*sf;body+=rowH([cell("Night &mdash; active overnight"),cell("&mdash;"),cell(escapeHtml(saItemNumbers[l.id+"_activeSleepover"]||getDefaultItemNumber(l.code,"activeSleepover",saUseSilItems)),"left","font-family:monospace;font-size:8pt"),cell(String(l.activeSleepoverHours)+"/wk","right"),cell(escapeHtml(money(rate))+"/hr","right"),cell(escapeHtml(FREQ[l.activeSleepoverFreq]?.label||"Every week")),cell(escapeHtml(money(wkly)),"right"),cell(escapeHtml(money(wkly*wk)),"right")]);}
+      const ff=FREQ[l.fixedSleepoverFreq]?.multiplier||1;
+      if((l.fixedSleepovers||0)>0&&(l.lineRates?.fixedSleepoverUnit||0)>0){const rate=l.lineRates.fixedSleepoverUnit;const wkly=l.fixedSleepovers*rate*ff;body+=rowH([cell("Sleepover (staff asleep)"),cell("&mdash;"),cell(escapeHtml(saItemNumbers[l.id+"_fixedSleepover"]||getDefaultItemNumber(l.code,"fixedSleepover",saUseSilItems)),"left","font-family:monospace;font-size:8pt"),cell(String(l.fixedSleepovers)+"/wk","right"),cell(escapeHtml(money(rate))+"/night","right"),cell(escapeHtml(FREQ[l.fixedSleepoverFreq]?.label||"Every week")),cell(escapeHtml(money(wkly)),"right"),cell(escapeHtml(money(wkly*wk)),"right")]);}
+      const kf=FREQ[l.kmFreq]?.multiplier||1;
+      if((l.kmsPerWeek||0)>0&&(l.kmRate||0)>0){const wkly=l.kmsPerWeek*l.kmRate*kf;body+=rowH([cell("Transport (km)"),cell("&mdash;"),cell("&mdash;"),cell(String(l.kmsPerWeek)+"km/wk","right"),cell(escapeHtml(money(l.kmRate))+"/km","right"),cell(escapeHtml(FREQ[l.kmFreq]?.label||"Every week")),cell(escapeHtml(money(wkly)),"right"),cell(escapeHtml(money(wkly*wk)),"right")]);}
+      body+=`<tr class="total-row"><td colspan="7">${escapeHtml(l.description)} &mdash; plan total (excl. public holiday uplift)</td><td style="text-align:right">${escapeHtml(money(l.basePlanCost||0))}</td></tr>`;
+    }
+    let phRows="",phTotal=0;
+    for(const l of perLine as any[]){
+      for(const h of (l.phImpact?.details||[])){
+        if(!h.included||!h.impact)continue;
+        phTotal+=h.impact;
+        phRows+=`<tr><td>${escapeHtml(h.date)}</td><td>${escapeHtml(h.day)}</td><td>${escapeHtml(h.name)}</td><td>${escapeHtml(l.description)}</td><td style="text-align:right">+${escapeHtml(money(h.impact))}</td></tr>`;
+      }
+    }
+    const phSection=phRows?`<div class="section-heading" style="margin-top:14px">Public Holidays &mdash; dates in this plan</div>
+  <table style="font-size:8.5pt"><thead><tr><th>Date</th><th>Day</th><th>Holiday</th><th>Support line</th><th style="text-align:right">PH uplift</th></tr></thead>
+  <tbody>${phRows}<tr class="total-row"><td colspan="4">Public holiday uplift &mdash; rostered hours on these dates billed at the public holiday rate</td><td style="text-align:right">+${escapeHtml(money(phTotal))}</td></tr></tbody></table>`:"";
+    return `<div class="section-heading">Schedule of Supports &mdash; Day by Day</div>
+  <table style="font-size:8.5pt">
+    <thead><tr><th>Day</th><th>Times</th><th>Line Item</th><th style="text-align:right">Hrs</th><th style="text-align:right">Price</th><th>Frequency</th><th style="text-align:right">Weekly</th><th style="text-align:right">Plan Total</th></tr></thead>
+    <tbody>${body}</tbody>
+  </table>
+  <div class="note">Plan totals count the actual occurrences of each day across the service period (${wk.toFixed(1)} weeks). Public holiday dates are itemised below. All prices are GST-inclusive where applicable.</div>
+  ${phSection}
+  <table style="margin-top:10px"><tbody><tr class="total-row"><td>Grand total including public holidays${estFee>0?" and establishment fee":""}</td><td style="text-align:right">${escapeHtml(money(grandTotal))}</td></tr></tbody></table>`;
+  })();
 
   const html=`<!doctype html><html><head><meta charset="utf-8"/><title>Schedule of Supports - ${escapeHtml(pName)}</title>
 <style>
@@ -917,7 +984,7 @@ tbody td{padding:9px 10px;vertical-align:top}
 
   ${specReqHtml}
   ${estFeeHtml}
-  <div class="section-heading">Funded Supports &amp; Schedule</div>
+  ${saLayout==="daily"?dailySectionHtml:`<div class="section-heading">Funded Supports &amp; Schedule</div>
   <table>
     <thead><tr>
       <th style="width:28%">Support Category</th>
@@ -930,9 +997,9 @@ tbody td{padding:9px 10px;vertical-align:top}
     <tr class="total-row"><td colspan="3">Total</td><td style="text-align:right">${escapeHtml(money(grandTotal))}</td></tr>
     </tbody>
   </table>
-  <div class="note">Prices per the NDIS Pricing Schedule (2026&#8211;27). Plan totals are estimates and may vary based on actual supports delivered. All prices are GST-inclusive where applicable.</div>
+  <div class="note">Prices per the NDIS Pricing Schedule (2026&#8211;27). Plan totals are estimates and may vary based on actual supports delivered. All prices are GST-inclusive where applicable.</div>`}
 
-  ${(()=>{
+  ${saLayout==="daily"?"":(()=>{
     const rLines=perLine.filter((l:any)=>getLineMode(l.code)!=="lump"&&(Object.values(l.roster).some((r:any)=>r?.enabled)||(l.kmsPerWeek||0)>0));
     if(rLines.length===0)return"";
     const dOrder=["mon","tue","wed","thu","fri","sat","sun"];
@@ -2029,6 +2096,18 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
       <div><span style={{color:"#64748b"}}>State: </span><span style={{color: "#0f172a",fontWeight:600}}>{planDates.state}</span></div>
       <div><span style={{color:"#64748b"}}>Support lines: </span><span style={{color: "#0f172a",fontWeight:600}}>{lines.length}</span></div>
       <div><span style={{color:"#64748b"}}>Total budget: </span><span style={{color:"#d4a843",fontWeight:600}}>{money(totals.totalFunding)}</span></div>
+    </div>
+  </div>
+
+  <div className="rounded-lg p-4 mb-5" style={{background:"rgba(15,23,42,0.03)",border:"1px solid rgba(15,23,42,0.07)"}}>
+    <div className="text-xs font-semibold mb-2" style={{color:"#334155",textTransform:"uppercase",letterSpacing:"0.06em"}}>Layout</div>
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      {([["summary","Summary","Totals per rate band + weekly roster grid"],["daily","Day-by-day roster","One row per day with times, item numbers & PH dates listed"]] as [typeof saLayout,string,string][]).map(([val,label,hint])=>(
+        <label key={val} className="flex items-start gap-2 cursor-pointer rounded-lg p-2" style={{border:"1px solid "+(saLayout===val?"rgba(212,168,67,0.5)":"rgba(15,23,42,0.08)"),background:saLayout===val?"rgba(212,168,67,0.07)":"transparent"}}>
+          <input type="radio" name="sa-layout" checked={saLayout===val} onChange={()=>setSaLayout(val)} style={{accentColor:"#d4a843",marginTop:"3px"}}/>
+          <span><span className="text-sm font-semibold" style={{color:saLayout===val?"#b8901a":"#334155"}}>{label}</span><br/><span className="text-xs" style={{color:"#64748b"}}>{hint}</span></span>
+        </label>
+      ))}
     </div>
   </div>
 
