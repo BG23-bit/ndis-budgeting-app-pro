@@ -146,6 +146,18 @@ function keepRosterTimes(newRoster:{[k:string]:DayRoster},oldRoster?:{[k:string]
 }
 // Shift times are display-only (Schedule of Supports); `times` is the legacy free-text form.
 function shiftsToText(shifts?:Shift[],legacy?:string):string{const v=(shifts||[]).filter(x=>x.s&&x.e).map(x=>x.s+"–"+x.e);return v.length?v.join(", "):(legacy||"")}
+// Split one shift into NDIS rate bands: daytime 6am–8pm, evening 8pm–6am
+// (weekends are a single all-day rate so no split is needed there).
+function splitShiftBands(s:string,e:string):{day:number;eve:number}{
+  const toMin=(t:string)=>{const[a,b]=t.split(":").map(Number);return Number.isFinite(a)&&Number.isFinite(b)?a*60+b:NaN};
+  let a=toMin(s),b=toMin(e);
+  if(!Number.isFinite(a)||!Number.isFinite(b))return{day:0,eve:0};
+  if(b<=a)b+=1440;
+  let day=0;
+  for(const[ds,de]of[[360,1200],[1800,2640]]){const lo=Math.max(a,ds),hi=Math.min(b,de);if(hi>lo)day+=hi-lo;}
+  const total=b-a;
+  return{day:day/60,eve:(total-day)/60};
+}
 function shiftHoursTotal(shifts?:Shift[]):number{let t=0;for(const x of shifts||[]){if(!x.s||!x.e)continue;const[sh,sm]=x.s.split(":").map(Number);const[eh,em]=x.e.split(":").map(Number);if([sh,sm,eh,em].some(n=>!Number.isFinite(n)))continue;let mins=eh*60+em-(sh*60+sm);if(mins<=0)mins+=24*60;t+=mins/60;}return Math.round(t*100)/100}
 function proposalDaysSummary(prs:any[]):string{
   const{roster,aso,fso,kms}=rosterFromProposal(prs);
@@ -886,15 +898,40 @@ function generateScheduleOfSupports(){
         const r=l.roster[d];if(!r?.enabled)continue;
         const occ=countDayOccurrences(srvStart,srvEnd,DAY_DOW[d])*(FREQ[r.frequency]?.multiplier||1);
         const isSat=d==="sat",isSun=d==="sun";
-        const times=shiftsToText(r.shifts,r.times);
         const freqLbl=FREQ[r.frequency]?.label||"Every week";
-        const bands:[number,number,string,string][]=[];
-        if((r.hours||0)>0)bands.push([r.hours,(isSat?l.lineRates?.sat:isSun?l.lineRates?.sun:l.lineRates?.weekdayOrd)||0,isSat?"sat":isSun?"sun":"weekday",""]);
-        if((r.nightHours||0)>0)bands.push([r.nightHours,(isSat?l.lineRates?.sat:isSun?l.lineRates?.sun:l.lineRates?.weekdayNight)||0,isSat?"satNight":isSun?"sunNight":"weekdayNight"," &mdash; evening"]);
-        for(const[hrs,rate0,rt,lbl]of bands){
+        const emit=(hrs:number,rate0:number,rt:string,lbl:string,times:string)=>{
           const rate=rate0/div;
           const item=saItemNumbers[l.id+"_"+rt]||getDefaultItemNumber(l.code,rt,saUseSilItems);
-          body+=rowH([cell(DL[d]+lbl),cell(times?escapeHtml(times):"&mdash;"),cell(escapeHtml(item)+ratioSuf,"left","font-family:monospace;font-size:8pt"),cell(String(hrs),"right"),cell(escapeHtml(money(rate))+"/hr","right"),cell(escapeHtml(freqLbl)),cell(escapeHtml(money(hrs*rate)),"right"),cell(escapeHtml(money(hrs*rate*occ)),"right")]);
+          const hd=hrs%1===0?String(hrs):hrs.toFixed(2);
+          body+=rowH([cell(DL[d]+lbl),cell(times?escapeHtml(times):"&mdash;"),cell(escapeHtml(item)+ratioSuf,"left","font-family:monospace;font-size:8pt"),cell(hd,"right"),cell(escapeHtml(money(rate))+"/hr","right"),cell(escapeHtml(freqLbl)),cell(escapeHtml(money(hrs*rate)),"right"),cell(escapeHtml(money(hrs*rate*occ)),"right")]);
+        };
+        // One row per shift when the entered hours line up with the shift times —
+        // split at 8pm into daytime/evening pricing so the document reads like a
+        // time-of-day roster. Falls back to band totals when they don't match.
+        const shifts=(r.shifts||[]).filter((x:Shift)=>x.s&&x.e);
+        let perShift=false;
+        if(shifts.length>0){
+          let sd=0,se=0;
+          for(const sh of shifts){const b=splitShiftBands(sh.s,sh.e);sd+=b.day;se+=b.eve;}
+          perShift=isSat||isSun
+            ?Math.abs(sd+se-((r.hours||0)+(r.nightHours||0)))<=0.02
+            :Math.abs(sd-(r.hours||0))<=0.02&&Math.abs(se-(r.nightHours||0))<=0.02;
+        }
+        if(perShift){
+          for(const sh of shifts){
+            const b=splitShiftBands(sh.s,sh.e);
+            const t=sh.s+"–"+sh.e;
+            if(isSat||isSun){
+              if(b.day+b.eve>0)emit(b.day+b.eve,(isSat?l.lineRates?.sat:l.lineRates?.sun)||0,isSat?"sat":"sun","",t);
+            }else{
+              if(b.day>0)emit(b.day,l.lineRates?.weekdayOrd||0,"weekday","",t);
+              if(b.eve>0)emit(b.eve,l.lineRates?.weekdayNight||0,"weekdayNight"," &mdash; evening",t);
+            }
+          }
+        }else{
+          const times=shiftsToText(r.shifts,r.times);
+          if((r.hours||0)>0)emit(r.hours,(isSat?l.lineRates?.sat:isSun?l.lineRates?.sun:l.lineRates?.weekdayOrd)||0,isSat?"sat":isSun?"sun":"weekday","",times);
+          if((r.nightHours||0)>0)emit(r.nightHours,(isSat?l.lineRates?.sat:isSun?l.lineRates?.sun:l.lineRates?.weekdayNight)||0,isSat?"satNight":isSun?"sunNight":"weekdayNight"," &mdash; evening",times);
         }
       }
       const sf=FREQ[l.activeSleepoverFreq]?.multiplier||1;
@@ -2105,7 +2142,7 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
   <div className="rounded-lg p-4 mb-5" style={{background:"rgba(15,23,42,0.03)",border:"1px solid rgba(15,23,42,0.07)"}}>
     <div className="text-xs font-semibold mb-2" style={{color:"#334155",textTransform:"uppercase",letterSpacing:"0.06em"}}>Layout</div>
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-      {([["summary","Summary","Totals per rate band + weekly roster grid"],["daily","Day-by-day roster","One row per day with times, item numbers & PH dates listed"]] as [typeof saLayout,string,string][]).map(([val,label,hint])=>(
+      {([["summary","Summary","Totals per rate band + weekly roster grid"],["daily","Day-by-day roster","One row per shift with times, item numbers & PH dates listed. Need different ratios at different times of day? Use one support line per ratio — ⧉ Duplicate makes this quick."]] as [typeof saLayout,string,string][]).map(([val,label,hint])=>(
         <label key={val} className="flex items-start gap-2 cursor-pointer rounded-lg p-2" style={{border:"1px solid "+(saLayout===val?"rgba(212,168,67,0.5)":"rgba(15,23,42,0.08)"),background:saLayout===val?"rgba(212,168,67,0.07)":"transparent"}}>
           <input type="radio" name="sa-layout" checked={saLayout===val} onChange={()=>setSaLayout(val)} style={{accentColor:"#d4a843",marginTop:"3px"}}/>
           <span><span className="text-sm font-semibold" style={{color:saLayout===val?"#b8901a":"#334155"}}>{label}</span><br/><span className="text-xs" style={{color:"#64748b"}}>{hint}</span></span>
