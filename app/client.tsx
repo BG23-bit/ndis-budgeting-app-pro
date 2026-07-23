@@ -509,6 +509,7 @@ function lineHasData(l:SupportLine):boolean{
 }
 const[showSAModal,setShowSAModal]=useState(false);
 const[saSpecificReqs,setSaSpecificReqs]=useState({behavioursOfConcern:false,regulatedRestrictivePractice:false,medicationManagement:false});
+const[saShowSpecificReqs,setSaShowSpecificReqs]=useState(true);
 const[saEstFee,setSaEstFee]=useState("");
 const[saItemNumbers,setSaItemNumbers]=useState<{[k:string]:string}>({});
 const[saUseSilItems,setSaUseSilItems]=useState(false);
@@ -560,6 +561,8 @@ useEffect(()=>{try{setSaUseSilItems(localStorage.getItem("kevria_sa_use_sil")===
 useEffect(()=>{try{localStorage.setItem("kevria_sa_use_sil",saUseSilItems?"1":"0")}catch{}},[saUseSilItems]);
 const[saLayout,setSaLayout]=useState<"summary"|"daily">("summary");
 useEffect(()=>{try{if(localStorage.getItem("kevria_sa_layout")==="daily")setSaLayout("daily")}catch{}},[]);
+useEffect(()=>{try{if(localStorage.getItem("kevria_sa_specreqs")==="0")setSaShowSpecificReqs(false)}catch{}},[]);
+useEffect(()=>{try{localStorage.setItem("kevria_sa_specreqs",saShowSpecificReqs?"1":"0")}catch{}},[saShowSpecificReqs]);
 useEffect(()=>{try{localStorage.setItem("kevria_sa_layout",saLayout)}catch{}},[saLayout]);
 useEffect(()=>{try{const raw=localStorage.getItem("kevria_clinical_prac");if(raw)setClinicalPractitioner((p:any)=>({...p,...JSON.parse(raw)}))}catch{}},[]);
 useEffect(()=>{try{localStorage.setItem("kevria_clinical_prac",JSON.stringify(clinicalPractitioner))}catch{}},[clinicalPractitioner]);
@@ -896,7 +899,7 @@ function generateScheduleOfSupports(){
   }).join("");
 
   const sreqs=saSpecificReqs;
-  const specReqHtml=`<div style="margin-bottom:18px">
+  const specReqHtml=!saShowSpecificReqs?"":`<div style="margin-bottom:18px">
   <div style="font-size:8.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#2d1b69;padding-bottom:5px;border-bottom:2px solid #d4a843;margin-bottom:10px">Specific Requirements</div>
   <table style="border:1.5px solid #e2e8f0;border-radius:6px;overflow:hidden;font-size:9pt;margin-bottom:0">
     <tbody>
@@ -969,7 +972,9 @@ function generateScheduleOfSupports(){
             }
           }
         }else{
-          const times=shiftsToText(r.shifts,r.times);
+          // Shifts that don't reconcile with the entered hours are not printed —
+          // the document must never show times that contradict the Hrs column.
+          const times=shifts.length>0?"":shiftsToText(r.shifts,r.times);
           if((r.hours||0)>0)emit(r.hours,(isSat?l.lineRates?.sat:isSun?l.lineRates?.sun:l.lineRates?.weekdayOrd)||0,isSat?"sat":isSun?"sun":"weekday","",times);
           if((r.nightHours||0)>0)emit(r.nightHours,(isSat?l.lineRates?.sat:isSun?l.lineRates?.sun:l.lineRates?.weekdayNight)||0,isSat?"satNight":isSun?"sunNight":"weekdayNight"," &mdash; evening",times);
         }
@@ -2234,7 +2239,13 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
   </div>}
 
   <div className="rounded-lg p-4 mb-5" style={{background:"rgba(15,23,42,0.03)",border:"1px solid rgba(15,23,42,0.07)"}}>
-    <div className="text-xs font-semibold mb-3" style={{color:"#334155",textTransform:"uppercase",letterSpacing:"0.06em"}}>Specific Requirements</div>
+    <div className="flex items-center justify-between mb-3">
+    <div className="text-xs font-semibold" style={{color:"#334155",textTransform:"uppercase",letterSpacing:"0.06em"}}>Specific Requirements</div>
+    <label className="flex items-center gap-2 cursor-pointer text-xs" style={{color:"#64748b"}}>
+      <input type="checkbox" checked={saShowSpecificReqs} onChange={e=>setSaShowSpecificReqs(e.target.checked)} style={{accentColor:"#d4a843",width:"14px",height:"14px"}}/>
+      include this section on the document
+    </label>
+    </div>
     <div className="grid grid-cols-1 gap-2">
       {([["behavioursOfConcern","Behaviours of Concern"],["regulatedRestrictivePractice","Regulated Restrictive Practice"],["medicationManagement","Medication Management"]] as [keyof typeof saSpecificReqs,string][]).map(([key,label])=>(
         <label key={key} className="flex items-center gap-3 cursor-pointer">
