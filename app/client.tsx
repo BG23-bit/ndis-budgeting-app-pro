@@ -137,7 +137,12 @@ function rosterFromProposal(prs:any[]):{roster:{[k:string]:DayRoster};aso:number
           .filter((x:Shift)=>/^\d{2}:\d{2}$/.test(x.s)&&/^\d{2}:\d{2}$/.test(x.e))
         :[];
       const mergedShifts=[...(prev.enabled&&prev.shifts?prev.shifts:[]),...sh];
-      roster[d]={enabled:true,hours:(prev.enabled?prev.hours:0)+hv,nightHours:(prev.enabled?prev.nightHours:0)+nv,frequency:freq,...(mergedShifts.length?{shifts:mergedShifts}:{})};
+      // When the notes gave times, the times are authoritative — recompute this
+      // entry's hours from the shift durations (8pm evening split; weekends one band).
+      let hv2=hv,nv2=nv;
+      if(sh.length){let dayH=0,eveH=0;for(const x of sh){const b=splitShiftBands(x.s,x.e);dayH+=b.day;eveH+=b.eve;}
+        if(dayH+eveH>0){const wknd=d==="sat"||d==="sun";hv2=wknd?dayH+eveH:dayH;nv2=wknd?0:eveH;}}
+      roster[d]={enabled:true,hours:Math.round(((prev.enabled?prev.hours:0)+hv2)*100)/100,nightHours:Math.round(((prev.enabled?prev.nightHours:0)+nv2)*100)/100,frequency:freq,...(mergedShifts.length?{shifts:mergedShifts}:{})};
     }
     aso+=num(r?.activeSleepoverHoursPerWeek);fso+=num(r?.sleepoversPerWeek);kms+=num(r?.kmsPerWeek);
   }
@@ -240,6 +245,15 @@ function addLine(){setLines(prev=>[...prev,{id:uid(),code:"01",description:"New 
 function updateLineCode(id:string,code:string){setLines(prev=>prev.map(l=>l.id!==id?l:{...l,code,lineRates:applyProviderDefaults(getPresetRates(code),providerDetails.defaultRates)}))}
 // Copy one weekday's hours, frequency and shift times across Mon–Fri (SIL rosters
 // are usually identical on weekdays).
+// Times are the source of truth when present: editing shift chips recomputes
+// the day's hours (weekday evening split at 8pm; weekends single band).
+function setShiftsAndSync(lineId:string,d:string,shifts:Shift[]){
+  const complete=shifts.filter(x=>x.s&&x.e);
+  if(complete.length===0){updateRosterDay(lineId,d,{shifts});return;}
+  let day=0,eve=0;for(const sh of complete){const b=splitShiftBands(sh.s,sh.e);day+=b.day;eve+=b.eve;}
+  const wknd=d==="sat"||d==="sun";
+  updateRosterDay(lineId,d,{shifts,hours:Math.round((wknd?day+eve:day)*100)/100,nightHours:wknd?0:Math.round(eve*100)/100});
+}
 function copyDayToWeekdays(lineId:string,src:string){
   setLines(prev=>prev.map(l=>{
     if(l.id!==lineId)return l;
@@ -1672,10 +1686,10 @@ return(<div className="flex items-center gap-1 flex-wrap">
 )}
 {shifts.map((sh,si)=>(
 <span key={si} className="flex items-center gap-0.5 rounded-lg px-1.5 py-0.5" title="Shift times shown on the Schedule of Supports — doesn't change costs" style={{background:"rgba(45,27,105,0.05)",border:"1px solid rgba(45,27,105,0.12)"}}>
-<input type="time" value={sh.s} onChange={e=>{const v=e.target.value;updateRosterDay(l.id,d,{shifts:shifts.map((x,j)=>j===si?{...x,s:v}:x)})}} className="kv-input" style={{fontSize:"0.72rem",border:"none",background:"transparent",padding:"0",width:"70px"}}/>
+<input type="time" value={sh.s} onChange={e=>{const v=e.target.value;setShiftsAndSync(l.id,d,shifts.map((x,j)=>j===si?{...x,s:v}:x))}} className="kv-input" style={{fontSize:"0.72rem",border:"none",background:"transparent",padding:"0",width:"70px"}}/>
 <span style={{color:"#94a3b8",fontSize:"0.72rem"}}>–</span>
-<input type="time" value={sh.e} onChange={e=>{const v=e.target.value;updateRosterDay(l.id,d,{shifts:shifts.map((x,j)=>j===si?{...x,e:v}:x)})}} className="kv-input" style={{fontSize:"0.72rem",border:"none",background:"transparent",padding:"0",width:"70px"}}/>
-<button onClick={()=>updateRosterDay(l.id,d,{shifts:shifts.filter((_,j)=>j!==si)})} title="Remove this shift" style={{background:"none",border:"none",color:"#94a3b8",cursor:"pointer",fontSize:"0.72rem",padding:"0 0 0 2px"}}>✕</button>
+<input type="time" value={sh.e} onChange={e=>{const v=e.target.value;setShiftsAndSync(l.id,d,shifts.map((x,j)=>j===si?{...x,e:v}:x))}} className="kv-input" style={{fontSize:"0.72rem",border:"none",background:"transparent",padding:"0",width:"70px"}}/>
+<button onClick={()=>setShiftsAndSync(l.id,d,shifts.filter((_,j)=>j!==si))} title="Remove this shift" style={{background:"none",border:"none",color:"#94a3b8",cursor:"pointer",fontSize:"0.72rem",padding:"0 0 0 2px"}}>✕</button>
 </span>
 ))}
 {(()=>{
