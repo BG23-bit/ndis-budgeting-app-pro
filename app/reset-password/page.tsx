@@ -21,7 +21,7 @@ export default function ResetPasswordPage() {
 
   const verifyCode = async () => {
     if (!otpEmail.trim() || otpCode.trim().length < 6) {
-      setOtpMsg("Enter your email and the 6-digit code from the reset email.");
+      setOtpMsg("Enter your email and the code from the reset email.");
       return;
     }
     setOtpBusy(true);
@@ -115,7 +115,7 @@ export default function ResetPasswordPage() {
             </p>
             <p style={{ textAlign: "center", color: "#64748b", fontSize: "0.85rem", marginBottom: "20px" }}>
               Some work email systems scan links and use them up before you can click.
-              No problem — type the <strong>6-digit code</strong> from the same email instead:
+              No problem — type the <strong>code</strong> from the same email instead:
             </p>
             <input
               type="email"
@@ -127,9 +127,9 @@ export default function ResetPasswordPage() {
             />
             <input
               inputMode="numeric"
-              placeholder="6-digit code from the email"
+              placeholder="Code from the email"
               value={otpCode}
-              onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
               style={{ ...inputStyle, letterSpacing: "0.3em", textAlign: "center", fontWeight: 700 }}
             />
             {otpMsg && <p style={{ color: "#dc2626", fontSize: "0.85rem", marginBottom: "12px", textAlign: "center" }}>{otpMsg}</p>}
