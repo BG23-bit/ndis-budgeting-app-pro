@@ -11,7 +11,26 @@ export default function ResetPasswordPage() {
   const [isError, setIsError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [hasSession, setHasSession] = useState<boolean | null>(null);
+  // Code-based fallback: corporate mail scanners burn one-time links before the
+  // user can click them, so the email also carries a 6-digit code to type here.
+  const [otpEmail, setOtpEmail] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [otpBusy, setOtpBusy] = useState(false);
+  const [otpMsg, setOtpMsg] = useState("");
   const router = useRouter();
+
+  const verifyCode = async () => {
+    if (!otpEmail.trim() || otpCode.trim().length < 6) {
+      setOtpMsg("Enter your email and the 6-digit code from the reset email.");
+      return;
+    }
+    setOtpBusy(true);
+    setOtpMsg("");
+    const { error } = await supabase.auth.verifyOtp({ email: otpEmail.trim(), token: otpCode.trim(), type: "recovery" });
+    if (error) setOtpMsg(error.message.includes("expired") || error.message.includes("invalid") ? "That code didn't work — codes last 1 hour and each new email replaces the old code. Request a fresh one and use the newest email." : error.message);
+    else setHasSession(true);
+    setOtpBusy(false);
+  };
 
   // The recovery link signs the user in via the URL hash; wait for that session
   // before showing the form.
@@ -91,14 +110,41 @@ export default function ResetPasswordPage() {
 
         {hasSession === false && (
           <>
-            <p style={{ textAlign: "center", color: "#dc2626", marginBottom: "20px" }}>
+            <p style={{ textAlign: "center", color: "#dc2626", marginBottom: "8px" }}>
               This reset link is invalid or has expired.
             </p>
+            <p style={{ textAlign: "center", color: "#64748b", fontSize: "0.85rem", marginBottom: "20px" }}>
+              Some work email systems scan links and use them up before you can click.
+              No problem — type the <strong>6-digit code</strong> from the same email instead:
+            </p>
+            <input
+              type="email"
+              placeholder="Your email"
+              autoComplete="email"
+              value={otpEmail}
+              onChange={(e) => setOtpEmail(e.target.value)}
+              style={inputStyle}
+            />
+            <input
+              inputMode="numeric"
+              placeholder="6-digit code from the email"
+              value={otpCode}
+              onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              style={{ ...inputStyle, letterSpacing: "0.3em", textAlign: "center", fontWeight: 700 }}
+            />
+            {otpMsg && <p style={{ color: "#dc2626", fontSize: "0.85rem", marginBottom: "12px", textAlign: "center" }}>{otpMsg}</p>}
+            <button
+              onClick={verifyCode}
+              disabled={otpBusy}
+              style={{ width: "100%", padding: "12px", backgroundColor: "#2d1b69", color: "#ffffff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "1rem", marginBottom: "14px" }}
+            >
+              {otpBusy ? "Checking..." : "Verify code"}
+            </button>
             <p
               onClick={() => router.push("/login")}
-              style={{ textAlign: "center", color: "#2d1b69", cursor: "pointer" }}
+              style={{ textAlign: "center", color: "#2d1b69", cursor: "pointer", fontSize: "0.9rem" }}
             >
-              Back to log in to request a new one
+              Back to log in to request a new email
             </p>
           </>
         )}
