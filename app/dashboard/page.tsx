@@ -146,6 +146,14 @@ export default function DashboardPage() {
         if (error) { setLoadError(true); return; }
         const list = Array.isArray(row?.participants) ? row.participants : [];
         if (list.length > 0) setParticipants(list);
+        // First-run onboarding: brand-new accounts (no participants, no saved
+        // company profile) set up their profile before landing on the dashboard.
+        // One-shot — never repeats, and skipped right after checkout success.
+        if (list.length === 0 && !localStorage.getItem("kevria_onboarded") && !window.location.search.includes("success=true")) {
+          const { data: prov } = await supabase.from("calculator_data").select("data").eq("user_id", d.user.id).eq("participant_id", "ndis_provider_details").maybeSingle();
+          try { localStorage.setItem("kevria_onboarded", "1"); } catch {}
+          if (!(prov?.data as any)?.orgName) { router.push("/company?welcome=1"); return; }
+        }
         // Calculator data with no matching list entry means the list was wiped
         // by a past sync bug (or a pre-cleanup delete) — offer to restore.
         const { data: rows } = await supabase.from("calculator_data").select("participant_id, updated_at").eq("user_id", d.user.id);

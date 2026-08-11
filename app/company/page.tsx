@@ -174,8 +174,10 @@ export function CompanyForm() {
 export default function CompanyPage() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
+  const [welcome, setWelcome] = useState(false);
 
   useEffect(() => {
+    setWelcome(window.location.search.includes("welcome=1"));
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push("/login"); return; }
       setReady(true);
@@ -185,11 +187,29 @@ export default function CompanyPage() {
   return (
     <main className="min-h-screen" style={{ background: "#f8fafc", color: "#0f172a" }}>
       <div style={{ background: "linear-gradient(135deg, #2d1b69 0%, #3d2787 100%)", padding: "12px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <button onClick={() => router.push("/dashboard")} style={{ background: "rgba(212,168,67,0.18)", border: "1px solid rgba(212,168,67,0.5)", color: "#d4a843", padding: "8px 20px", borderRadius: "8px", cursor: "pointer", fontWeight: 600 }}>← Back to Dashboard</button>
+        <button onClick={() => router.push("/dashboard")} style={{ background: "rgba(212,168,67,0.18)", border: "1px solid rgba(212,168,67,0.5)", color: "#d4a843", padding: "8px 20px", borderRadius: "8px", cursor: "pointer", fontWeight: 600 }}>{welcome ? "Skip for now →" : "← Back to Dashboard"}</button>
         <div style={{ color: "rgba(255,255,255,0.9)", fontSize: "0.95rem", fontWeight: 600 }}>Company Profile</div>
       </div>
       <div className="mx-auto max-w-4xl p-6">
+        {welcome && (
+          <div className="rounded-xl p-5 mb-6" style={{ background: "rgba(212,168,67,0.08)", border: "1px solid rgba(212,168,67,0.4)" }}>
+            <div style={{ color: "#b8901a", fontWeight: 800, fontSize: "1.05rem" }}>Welcome to Kevria Calc — step 1 of 2</div>
+            <div className="text-sm mt-1" style={{ color: "#475569" }}>
+              Set up your company once and every document you ever generate carries your details and branding.
+              Then add your first participant. Everything here can be changed later.
+            </div>
+          </div>
+        )}
         {ready ? <CompanyForm /> : <div className="text-sm py-10 text-center" style={{ color: "#64748b" }}>Loading…</div>}
+        {welcome && ready && (
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="kv-btn"
+            style={{ marginTop: "24px", width: "100%", padding: "15px", background: "#d4a843", color: "#241456", border: "none", borderRadius: "12px", cursor: "pointer", fontWeight: 800, fontSize: "1.05rem" }}
+          >
+            Continue — add your first participant →
+          </button>
+        )}
       </div>
     </main>
   );
