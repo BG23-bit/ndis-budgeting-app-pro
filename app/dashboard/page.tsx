@@ -585,6 +585,10 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-3">
             {user?.email && <span className="text-sm" style={{ color: "#475569" }}>{user.email}</span>}
+            <button onClick={() => router.push("/company")} style={{
+              background: "rgba(212,168,67,0.1)", border: "1px solid rgba(212,168,67,0.3)",
+              color: "#d4a843", padding: "8px 16px", borderRadius: "8px", cursor: "pointer", fontSize: "0.85rem",
+            }}>Company Profile</button>
             {stripeCustomerId && (
               <button onClick={handlePortal} disabled={portalLoading} style={{
                 background: "rgba(212,168,67,0.1)", border: "1px solid rgba(212,168,67,0.3)",
