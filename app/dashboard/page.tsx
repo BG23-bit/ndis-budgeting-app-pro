@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import Client, { defaultRoster, getHolidaysInRange, mergeCustomHolidays, getWeeksInPlan, calcDayCountPlanCost, calcPHImpact, getPresetRates, NDIS_RATES_2026_27 } from "../client";
+import Client, { defaultRoster, getHolidaysInRange, mergeCustomHolidays, getWeeksInPlan, calcDayCountPlanCost, calcPHImpact, getPresetRates, migrateSleepoverRate, NDIS_RATES_2026_27 } from "../client";
 
 type Participant = {
   id: string;
@@ -53,7 +53,7 @@ function computeBudget(raw: any, customHolidays?: { date: string; name: string }
         kmRate: l.kmRate || 1.00,
         kmFreq: l.kmFreq || "every",
       };
-      const lr = l.lineRates || getPresetRates(l.code) || globalRates;
+      const lr = migrateSleepoverRate(line.ratio, l.lineRates || getPresetRates(l.code) || globalRates);
       totalFunding += line.totalFunding || 0;
       const base = calcDayCountPlanCost(line, start, end, planWeeks, lr) * (1 + (lr.gstRate || 0));
       const ph = calcPHImpact(line, holidays, lr);

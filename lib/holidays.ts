@@ -1,8 +1,9 @@
 // Statewide Australian public holidays by state/territory.
 //
-// Scope: statewide, full-day, general public holidays only. Intentionally excluded:
-// regional days (TAS show days/regattas, NT show days, QLD Royal Show), part-day
-// holidays (QLD/SA/NT Christmas Eve & New Year's Eve evenings), TAS Easter Tuesday
+// Scope: statewide general public holidays, including the QLD/SA/NT part-day
+// evenings (Christmas Eve / New Year's Eve) which carry partFrom/partTo bounds.
+// Intentionally excluded: regional days (TAS show days/regattas, NT show days,
+// QLD Royal Show), TAS Easter Tuesday
 // (restricted), NSW Bank Holiday (banks only), and VIC AFL Grand Final Friday
 // (proclaimed annually — no computable rule). TAS Recreation Day (Northern TAS only)
 // is included with a label since the app treats TAS as one region.
@@ -10,7 +11,9 @@
 // Rules verified against official NSW/QLD/WA government lists and cross-checked
 // state calendars for 2026 and 2027 (see scripts/holidays.test.ts).
 
-export type Holiday = { date: string; name: string; dayOfWeek: number };
+// partFrom/partTo (minutes from midnight) mark part-day holidays — e.g. QLD's
+// Christmas Eve 6pm–midnight — where penalty rates apply only inside the window.
+export type Holiday = { date: string; name: string; dayOfWeek: number; partFrom?: number; partTo?: number };
 
 function fmt(d: Date): string {
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
@@ -41,10 +44,10 @@ const EASTER_SAT_SUN_STATES = ["NSW", "VIC", "QLD", "SA", "NT", "ACT"]; // not W
 
 export function getPublicHolidays(year: number, state: string): Holiday[] {
   const h: Holiday[] = [];
-  const add = (d: Date | string, name: string) => {
+  const add = (d: Date | string, name: string, partFrom?: number, partTo?: number) => {
     const date = typeof d === "string" ? d : fmt(d);
     const dow = new Date(date).getDay();
-    h.push({ date, name, dayOfWeek: dow });
+    h.push({ date, name, dayOfWeek: dow, ...(partFrom != null && partTo != null ? { partFrom, partTo } : {}) });
   };
 
   // New Year's Day (+ additional Monday everywhere when it falls on a weekend)
@@ -103,6 +106,14 @@ export function getPublicHolidays(year: number, state: string): Holiday[] {
   if (state === "QLD") add(nthWeekday(year, 9, 1, 1), "King's Birthday");
   else if (state === "WA") add(lastWeekday(year, 8, 1), "King's Birthday"); // proclaimed annually; last Monday of September in recent years
   else add(nthWeekday(year, 5, 1, 2), "King's Birthday");
+
+  // Part-day public holidays: QLD Christmas Eve 6pm–midnight; SA and NT
+  // Christmas Eve and New Year's Eve 7pm–midnight.
+  if (state === "QLD") add(year + "-12-24", "Christmas Eve (6pm\u2013midnight)", 18 * 60, 24 * 60);
+  if (state === "SA" || state === "NT") {
+    add(year + "-12-24", "Christmas Eve (7pm\u2013midnight)", 19 * 60, 24 * 60);
+    add(year + "-12-31", "New Year's Eve (7pm\u2013midnight)", 19 * 60, 24 * 60);
+  }
 
   // Christmas / Boxing Day (+ additional days when on a weekend — both actual and
   // additional days are public holidays in all jurisdictions)

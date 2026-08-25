@@ -21,7 +21,7 @@ export { getHolidaysInRange, mergeCustomHolidays };
 function getDayName(d:number):string{return["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][d]}
 export function getWeeksInPlan(s:string,e:string):number{if(!s||!e)return 52;return Math.max(1,(new Date(e).getTime()-new Date(s).getTime()+86400000)/(7*24*60*60*1000))}
 function countDayOccurrences(start:string,end:string,dow:number):number{if(!start||!end)return 0;const sd=new Date(start);const ed=new Date(end);const daysToFirst=(dow-sd.getDay()+7)%7;const first=new Date(sd.getTime()+daysToFirst*86400000);if(first>ed)return 0;return Math.floor((ed.getTime()-first.getTime())/604800000)+1}
-export function calcDayCountPlanCost(line:SupportLine,start:string,end:string,planWeeks:number,rates:Rates):number{if(!start||!end)return calcWeeklyCost(line,rates)*planWeeks;const divisor=RATIOS[line.ratio]?.divisor||1;let total=0;for(const d of DAYS){const r=line.roster[d];if(!r||!r.enabled)continue;const fm=FREQ[r.frequency]?.multiplier||1;const occ=countDayOccurrences(start,end,DAY_DOW[d])*fm;const isSat=d==="sat";const isSun=d==="sun";const dr=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayOrd/divisor;const nr=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayNight/divisor;total+=(r.hours*dr+r.nightHours*nr)*occ}const sf=FREQ[line.activeSleepoverFreq]?.multiplier||1;total+=line.activeSleepoverHours*(rates.activeSleepoverHourly/divisor)*sf*planWeeks;const ff=FREQ[line.fixedSleepoverFreq]?.multiplier||1;total+=line.fixedSleepovers*rates.fixedSleepoverUnit*ff*planWeeks;const kf=FREQ[line.kmFreq]?.multiplier||1;total+=line.kmsPerWeek*line.kmRate*kf*planWeeks;return total}
+export function calcDayCountPlanCost(line:SupportLine,start:string,end:string,planWeeks:number,rates:Rates):number{if(!start||!end)return calcWeeklyCost(line,rates)*planWeeks;const divisor=RATIOS[line.ratio]?.divisor||1;let total=0;for(const d of DAYS){const r=line.roster[d];if(!r||!r.enabled)continue;const fm=FREQ[r.frequency]?.multiplier||1;const occ=countDayOccurrences(start,end,DAY_DOW[d])*fm;const isSat=d==="sat";const isSun=d==="sun";const dr=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayOrd/divisor;const nr=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayNight/divisor;total+=(r.hours*dr+r.nightHours*nr)*occ}const sf=FREQ[line.activeSleepoverFreq]?.multiplier||1;total+=line.activeSleepoverHours*(rates.activeSleepoverHourly/divisor)*sf*planWeeks;const ff=FREQ[line.fixedSleepoverFreq]?.multiplier||1;total+=line.fixedSleepovers*(rates.fixedSleepoverUnit/divisor)*ff*planWeeks;const kf=FREQ[line.kmFreq]?.multiplier||1;total+=line.kmsPerWeek*line.kmRate*kf*planWeeks;return total}
 function money(n:number):string{const v=Number.isFinite(n)?n:0;return v.toLocaleString("en-AU",{style:"currency",currency:"AUD"})}
 function num(x:any):number{const v=Number(x);return Number.isFinite(v)?v:0}
 function uid():string{return Math.random().toString(16).slice(2)+Date.now().toString(16)}
@@ -51,8 +51,40 @@ function DateField(p:{label:string;value:string;onChange:(v:string)=>void}){retu
 function SelectField(p:{label:string;value:string;options:{value:string;label:string}[];onChange:(v:string)=>void}){return(<label className="block"><div className="text-sm mb-1" style={{color:"#334155"}}>{p.label}</div><select value={p.value} onChange={e=>p.onChange(e.target.value)} className="kv-input w-full rounded-lg px-3 py-2">{p.options.map(o=>(<option key={o.value} value={o.value}>{o.label}</option>))}</select></label>)}
 function SmallSelect(p:{value:string;options:{value:string;label:string}[];onChange:(v:string)=>void;disabled?:boolean}){return(<select value={p.value} onChange={e=>p.onChange(e.target.value)} disabled={p.disabled} className="kv-input rounded-lg px-2 py-1" style={{fontSize:"0.8rem"}}>{p.options.map(o=>(<option key={o.value} value={o.value}>{o.label}</option>))}</select>)}
 function getBudgetStatus(remaining:number,totalFunding:number){if(totalFunding<=0)return{color:"#64748b",bg:"rgba(100,116,139,0.08)",label:"NOT SET UP",border:"rgba(100,116,139,0.25)"};const pct=(remaining/totalFunding)*100;if(remaining<0)return{color:"#ef4444",bg:"rgba(239,68,68,0.1)",label:"OVER BUDGET",border:"rgba(239,68,68,0.3)"};if(pct<10)return{color:"#f59e0b",bg:"rgba(245,158,11,0.1)",label:"LOW BUDGET",border:"rgba(245,158,11,0.3)"};return{color:"#22c55e",bg:"rgba(34,197,94,0.1)",label:"ON TRACK",border:"rgba(34,197,94,0.3)"}}
-function calcWeeklyCost(line:SupportLine,rates:Rates){const divisor=RATIOS[line.ratio]?.divisor||1;let wt=0;for(const d of DAYS){const r=line.roster[d];if(!r||!r.enabled)continue;const fm=FREQ[r.frequency]?.multiplier||1;const isSat=d==="sat";const isSun=d==="sun";const dr=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayOrd/divisor;const nr=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayNight/divisor;wt+=(r.hours*dr+r.nightHours*nr)*fm}const sf=FREQ[line.activeSleepoverFreq]?.multiplier||1;wt+=line.activeSleepoverHours*(rates.activeSleepoverHourly/divisor)*sf;const ff=FREQ[line.fixedSleepoverFreq]?.multiplier||1;wt+=line.fixedSleepovers*rates.fixedSleepoverUnit*ff;const kf=FREQ[line.kmFreq]?.multiplier||1;wt+=line.kmsPerWeek*line.kmRate*kf;return wt}
-export function calcPHImpact(line:SupportLine,holidays:{date:string;name:string;dayOfWeek:number}[],rates:Rates){const divisor=RATIOS[line.ratio]?.divisor||1;let extraCost=0,savedCost=0;const dm:{[k:number]:string}={0:"sun",1:"mon",2:"tue",3:"wed",4:"thu",5:"fri",6:"sat"};const details:{name:string;date:string;day:string;impact:number;included:boolean}[]=[];for(const h of holidays){const isExcluded=line.excludedHolidays.includes(h.date);const rd=dm[h.dayOfWeek];const r=line.roster[rd];if(!r||!r.enabled){details.push({name:h.name,date:h.date,day:getDayName(h.dayOfWeek),impact:0,included:!isExcluded});continue}const isSat=rd==="sat";const isSun=rd==="sun";const normalDayRate=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayOrd/divisor;const normalNightRate=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayNight/divisor;const phRate=rates.publicHoliday/divisor;if(!isExcluded){const extra=(phRate-normalDayRate)*r.hours+(phRate-normalNightRate)*r.nightHours;extraCost+=extra;details.push({name:h.name,date:h.date,day:getDayName(h.dayOfWeek),impact:extra,included:true})}else{const saved=normalDayRate*r.hours+normalNightRate*r.nightHours;savedCost+=saved;details.push({name:h.name,date:h.date,day:getDayName(h.dayOfWeek),impact:saved,included:false})}}return{extraCost,savedCost,details}}
+function calcWeeklyCost(line:SupportLine,rates:Rates){const divisor=RATIOS[line.ratio]?.divisor||1;let wt=0;for(const d of DAYS){const r=line.roster[d];if(!r||!r.enabled)continue;const fm=FREQ[r.frequency]?.multiplier||1;const isSat=d==="sat";const isSun=d==="sun";const dr=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayOrd/divisor;const nr=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayNight/divisor;wt+=(r.hours*dr+r.nightHours*nr)*fm}const sf=FREQ[line.activeSleepoverFreq]?.multiplier||1;wt+=line.activeSleepoverHours*(rates.activeSleepoverHourly/divisor)*sf;const ff=FREQ[line.fixedSleepoverFreq]?.multiplier||1;wt+=line.fixedSleepovers*(rates.fixedSleepoverUnit/divisor)*ff;const kf=FREQ[line.kmFreq]?.multiplier||1;wt+=line.kmsPerWeek*line.kmRate*kf;return wt}
+// Overlap of one shift with a same-day window [from,to) in minutes, split into
+// daytime (6am-8pm) and evening portions. Handles shifts that wrap past midnight.
+function shiftWindowBands(st:string,en:string,from:number,to:number):{day:number;eve:number}{
+  const toMin=(t:string)=>{const[a,b]=t.split(":").map(Number);return Number.isFinite(a)&&Number.isFinite(b)?a*60+b:NaN};
+  let a=toMin(st),b=toMin(en);
+  if(!Number.isFinite(a)||!Number.isFinite(b))return{day:0,eve:0};
+  if(b<=a)b+=1440;
+  let day=0,eve=0;
+  for(const off of[0,1440]){
+    const lo=Math.max(a,from+off),hi=Math.min(b,to+off);
+    if(hi<=lo)continue;
+    const dayLo=Math.max(lo,360+off),dayHi=Math.min(hi,1200+off);
+    const dOv=Math.max(0,dayHi-dayLo);
+    day+=dOv/60;eve+=(hi-lo-dOv)/60;
+  }
+  return{day,eve};
+}
+export function calcPHImpact(line:SupportLine,holidays:{date:string;name:string;dayOfWeek:number;partFrom?:number;partTo?:number}[],rates:Rates){const divisor=RATIOS[line.ratio]?.divisor||1;let extraCost=0,savedCost=0;const dm:{[k:number]:string}={0:"sun",1:"mon",2:"tue",3:"wed",4:"thu",5:"fri",6:"sat"};const details:{name:string;date:string;day:string;impact:number;included:boolean;part?:boolean;partHours?:number}[]=[];for(const h of holidays){const isExcluded=line.excludedHolidays.includes(h.date);const rd=dm[h.dayOfWeek];const r=line.roster[rd];if(!r||!r.enabled){details.push({name:h.name,date:h.date,day:getDayName(h.dayOfWeek),impact:0,included:!isExcluded,...(h.partFrom!=null?{part:true}:{})});continue}const isSat=rd==="sat";const isSun=rd==="sun";const normalDayRate=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayOrd/divisor;const normalNightRate=isSat?rates.sat/divisor:isSun?rates.sun/divisor:rates.weekdayNight/divisor;const phRate=rates.publicHoliday/divisor;
+// Part-day holiday (e.g. QLD Christmas Eve 6pm-midnight): the penalty applies only
+// to worked time inside the window — measured from shift times when present,
+// otherwise approximated by the day's evening hours.
+if(h.partFrom!=null&&h.partTo!=null){
+  let dayOv=0,eveOv=0;
+  const shifts=(r.shifts||[]).filter((x:Shift)=>x.s&&x.e);
+  if(shifts.length){for(const sh of shifts){const o=shiftWindowBands(sh.s,sh.e,h.partFrom,h.partTo);dayOv+=o.day;eveOv+=o.eve;}}
+  else{eveOv=r.nightHours||0;}
+  if(isExcluded||dayOv+eveOv<=0){details.push({name:h.name,date:h.date,day:getDayName(h.dayOfWeek),impact:0,included:!isExcluded,part:true});continue}
+  const extra=(phRate-normalDayRate)*dayOv+(phRate-normalNightRate)*eveOv;
+  extraCost+=extra;
+  details.push({name:h.name,date:h.date,day:getDayName(h.dayOfWeek),impact:extra,included:true,part:true,partHours:Math.round((dayOv+eveOv)*100)/100});
+  continue;
+}
+if(!isExcluded){const extra=(phRate-normalDayRate)*r.hours+(phRate-normalNightRate)*r.nightHours;extraCost+=extra;details.push({name:h.name,date:h.date,day:getDayName(h.dayOfWeek),impact:extra,included:true})}else{const saved=normalDayRate*r.hours+normalNightRate*r.nightHours;savedCost+=saved;details.push({name:h.name,date:h.date,day:getDayName(h.dayOfWeek),impact:saved,included:false})}}return{extraCost,savedCost,details}}
 function getSuggestions(line:any,rates:Rates){if(line.remaining>=0)return[];const suggestions:string[]=[];const roster=line.roster||{};if(roster.sun?.enabled&&roster.sun.hours>0){const s=rates.sun-rates.weekdayOrd;suggestions.push("Reduce Sunday hours - saves "+money(s*roster.sun.hours*52)+"/yr")}if(roster.sat?.enabled&&roster.sat.hours>0){const s=rates.sat-rates.weekdayOrd;suggestions.push("Reduce Saturday hours - saves "+money(s*roster.sat.hours*52)+"/yr")}if(line.fixedSleepovers>0){suggestions.push("Remove 1 fixed sleepover/wk - saves "+money(rates.fixedSleepoverUnit*52)+"/yr")}if(line.kmsPerWeek>0){suggestions.push("Reduce KMs - currently "+money(line.kmsPerWeek*line.kmRate*52)+"/yr")}return suggestions.slice(0,3)}
 export function useCloudSync(key:string,data:any){
 const[userId,setUserId]=useState<string|null>(null);
@@ -91,6 +123,13 @@ const CATEGORY_PRESETS:{[code:string]:{name:string;rates:Rates}}={
   "21":{name:"YPIRAC",rates:{weekdayOrd:73.58,weekdayNight:81.07,sat:103.54,sun:133.50,publicHoliday:163.46,activeSleepoverHourly:82.57,fixedSleepoverUnit:311.79,gstRate:0}},
 };
 export function getPresetRates(code:string):Rates{return CATEGORY_PRESETS[code]?.rates||NDIS_RATES_2026_27}
+// Sleepovers now divide by the support ratio automatically; restore any manually
+// pre-divided rate (the old workaround) to the flat rate so it isn't divided twice.
+export function migrateSleepoverRate(ratio:string,lineRates:any):any{
+  const dv=RATIOS[ratio]?.divisor||1;
+  if(dv>1&&lineRates&&Math.abs(((lineRates.fixedSleepoverUnit||0)*dv)-311.79)<1)return{...lineRates,fixedSleepoverUnit:311.79};
+  return lineRates;
+}
 // Overlay the organisation's default rates onto a category preset. Only fields that
 // still carry the standard core support-worker rate are replaced, so therapy /
 // coordination categories with their own price caps are left untouched.
@@ -201,7 +240,12 @@ const srvStart=planDates.serviceStart||planDates.start;const srvEnd=planDates.se
 const planWeeksCalc=useMemo(()=>getWeeksInPlan(srvStart,srvEnd),[srvStart,srvEnd]);const[weeksOverride,setWeeksOverride]=useState<number|null>(null);const planWeeks=weeksOverride!==null?weeksOverride:planWeeksCalc;
 const[providerDetails,setProviderDetails]=useState<ProviderDetails>({orgName:"",abn:"",contactName:"",email:"",phone:"",address:"",registrationNumber:""});
 const holidays=useMemo(()=>mergeCustomHolidays(getHolidaysInRange(srvStart,srvEnd,planDates.state),providerDetails.customHolidays,srvStart,srvEnd),[srvStart,srvEnd,planDates.state,providerDetails.customHolidays]);
-useEffect(()=>{async function load(){const cloud=await loadFromCloud(STORAGE_KEY);const raw=cloud||(()=>{try{const r=localStorage.getItem(STORAGE_KEY);return r?JSON.parse(r):null}catch{return null}})();if(!raw){isFreshRef.current=true;setLoaded(true);return;}if(raw?.rates)setRates((r:any)=>({...r,...raw.rates}));if(raw?.planDates)setPlanDates((p:any)=>({...p,...raw.planDates}));if(Array.isArray(raw?.lines)&&raw.lines.length>0)setLines(raw.lines.map((l:any)=>({...l,ratio:l.ratio||"1:1",excludedHolidays:l.excludedHolidays||[],roster:l.roster||defaultRoster(),activeSleepoverFreq:l.activeSleepoverFreq||"every",fixedSleepoverFreq:l.fixedSleepoverFreq||"every",kmsPerWeek:l.kmsPerWeek||0,kmRate:l.kmRate||1.00,kmFreq:l.kmFreq||"every",claims:l.claims||[],lineRates:l.lineRates||getPresetRates(l.code)})));if(raw?.weeksOverride!=null)setWeeksOverride(raw.weeksOverride);if(raw?.calcMode!==undefined)setCalcMode(raw.calcMode as any);else{const hasLines=Array.isArray(raw?.lines)&&raw.lines.some((l:any)=>(l?.totalFunding||0)>0);const hasClinical=Array.isArray(raw?.clinicalServices)&&raw.clinicalServices.length>0;if(hasLines&&hasClinical)setCalcMode("both");else if(hasClinical&&!hasLines)setCalcMode("clinical");else if(hasLines)setCalcMode("sil");}if(typeof raw?.planNotes==="string")setPlanNotes(raw.planNotes);if(typeof raw?.clinicalNotes==="string")setClinicalNotes(raw.clinicalNotes);if(typeof raw?.clinicalFunding==="number")setClinicalFunding(raw.clinicalFunding);if(Array.isArray(raw?.clinicalServices))setClinicalServices(raw.clinicalServices);if(typeof raw?.clinicalBudgetLinked==="boolean")setClinicalBudgetLinked(raw.clinicalBudgetLinked);setLoaded(true);}load()},[]);
+useEffect(()=>{async function load(){const cloud=await loadFromCloud(STORAGE_KEY);const raw=cloud||(()=>{try{const r=localStorage.getItem(STORAGE_KEY);return r?JSON.parse(r):null}catch{return null}})();if(!raw){isFreshRef.current=true;setLoaded(true);return;}if(raw?.rates)setRates((r:any)=>({...r,...raw.rates}));if(raw?.planDates)setPlanDates((p:any)=>({...p,...raw.planDates}));if(Array.isArray(raw?.lines)&&raw.lines.length>0)setLines(raw.lines.map((l:any)=>{const m={...l,ratio:l.ratio||"1:1",excludedHolidays:l.excludedHolidays||[],roster:l.roster||defaultRoster(),activeSleepoverFreq:l.activeSleepoverFreq||"every",fixedSleepoverFreq:l.fixedSleepoverFreq||"every",kmsPerWeek:l.kmsPerWeek||0,kmRate:l.kmRate||1.00,kmFreq:l.kmFreq||"every",claims:l.claims||[],lineRates:l.lineRates||getPresetRates(l.code)};
+// Sleepovers now divide by the support ratio automatically. Anyone who had
+// manually pre-divided the rate (the old workaround) gets restored to the
+// full flat rate so it isn't divided twice.
+m.lineRates=migrateSleepoverRate(m.ratio,m.lineRates);
+return m;}));if(raw?.weeksOverride!=null)setWeeksOverride(raw.weeksOverride);if(raw?.calcMode!==undefined)setCalcMode(raw.calcMode as any);else{const hasLines=Array.isArray(raw?.lines)&&raw.lines.some((l:any)=>(l?.totalFunding||0)>0);const hasClinical=Array.isArray(raw?.clinicalServices)&&raw.clinicalServices.length>0;if(hasLines&&hasClinical)setCalcMode("both");else if(hasClinical&&!hasLines)setCalcMode("clinical");else if(hasLines)setCalcMode("sil");}if(typeof raw?.planNotes==="string")setPlanNotes(raw.planNotes);if(typeof raw?.clinicalNotes==="string")setClinicalNotes(raw.clinicalNotes);if(typeof raw?.clinicalFunding==="number")setClinicalFunding(raw.clinicalFunding);if(Array.isArray(raw?.clinicalServices))setClinicalServices(raw.clinicalServices);if(typeof raw?.clinicalBudgetLinked==="boolean")setClinicalBudgetLinked(raw.clinicalBudgetLinked);setLoaded(true);}load()},[]);
 const[calcMode,setCalcMode]=useState<"sil"|"clinical"|"both"|null>(null);
 const[loaded,setLoaded]=useState(false);
 const isFreshRef=React.useRef(false);
@@ -900,7 +944,7 @@ function generateScheduleOfSupports(){
     // Break PH hours out of regular rows into their own line item
     let phHrs=0,phWkdDay=0,phWkdNight=0,phSatDay=0,phSatNight=0,phSunDay=0,phSunNight=0;
     const _dow:{[k:number]:string}={0:"sun",1:"mon",2:"tue",3:"wed",4:"thu",5:"fri",6:"sat"};
-    if(l.phImpact?.details){for(const h of l.phImpact.details){if(!h.included||!h.impact)continue;const rd=_dow[new Date(h.date).getDay()];const r=l.roster[rd];if(!r||!r.enabled)continue;const dh=r.hours||0,nh=r.nightHours||0;phHrs+=dh+nh;if(rd==="sat"){phSatDay+=dh;phSatNight+=nh;}else if(rd==="sun"){phSunDay+=dh;phSunNight+=nh;}else{phWkdDay+=dh;phWkdNight+=nh;}}}
+    if(l.phImpact?.details){for(const h of l.phImpact.details){if(!h.included||!h.impact||(h as any).part)continue;const rd=_dow[new Date(h.date).getDay()];const r=l.roster[rd];if(!r||!r.enabled)continue;const dh=r.hours||0,nh=r.nightHours||0;phHrs+=dh+nh;if(rd==="sat"){phSatDay+=dh;phSatNight+=nh;}else if(rd==="sun"){phSunDay+=dh;phSunNight+=nh;}else{phWkdDay+=dh;phWkdNight+=nh;}}}
     const adjWkdOrd=Math.max(0,wkdOrdHrs-phWkdDay);
     const adjWkdNight=Math.max(0,wkdNightHrs-phWkdNight);
     const adjSat=Math.max(0,satHrs-phSatDay);
@@ -915,8 +959,10 @@ function generateScheduleOfSupports(){
     if(adjSun>0){const rate=(l.lineRates?.sun||0)/div;rows.push({key:l.id+"_sun",code:l.code,rateType:"sun",category:desc+" - Sunday",price:rate,hours:Math.round(adjSun),total:rate*adjSun});}
     if(adjSunNight>0){const rate=(l.lineRates?.sun||0)/div;rows.push({key:l.id+"_sunNight",code:l.code,rateType:"sunNight",category:desc+" - Sunday Evening",price:rate,hours:Math.round(adjSunNight),total:rate*adjSunNight});}
     if(phHrs>0){const rate=(l.lineRates?.publicHoliday||0)/div;rows.push({key:l.id+"_ph",code:l.code,rateType:"publicHoliday",category:desc+" - Public Holiday",price:rate,hours:Math.round(phHrs),total:rate*phHrs});}
+    const partUplift=(l.phImpact?.details||[]).filter((h:any)=>h.included&&h.part&&h.impact).reduce((t:number,h:any)=>t+h.impact,0);
+    if(partUplift>0)rows.push({key:l.id+"_phpart",code:l.code,rateType:"publicHoliday",category:desc+" - Part-day Public Holiday uplift (evening window)",price:null,hours:null,total:partUplift});
     const sf=FREQ[l.activeSleepoverFreq]?.multiplier||1;const activeSoHrs=(l.activeSleepoverHours||0)*sf*planWeeks;if(activeSoHrs>0&&(l.lineRates?.activeSleepoverHourly||0)>0){const rate=(l.lineRates?.activeSleepoverHourly||0)/div;rows.push({key:l.id+"_activeSleepover",code:l.code,rateType:"activeSleepover",category:desc+" - Active Overnight (Night)",price:rate,hours:Math.round(activeSoHrs),total:rate*activeSoHrs});}
-    const ff=FREQ[l.fixedSleepoverFreq]?.multiplier||1;const fixedSoUnits=(l.fixedSleepovers||0)*ff*planWeeks;if(fixedSoUnits>0&&(l.lineRates?.fixedSleepoverUnit||0)>0){const rate=l.lineRates?.fixedSleepoverUnit||0;rows.push({key:l.id+"_fixedSleepover",code:l.code,rateType:"fixedSleepover",category:desc+" - Sleepover (Overnight)",price:rate,hours:Math.round(fixedSoUnits),total:rate*fixedSoUnits});}
+    const ff=FREQ[l.fixedSleepoverFreq]?.multiplier||1;const fixedSoUnits=(l.fixedSleepovers||0)*ff*planWeeks;if(fixedSoUnits>0&&(l.lineRates?.fixedSleepoverUnit||0)>0){const rate=(l.lineRates?.fixedSleepoverUnit||0)/div;rows.push({key:l.id+"_fixedSleepover",code:l.code,rateType:"fixedSleepover",category:desc+" - Sleepover (Overnight)",price:rate,hours:Math.round(fixedSoUnits),total:rate*fixedSoUnits});}
     const kf=FREQ[l.kmFreq]?.multiplier||1;const totalKm=(l.kmsPerWeek||0)*kf*planWeeks;if(totalKm>0&&(l.kmRate||0)>0){rows.push({key:l.id+"_km",code:l.code,rateType:"km",category:escapeHtml(l.description)+" - Transport (km)",price:l.kmRate,hours:Math.round(totalKm)+"km",total:l.kmRate*totalKm});}
     if(rows.length===0){rows.push({key:l.id+"_lump",code:l.code,rateType:"lump",category:escapeHtml(l.description),price:null,hours:null,total:l.totalFunding});}
     return rows;
@@ -971,16 +1017,34 @@ function generateScheduleOfSupports(){
         body+=rowH([cell("&mdash;"),cell("&mdash;"),cell(escapeHtml(saItemNumbers[l.id+"_lump"]||getDefaultItemNumber(l.code,"lump",saUseSilItems)),"left","font-family:monospace;font-size:8pt"),cell("&mdash;","right"),cell("&mdash;","right"),cell("Lump sum"),cell("&mdash;","right"),cell("<strong>"+escapeHtml(money(l.totalFunding))+"</strong>","right")]);
         continue;
       }
+      // Full-day public holiday dates come OUT of the day rows (occurrence
+      // deducted) and are billed at the full PH rate in the PH section below —
+      // the way SIL providers audit. Excluded PH dates are deducted with no PH
+      // billing; part-day holidays stay in the rows with their uplift listed.
+      const dmDow:{[k:number]:string}={0:"sun",1:"mon",2:"tue",3:"wed",4:"thu",5:"fri",6:"sat"};
+      const phFullByDow:{[k:string]:number}={};
+      let phNormalDeduct=0;
+      for(const h of holidays){
+        if(h.partFrom!=null)continue;
+        const rd=dmDow[h.dayOfWeek];const rr=l.roster[rd];if(!rr?.enabled)continue;
+        if(((rr.hours||0)+(rr.nightHours||0))<=0)continue;
+        phFullByDow[rd]=(phFullByDow[rd]||0)+1;
+        const iS=rd==="sat",iU=rd==="sun";
+        const nd=((iS?l.lineRates?.sat:iU?l.lineRates?.sun:l.lineRates?.weekdayOrd)||0)/div;
+        const nn=((iS?l.lineRates?.sat:iU?l.lineRates?.sun:l.lineRates?.weekdayNight)||0)/div;
+        phNormalDeduct+=nd*(rr.hours||0)+nn*(rr.nightHours||0);
+      }
       for(const d of DAYS){
         const r=l.roster[d];if(!r?.enabled)continue;
         const occ=countDayOccurrences(srvStart,srvEnd,DAY_DOW[d])*(FREQ[r.frequency]?.multiplier||1);
+        const occAdj=Math.max(0,occ-(phFullByDow[d]||0));
         const isSat=d==="sat",isSun=d==="sun";
         const freqLbl=FREQ[r.frequency]?.label||"Every week";
         const emit=(hrs:number,rate0:number,rt:string,lbl:string,times:string)=>{
           const rate=rate0/div;
           const item=saItemNumbers[l.id+"_"+rt]||getDefaultItemNumber(l.code,rt,saUseSilItems);
           const hd=hrs%1===0?String(hrs):hrs.toFixed(2);
-          body+=rowH([cell(DL[d]+lbl),cell(times?escapeHtml(times):"&mdash;"),cell(escapeHtml(item)+ratioSuf,"left","font-family:monospace;font-size:8pt"),cell(hd,"right"),cell(escapeHtml(money(rate))+"/hr","right"),cell(escapeHtml(freqLbl)),cell(escapeHtml(money(hrs*rate)),"right"),cell(escapeHtml(money(hrs*rate*occ)),"right")]);
+          body+=rowH([cell(DL[d]+lbl),cell(times?escapeHtml(times):"&mdash;"),cell(escapeHtml(item)+ratioSuf,"left","font-family:monospace;font-size:8pt"),cell(hd,"right"),cell(escapeHtml(money(rate))+"/hr","right"),cell(escapeHtml(freqLbl)),cell(escapeHtml(money(hrs*rate)),"right"),cell(escapeHtml(money(hrs*rate*occAdj)),"right")]);
         };
         // One row per shift when the entered hours line up with the shift times —
         // split at 8pm into daytime/evening pricing so the document reads like a
@@ -1006,9 +1070,11 @@ function generateScheduleOfSupports(){
             }
           }
         }else{
-          // Shifts that don't reconcile with the entered hours are not printed —
-          // the document must never show times that contradict the Hrs column.
-          const times=shifts.length>0?"":shiftsToText(r.shifts,r.times);
+          // Providers may band their hours differently (e.g. evening from 6pm) —
+          // when the shift times match the day's TOTAL hours, print them on the
+          // band rows. Only a genuine contradiction (times ≠ total) hides them.
+          const totalsMatch=shifts.length>0&&Math.abs(shiftHoursTotal(shifts)-((r.hours||0)+(r.nightHours||0)))<=0.02;
+          const times=totalsMatch?shiftsToText(r.shifts,r.times):(shifts.length>0?"":shiftsToText(r.shifts,r.times));
           if((r.hours||0)>0)emit(r.hours,(isSat?l.lineRates?.sat:isSun?l.lineRates?.sun:l.lineRates?.weekdayOrd)||0,isSat?"sat":isSun?"sun":"weekday","",times);
           if((r.nightHours||0)>0)emit(r.nightHours,(isSat?l.lineRates?.sat:isSun?l.lineRates?.sun:l.lineRates?.weekdayNight)||0,isSat?"satNight":isSun?"sunNight":"weekdayNight"," &mdash; evening",times);
         }
@@ -1016,27 +1082,43 @@ function generateScheduleOfSupports(){
       const sf=FREQ[l.activeSleepoverFreq]?.multiplier||1;
       if((l.activeSleepoverHours||0)>0&&(l.lineRates?.activeSleepoverHourly||0)>0){const rate=(l.lineRates.activeSleepoverHourly||0)/div;const wkly=l.activeSleepoverHours*rate*sf;body+=rowH([cell("Night &mdash; active overnight"),cell("&mdash;"),cell(escapeHtml(saItemNumbers[l.id+"_activeSleepover"]||getDefaultItemNumber(l.code,"activeSleepover",saUseSilItems)),"left","font-family:monospace;font-size:8pt"),cell(String(l.activeSleepoverHours)+"/wk","right"),cell(escapeHtml(money(rate))+"/hr","right"),cell(escapeHtml(FREQ[l.activeSleepoverFreq]?.label||"Every week")),cell(escapeHtml(money(wkly)),"right"),cell(escapeHtml(money(wkly*wk)),"right")]);}
       const ff=FREQ[l.fixedSleepoverFreq]?.multiplier||1;
-      if((l.fixedSleepovers||0)>0&&(l.lineRates?.fixedSleepoverUnit||0)>0){const rate=l.lineRates.fixedSleepoverUnit;const wkly=l.fixedSleepovers*rate*ff;body+=rowH([cell("Sleepover (staff asleep)"),cell("&mdash;"),cell(escapeHtml(saItemNumbers[l.id+"_fixedSleepover"]||getDefaultItemNumber(l.code,"fixedSleepover",saUseSilItems)),"left","font-family:monospace;font-size:8pt"),cell(String(l.fixedSleepovers)+"/wk","right"),cell(escapeHtml(money(rate))+"/night","right"),cell(escapeHtml(FREQ[l.fixedSleepoverFreq]?.label||"Every week")),cell(escapeHtml(money(wkly)),"right"),cell(escapeHtml(money(wkly*wk)),"right")]);}
+      if((l.fixedSleepovers||0)>0&&(l.lineRates?.fixedSleepoverUnit||0)>0){const rate=(l.lineRates.fixedSleepoverUnit||0)/div;const wkly=l.fixedSleepovers*rate*ff;body+=rowH([cell("Sleepover (staff asleep)"),cell("&mdash;"),cell(escapeHtml(saItemNumbers[l.id+"_fixedSleepover"]||getDefaultItemNumber(l.code,"fixedSleepover",saUseSilItems)),"left","font-family:monospace;font-size:8pt"),cell(String(l.fixedSleepovers)+"/wk","right"),cell(escapeHtml(money(rate))+"/night","right"),cell(escapeHtml(FREQ[l.fixedSleepoverFreq]?.label||"Every week")),cell(escapeHtml(money(wkly)),"right"),cell(escapeHtml(money(wkly*wk)),"right")]);}
       const kf=FREQ[l.kmFreq]?.multiplier||1;
       if((l.kmsPerWeek||0)>0&&(l.kmRate||0)>0){const wkly=l.kmsPerWeek*l.kmRate*kf;body+=rowH([cell("Transport (km)"),cell("&mdash;"),cell("&mdash;"),cell(String(l.kmsPerWeek)+"km/wk","right"),cell(escapeHtml(money(l.kmRate))+"/km","right"),cell(escapeHtml(FREQ[l.kmFreq]?.label||"Every week")),cell(escapeHtml(money(wkly)),"right"),cell(escapeHtml(money(wkly*wk)),"right")]);}
-      body+=`<tr class="total-row"><td colspan="7">${escapeHtml(l.description)} &mdash; weekly ${escapeHtml(money(l.weeklyWithGST||0))} &nbsp;&middot;&nbsp; plan total (excl. public holiday uplift)</td><td style="text-align:right">${escapeHtml(money(l.basePlanCost||0))}</td></tr>`;
+      body+=`<tr class="total-row"><td colspan="7">${escapeHtml(l.description)} &mdash; weekly ${escapeHtml(money(l.weeklyWithGST||0))} &nbsp;&middot;&nbsp; plan total (public holiday dates billed below)</td><td style="text-align:right">${escapeHtml(money((l.basePlanCost||0)-phNormalDeduct))}</td></tr>`;
     }
-    // One row per holiday DATE (uplift summed across support lines) so the PH
-    // section stays a compact list of the actual dates, like provider SOS docs.
-    const phByDate:{[date:string]:{day:string;name:string;amt:number}}={};
+    // One row per holiday DATE: full-day dates show ALL rostered hours billed at
+    // the public holiday rate (those hours are deducted from the day rows above);
+    // part-day dates show the uplift on the hours inside the evening window.
+    const phByDate:{[date:string]:{day:string;name:string;amt:number;hrs:number;part:boolean}}={};
     let phTotal=0;
+    const dmDow2:{[k:number]:string}={0:"sun",1:"mon",2:"tue",3:"wed",4:"thu",5:"fri",6:"sat"};
     for(const l of perLine as any[]){
-      for(const h of (l.phImpact?.details||[])){
-        if(!h.included||!h.impact)continue;
-        phTotal+=h.impact;
-        const e=phByDate[h.date]||(phByDate[h.date]={day:h.day,name:h.name,amt:0});
-        e.amt+=h.impact;
+      if(getLineMode(l.code)==="lump")continue;
+      const div2=RATIOS[l.ratio]?.divisor||1;
+      const pr=(l.lineRates?.publicHoliday||0)/div2;
+      for(const h of holidays){
+        const rd=dmDow2[h.dayOfWeek];const rr=(l.roster||{})[rd];
+        if(!rr?.enabled)continue;
+        if((l.excludedHolidays||[]).includes(h.date))continue;
+        if(h.partFrom!=null){
+          const det=(l.phImpact?.details||[]).find((x:any)=>x.date===h.date&&x.part&&x.included);
+          if(!det||!det.impact)continue;
+          const e=phByDate[h.date]||(phByDate[h.date]={day:getDayName(h.dayOfWeek),name:h.name,amt:0,hrs:0,part:true});
+          e.amt+=det.impact;e.hrs+=det.partHours||0;phTotal+=det.impact;
+        }else{
+          const hrs=(rr.hours||0)+(rr.nightHours||0);
+          if(hrs<=0)continue;
+          const amt=pr*hrs;
+          const e=phByDate[h.date]||(phByDate[h.date]={day:getDayName(h.dayOfWeek),name:h.name,amt:0,hrs:0,part:false});
+          e.amt+=amt;e.hrs+=hrs;phTotal+=amt;
+        }
       }
     }
-    const phRows=Object.entries(phByDate).sort((a,b)=>a[0].localeCompare(b[0])).map(([date,e])=>`<tr><td>${escapeHtml(date)}</td><td>${escapeHtml(e.day)}</td><td>${escapeHtml(e.name)}</td><td style="text-align:right">+${escapeHtml(money(e.amt))}</td></tr>`).join("");
+    const phRows=Object.entries(phByDate).sort((a,b)=>a[0].localeCompare(b[0])).map(([date,e])=>`<tr><td>${escapeHtml(date)}</td><td>${escapeHtml(e.day)}</td><td>${escapeHtml(e.name)}${e.part?" <span style=\"color:#94a3b8\">&mdash; uplift on evening window</span>":""}</td><td style="text-align:right">${e.hrs%1===0?e.hrs:e.hrs.toFixed(2)}</td><td style="text-align:right">${e.part?"+":""}${escapeHtml(money(e.amt))}</td></tr>`).join("");
     const phSection=phRows?`<div class="section-heading" style="margin-top:14px">Public Holidays &mdash; dates in this plan</div>
-  <table style="font-size:8.5pt"><thead><tr><th>Date</th><th>Day</th><th>Holiday</th><th style="text-align:right">PH uplift</th></tr></thead>
-  <tbody>${phRows}<tr class="total-row"><td colspan="3">Public holiday uplift &mdash; rostered hours on these dates billed at the public holiday rate</td><td style="text-align:right">+${escapeHtml(money(phTotal))}</td></tr></tbody></table>`:"";
+  <table style="font-size:8.5pt"><thead><tr><th>Date</th><th>Day</th><th>Holiday</th><th style="text-align:right">Hrs</th><th style="text-align:right">Amount</th></tr></thead>
+  <tbody>${phRows}<tr class="total-row"><td colspan="4">Public holiday support &mdash; full-day dates billed at the PH rate (hours deducted from the rows above); part-day dates are the uplift on the evening window</td><td style="text-align:right">${escapeHtml(money(phTotal))}</td></tr></tbody></table>`:"";
     return `<div class="section-heading">Schedule of Supports &mdash; Day by Day</div>
   <table style="font-size:8.5pt">
     <thead><tr><th>Day</th><th>Times</th><th>Line Item</th><th style="text-align:right">Hrs</th><th style="text-align:right">Price</th><th>Frequency</th><th style="text-align:right">Weekly</th><th style="text-align:right">Plan Total</th></tr></thead>
