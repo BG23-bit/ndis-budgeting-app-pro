@@ -1724,10 +1724,6 @@ return(
 <div className="mt-4"><div className="flex justify-between text-xs mb-1" style={{color:"rgba(255,255,255,0.6)"}}><span>Used: {money(totals.planCost)}</span><span>Budget: {money(totals.totalFunding)}</span></div>
 <div style={{background:"rgba(255,255,255,0.14)",borderRadius:"8px",height:"12px",overflow:"hidden"}}><div style={{width:Math.min(100,totals.totalFunding>0?(totals.planCost/totals.totalFunding)*100:0)+"%",height:"100%",borderRadius:"8px",background:totals.planCost>totals.totalFunding?"linear-gradient(90deg,#ef4444,#dc2626)":totals.planCost>totals.totalFunding*0.9?"linear-gradient(90deg,#f59e0b,#d97706)":"linear-gradient(90deg,#22c55e,#16a34a)",transition:"width 0.3s"}}/></div>
 <div className="text-xs mt-1 text-right" style={{color:"rgba(255,255,255,0.6)"}}>{totals.totalFunding>0?((totals.planCost/totals.totalFunding)*100).toFixed(1):0}% used</div></div>
-<div className="mt-5 flex flex-wrap gap-2 items-stretch">
-<button onClick={addLine} className="kv-btn rounded-xl px-4 py-2 font-bold" style={{background:"#d4a843",border:"none",color:"#241456",cursor:"pointer"}}>+ Add support line</button>
-<button onClick={()=>{setActiveTab("documents");window.scrollTo({top:0});}} className="kv-btn rounded-xl px-4 py-2" style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.22)",color:"rgba(255,255,255,0.9)",cursor:"pointer"}}><IconDoc/> Documents tab →</button>
-</div>
 </div></div>
 
 {pace&&pace.status!=="not_started"&&(()=>{
@@ -2136,6 +2132,7 @@ return(<button onClick={()=>updateRosterDay(l.id,d,{shifts:[...shifts,{s:"",e:""
 </div>)}
 </div>)})}
 </div>
+<button onClick={addLine} className="kv-btn w-full mt-4" style={{background:"rgba(212,168,67,0.05)",border:"2px dashed rgba(212,168,67,0.35)",color:"#b8901a",borderRadius:"14px",cursor:"pointer",fontWeight:600,fontSize:"0.92rem",padding:"13px"}}>+ Add support line</button>
 </>)}
 
 {planExtract&&(
