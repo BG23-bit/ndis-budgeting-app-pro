@@ -35,7 +35,7 @@ function uid():string{return Math.random().toString(16).slice(2)+Date.now().toSt
 function escapeHtml(s:string){return s.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;")}
 import {parseCSV,findCol,normDate,parseMoney,type ClaimsImportRow,type ClaimsImportPreview} from "@/lib/claims-import";
 import {BUILTIN_CATALOGUE,mergeWithBuiltins,findCatalogueItem,cataloguePrice,type CatalogueItem} from "@/lib/price-guide";
-import {IconDoc,IconMed,IconSparkle,IconClock,IconCopy,IconReset,IconUpload,IconLock} from "./icons";
+import {IconDoc,IconMed,IconSparkle,IconClock,IconCopy,IconReset,IconUpload,IconLock,IconArrowRight} from "./icons";
 // Print via a hidden iframe instead of window.open so popup blockers can't break exports.
 function printHtml(html:string){
 const iframe=document.createElement("iframe");
@@ -1548,13 +1548,40 @@ return(
 </div>
 <div className="flex items-center gap-2">
 {saveState!=="idle"&&<span className="text-xs" style={{color:saveState==="saving"?"#b8901a":"#94a3b8"}}>{saveState==="saving"?"Saving…":"Saved ✓"}</span>}
-<span className="text-xs hidden md:inline" style={{color:"#64748b"}}>Funding <span className="kv-money font-semibold" style={{color:"#0f172a"}}>{money(totals.totalFunding)}</span></span>
-<span className="text-xs hidden md:inline" style={{color:"#64748b"}}>Plan cost <span className="kv-money font-semibold" style={{color:"#0f172a"}}>{money(totals.planCost)}</span></span>
+{(()=>{
+// Live tracker: follows every tab so the numbers move as the roster is filled.
+const tFund=showSil?totals.totalFunding:clinicalFunding;
+const tCost=showSil?totals.planCost:clinicalTotal;
+const tRem=tFund-tCost;
+const tStatus=getBudgetStatus(tRem,tFund);
+return(<>
+<span className="text-xs hidden sm:inline" style={{color:"#64748b"}}>Funding <span className="kv-money font-semibold" style={{color:"#0f172a"}}>{money(tFund)}</span></span>
+<span className="text-xs hidden sm:inline" style={{color:"#64748b"}}>Cost <span className="kv-money font-semibold" style={{color:"#0f172a"}}>{money(tCost)}</span></span>
 <span className="kv-label">Remaining</span>
-<span className="kv-money font-bold" style={{color:totalStatus.color}}>{money(totals.remaining)}</span>
-<span className="text-xs font-semibold px-2.5 py-0.5 rounded-full" style={{background:totalStatus.bg,color:totalStatus.color,border:"1px solid "+totalStatus.border}}>{totalStatus.label}</span>
+<span className="kv-money font-bold" style={{color:tStatus.color}}>{money(tRem)}</span>
+<span className="text-xs font-semibold px-2.5 py-0.5 rounded-full" style={{background:tStatus.bg,color:tStatus.color,border:"1px solid "+tStatus.border}}>{tStatus.label}</span>
+</>);})()}
 </div>
 </div>
+{(activeTab==="roster"||activeTab==="services")&&perLine.filter((l:any)=>l.totalFunding>0||l.planTotal>0).length>0&&(
+<div className="mx-auto max-w-6xl px-6 pb-2 flex items-center gap-2 flex-wrap">
+<span className="kv-label" style={{flexShrink:0}}>Live budgets</span>
+{perLine.filter((l:any)=>l.totalFunding>0||l.planTotal>0).map((l:any)=>{
+const st=getBudgetStatus(l.remaining,l.totalFunding);
+return(
+<button key={l.id} type="button" onClick={()=>{if(activeTab==="roster")document.getElementById("line-"+l.id)?.scrollIntoView({behavior:"smooth",block:"start"});}} className="kv-money kv-btn" title={l.description+" — "+money(l.remaining)+" remaining of "+money(l.totalFunding)} style={{display:"inline-flex",alignItems:"center",gap:"6px",padding:"3px 10px",borderRadius:"999px",background:st.bg,border:"1px solid "+st.border,color:st.color,fontSize:"0.74rem",fontWeight:700,cursor:activeTab==="roster"?"pointer":"default"}}>
+<span style={{opacity:0.7}}>{l.code}</span>{(l.description||"").length>16?(l.description||"").slice(0,16)+"…":l.description}<span>· {money(l.remaining)} left</span>
+</button>
+);})}
+</div>
+)}
+{(()=>{
+const tFund=showSil?totals.totalFunding:clinicalFunding;
+const tCost=showSil?totals.planCost:clinicalTotal;
+const pctUsed=tFund>0?Math.min(100,(tCost/tFund)*100):0;
+const barCol=tCost>tFund&&tFund>0?"#ef4444":tFund>0&&tCost>tFund*0.9?"#f59e0b":"#22c55e";
+return(<div style={{height:"4px",background:"rgba(15,23,42,0.06)"}}><div style={{height:"100%",width:pctUsed+"%",background:barCol,transition:"width 0.35s ease, background 0.35s ease"}}/></div>);
+})()}
 </div>
 ):(<div style={{height:"24px"}}/>)}
 <div className="mx-auto max-w-6xl p-6 pt-0">
@@ -2426,6 +2453,23 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
 </div>
 )}
 
+{calcMode!==null&&(()=>{
+// Guided flow: every tab ends with the next step, so nobody has to guess
+// where to go — the last step loops back to the documents.
+const order=(["setup","budgets",...(showSil?["roster"]:[]),...(showClinical?["services"]:[])]) as ("setup"|"budgets"|"roster"|"services")[];
+const labels:{[k:string]:string}={setup:"Set up the plan",budgets:"Enter the budgets",roster:"Fill the roster",services:"Add therapy & services"};
+const idx=order.indexOf(activeTab);
+const next=idx>=0?order[idx+1]:undefined;
+return(
+<div className="flex items-center justify-between flex-wrap gap-3 mt-2">
+<span className="text-xs" style={{color:"#94a3b8"}}>Step {idx+1} of {order.length}{next?"":" — all done"}</span>
+{next?(
+<button onClick={()=>{setActiveTab(next);window.scrollTo({top:0});}} className="kv-btn rounded-xl px-5 py-2.5 font-bold" style={{background:"#d4a843",border:"none",color:"#241456",cursor:"pointer",fontSize:"0.92rem"}}>Next: {labels[next]} <IconArrowRight/></button>
+):(
+<button onClick={()=>{setActiveTab("budgets");window.scrollTo({top:0});}} className="kv-btn rounded-xl px-5 py-2.5 font-bold" style={{background:"#2d1b69",border:"none",color:"#ffffff",cursor:"pointer",fontSize:"0.92rem"}}><IconDoc/> Done — generate the documents</button>
+)}
+</div>
+);})()}
 <div className="text-xs mt-8" style={{color:saveState==="saving"?"#d4a843":"#64748b"}}>{saveState==="saving"?"Saving changes…":saveState==="saved"?"All changes saved ✓":"Auto-saves as you work."}</div>
 <div className="text-xs mt-2 mb-8" style={{color:"#64748b"}}>Powered by <span style={{color:"#d4a843"}}>Kevria</span> <span style={{color:"#cbd5e1"}}>· build {(process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA||"dev").slice(0,7)}</span></div>
 </div>
