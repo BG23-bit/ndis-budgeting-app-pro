@@ -368,7 +368,6 @@ export default function DashboardPage() {
   const loadSampleParticipant = () => {
     if (loadError) return; // saving is paused until the list loads
     if (!paid && participants.length >= 1) {
-      alert("The free preview includes 1 participant. Subscribe ($9.90/mo, cancel anytime) for unlimited participants.");
       setPreviewDismissed(false);
       return;
     }
@@ -424,9 +423,8 @@ export default function DashboardPage() {
     if (loadError) return; // saving is paused until the list loads
     if (!newName.trim()) return;
     if (!paid && participants.length >= 1) {
-      alert("The free preview includes 1 participant. Subscribe ($9.90/mo, cancel anytime) for unlimited participants.");
       setShowAddForm(false);
-      setPreviewDismissed(false); // reopen the plan picker
+      setPreviewDismissed(false); // the plan picker explains the 1-participant preview limit
       return;
     }
     const p: Participant = { id: uid(), name: newName.trim(), ndisNumber: newNdis.trim() };

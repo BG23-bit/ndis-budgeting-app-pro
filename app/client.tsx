@@ -35,6 +35,7 @@ function uid():string{return Math.random().toString(16).slice(2)+Date.now().toSt
 function escapeHtml(s:string){return s.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;")}
 import {parseCSV,findCol,normDate,parseMoney,type ClaimsImportRow,type ClaimsImportPreview} from "@/lib/claims-import";
 import {BUILTIN_CATALOGUE,mergeWithBuiltins,findCatalogueItem,cataloguePrice,type CatalogueItem} from "@/lib/price-guide";
+import {IconDoc,IconMed,IconSparkle,IconClock,IconCopy,IconReset,IconUpload,IconLock} from "./icons";
 // Print via a hidden iframe instead of window.open so popup blockers can't break exports.
 function printHtml(html:string){
 const iframe=document.createElement("iframe");
@@ -251,7 +252,7 @@ export default function PageClient({storageKey,participantName,ndisNumber,paid}:
 const isPaid=paid!==false;
 function requireSub():boolean{
   if(isPaid)return true;
-  alert("Document exports and AI plan uploads are part of the paid plan — $9.90/mo, cancel anytime.\n\nGo back to All Participants and click Subscribe on the banner.");
+  notify("Document exports and AI plan uploads are part of the paid plan ($9.90/mo, cancel anytime) — head back to All Participants and click Subscribe.","err");
   return false;
 }
 const STORAGE_KEY=storageKey||"ndis_budget_calc_pro_v7";
@@ -271,6 +272,9 @@ useEffect(()=>{async function load(){const cloud=await loadFromCloud(STORAGE_KEY
 m.lineRates=migrateSleepoverRate(m.ratio,m.lineRates);
 return m;}));if(raw?.weeksOverride!=null)setWeeksOverride(raw.weeksOverride);if(raw?.calcMode!==undefined)setCalcMode(raw.calcMode as any);else{const hasLines=Array.isArray(raw?.lines)&&raw.lines.some((l:any)=>(l?.totalFunding||0)>0);const hasClinical=Array.isArray(raw?.clinicalServices)&&raw.clinicalServices.length>0;if(hasLines&&hasClinical)setCalcMode("both");else if(hasClinical&&!hasLines)setCalcMode("clinical");else if(hasLines)setCalcMode("sil");}if(typeof raw?.planNotes==="string")setPlanNotes(raw.planNotes);if(typeof raw?.clinicalNotes==="string")setClinicalNotes(raw.clinicalNotes);if(typeof raw?.clinicalFunding==="number")setClinicalFunding(raw.clinicalFunding);if(Array.isArray(raw?.clinicalServices))setClinicalServices(raw.clinicalServices);if(typeof raw?.clinicalBudgetLinked==="boolean")setClinicalBudgetLinked(raw.clinicalBudgetLinked);setLoaded(true);}load()},[]);
 const[calcMode,setCalcMode]=useState<"sil"|"clinical"|"both"|null>(null);
+// Workspace tabs: one job on screen at a time instead of an endless scroll.
+const[activeTab,setActiveTab]=useState<"setup"|"budgets"|"roster"|"services">("setup");
+const tabInitRef=React.useRef(false);
 const[loaded,setLoaded]=useState(false);
 const isFreshRef=React.useRef(false);
 const[clinicalFunding,setClinicalFunding]=useState(0);
@@ -293,6 +297,13 @@ return lines.map(l=>{const lr=l.lineRates||rates;const wt=calcWeeklyCost(l,lr);c
 let clinicalDraw=0;
 if(clinicalBudgetLinked&&clinicalByCode[l.code]&&!claimedCodes.has(l.code)){claimedCodes.add(l.code);clinicalDraw=clinicalByCode[l.code];}
 const remaining=l.totalFunding-planTotal-clinicalDraw;const totalClaimed=(l.claims||[]).reduce((a:number,c:Claim)=>a+c.amount,0);const actualRemaining=l.totalFunding-totalClaimed;return{...l,weeklyTotal:wt,weeklyGST,weeklyWithGST,basePlanCost,phImpact,phAdjustment,planTotal,clinicalDraw,remaining,totalClaimed,actualRemaining}})},[lines,rates,planWeeks,holidays,clinicalBudgetLinked,clinicalServices]);
+useEffect(()=>{
+  if(!loaded||tabInitRef.current)return;
+  tabInitRef.current=true;
+  const hasFunding=lines.some(l=>(l.totalFunding||0)>0)||clinicalFunding>0;
+  if(calcMode==="clinical")setActiveTab(hasFunding?"services":"setup");
+  else if(hasFunding)setActiveTab("budgets");
+},[loaded]);
 const totals=useMemo(()=>{const totalFunding=perLine.reduce((a,l)=>a+l.totalFunding,0);const weekly=perLine.reduce((a,l)=>a+l.weeklyWithGST,0);const planCost=perLine.reduce((a,l)=>a+l.planTotal+((l as any).clinicalDraw||0),0);const totalPH=perLine.reduce((a,l)=>a+l.phAdjustment,0);const remaining=totalFunding-planCost;const totalClaimed=perLine.reduce((a,l)=>a+(l as any).totalClaimed,0);const actualRemaining=totalFunding-totalClaimed;return{totalFunding,weekly,planCost,totalPH,remaining,totalClaimed,actualRemaining}},[perLine]);
 const saRows=useMemo(()=>perLine.flatMap((l:any)=>{
   const mode=getLineMode(l.code);const rows:{key:string;code:string;rateType:string;label:string}[]=[];
@@ -350,7 +361,7 @@ function duplicateLine(id:string){
     return out;
   });
 }
-function deleteLine(id:string){if(lines.length<=1)return;const l=lines.find(x=>x.id===id);const claimCount=l?.claims?.length||0;const msg='Delete support line "'+(l?.description||l?.code||"")+'"'+(claimCount>0?" and its "+claimCount+" logged claim"+(claimCount===1?"":"s"):"")+"? This cannot be undone.";if(!confirm(msg))return;setLines(prev=>(prev.length<=1?prev:prev.filter(x=>x.id!==id)))}
+function deleteLine(id:string){if(lines.length<=1)return;const l=lines.find(x=>x.id===id);const claimCount=l?.claims?.length||0;const msg='"'+(l?.description||l?.code||"")+'"'+(claimCount>0?" and its "+claimCount+" logged claim"+(claimCount===1?"":"s"):"")+" will be removed. This cannot be undone.";askConfirm("Delete support line?",msg,"Delete line",()=>setLines(prev=>(prev.length<=1?prev:prev.filter(x=>x.id!==id))));}
 const[openClaimsLines,setOpenClaimsLines]=useState<Set<string>>(new Set());
 const[openRatesLines,setOpenRatesLines]=useState<Set<string>>(new Set());
 function toggleRates(id:string){setOpenRatesLines(prev=>{const n=new Set(prev);n.has(id)?n.delete(id):n.add(id);return n})}
@@ -395,6 +406,12 @@ function addCustomHoliday(){
 function removeCustomHoliday(date:string){setProviderDetails(p=>({...p,customHolidays:(p.customHolidays||[]).filter(h=>h.date!==date)}))}
 const[uploadStage,setUploadStage]=useState<string|null>(null);
 const[flashCodes,setFlashCodes]=useState<Set<string>>(new Set());
+// Toasts + styled confirm dialogs replace browser alert()/confirm().
+const[toast,setToast]=useState<null|{msg:string;kind:"ok"|"err"}>(null);
+const toastTimer=React.useRef<any>(null);
+function notify(msg:string,kind:"ok"|"err"="ok"){setToast({msg,kind});if(toastTimer.current)clearTimeout(toastTimer.current);toastTimer.current=setTimeout(()=>setToast(null),4500);}
+const[confirmState,setConfirmState]=useState<null|{title:string;msg:string;confirmLabel:string;danger:boolean;onYes:()=>void}>(null);
+function askConfirm(title:string,msg:string,confirmLabel:string,onYes:()=>void,danger:boolean=true){setConfirmState({title,msg,confirmLabel,onYes,danger});}
 const[undoState,setUndoState]=useState<null|{label:string;lines?:SupportLine[];planDates?:PlanDates;clinicalServices?:any[];rates?:Rates;weeksOverride?:number|null;calcMode?:any;clinicalFunding?:number;clinicalBudgetLinked?:boolean;planNotes?:string;clinicalNotes?:string}>(null);
 const rosterNotesRef=React.useRef<HTMLTextAreaElement>(null);
 useEffect(()=>{if(!undoState)return;const t=setTimeout(()=>setUndoState(null),30000);return()=>clearTimeout(t)},[undoState]);
@@ -414,7 +431,9 @@ function undoLast(){
 }
 function resetCalculator(){
   const who=participantName?` for ${participantName}`:"";
-  if(!confirm(`Reset the calculator${who}? This clears plan dates, support lines, roster, claims, notes and clinical services so you can start again. You can undo straight after.`))return;
+  askConfirm("Reset calculator?",`This clears plan dates, support lines, roster, claims, notes and services${who} so you can start again. You can undo straight after.`,"Reset everything",()=>doResetCalculator());
+}
+function doResetCalculator(){
   setUndoState({label:"Calculator reset",lines:JSON.parse(JSON.stringify(lines)),planDates:{...planDates},rates:{...rates},weeksOverride,calcMode,clinicalServices:JSON.parse(JSON.stringify(clinicalServices)),clinicalFunding,clinicalBudgetLinked,planNotes,clinicalNotes});
   setLines([{id:uid(),code:"01",description:"Core Supports",totalFunding:0,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:1.00,kmFreq:"every",claims:[],lineRates:applyProviderDefaults(NDIS_RATES_2026_27,providerDetails.defaultRates)}]);
   setPlanDates({start:new Date().toISOString().slice(0,10),end:new Date(Date.now()+365*24*60*60*1000).toISOString().slice(0,10),state:"NSW"});
@@ -691,7 +710,7 @@ const logoFileRef=React.useRef<HTMLInputElement>(null);
 // Logo is resized client-side and stored as a small data URL on the provider
 // profile (syncs with the account); it replaces Kevria branding on documents.
 function handleLogoUpload(file:File){
-  if(file.size>4*1024*1024){alert("Logo file must be under 4MB.");return;}
+  if(file.size>4*1024*1024){notify("Logo file must be under 4MB.","err");return;}
   const img=new Image();
   const url=URL.createObjectURL(file);
   img.onload=()=>{
@@ -701,10 +720,10 @@ function handleLogoUpload(file:File){
     c.getContext("2d")!.drawImage(img,0,0,c.width,c.height);
     const data=c.toDataURL("image/png");
     URL.revokeObjectURL(url);
-    if(data.length>400000){alert("That image is too detailed to store — try a simpler or smaller logo.");return;}
+    if(data.length>400000){notify("That image is too detailed to store — try a simpler or smaller logo.","err");return;}
     setProviderDetails(p=>({...p,logo:data}));
   };
-  img.onerror=()=>{URL.revokeObjectURL(url);alert("Couldn't read that image — use a PNG or JPG.");};
+  img.onerror=()=>{URL.revokeObjectURL(url);notify("Couldn't read that image — use a PNG or JPG.","err");};
   img.src=url;
 }
 const claimsFileRef=React.useRef<HTMLInputElement>(null);
@@ -1495,6 +1514,14 @@ const pace=useMemo(()=>{
   const status=ended?"ended":pctDiff>5?"over_pace":pctDiff<-5?"under_pace":"on_pace";
   return{status,pctElapsed,weeksElapsed,expectedSpend,projectedSpendToDate,variance,ended,usingClaims};
 },[srvStart,srvEnd,planWeeks,totals.totalFunding,totals.weekly,totals.totalClaimed]);
+if(!loaded){return(
+<main className="min-h-screen" style={{background:"#f5f6fa"}}>
+<div style={{background:"linear-gradient(135deg, #241456 0%, #2d1b69 45%, #3d2787 100%)",height:"110px"}}/>
+<div className="mx-auto max-w-6xl p-6">
+{[180,250,340].map((h,i)=>(<div key={i} className="kv-skel mb-6" style={{height:h+"px"}}/>))}
+</div>
+</main>
+);}
 return(
 <main className="min-h-screen" style={{background:"#f5f6fa",color: "#0f172a"}}>
 <datalist id="ndis-catalogue">{catalogue.map(ci=>{const pr=cataloguePrice(ci,planDates.state);return(<option key={ci.item} value={ci.item}>{ci.name}{pr!=null?" — $"+pr.toFixed(2):""}</option>);})}</datalist>
@@ -1511,14 +1538,12 @@ return(
 </div>
 </div>
 </div>
-{calcMode!==null&&showSil?(
+{calcMode!==null?(
 <div style={{position:"sticky",top:0,zIndex:40,background:"rgba(245,246,250,0.88)",backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",borderBottom:"1px solid #e9eaf2",marginBottom:"24px"}}>
 <div className="mx-auto max-w-6xl px-6 py-2.5 flex items-center justify-between gap-3 flex-wrap">
-<div className="flex items-center gap-2 flex-wrap">
-{([["sec-plan","Plan details","Set plan dates",!!(planDates.start&&planDates.end&&new Date(planDates.end)>new Date(planDates.start))],["sec-budget","Funding","Add funding — upload the plan",totals.totalFunding>0],["sec-lines","Roster","Fill the weekly roster",totals.weekly>0]] as [string,string,string,boolean][]).map(([id,label,hint,done],i)=>(
-<button key={id} type="button" className={"kv-step"+(done?" done":"")} onClick={()=>document.getElementById(id)?.scrollIntoView({behavior:"smooth",block:"start"})}>
-<span className="dot">{done?"✓":i+1}</span>{done?label:hint}
-</button>
+<div className="kv-tabs">
+{([["setup","Setup"],["budgets","Budgets"],...(showSil?[["roster","Roster"]]:[]),...(showClinical?[["services","Services"]]:[])] as [string,string][]).map(([k,lbl])=>(
+<button key={k} type="button" className={"kv-tab"+(activeTab===k?" active":"")} onClick={()=>{setActiveTab(k as any);window.scrollTo({top:0});}}>{lbl}</button>
 ))}
 </div>
 <div className="flex items-center gap-2">
@@ -1534,10 +1559,11 @@ return(
 ):(<div style={{height:"24px"}}/>)}
 <div className="mx-auto max-w-6xl p-6 pt-0">
 
+{activeTab==="setup"&&(
 <div className="kv-card p-6 mb-6">
 <div id="sec-plan" className="flex items-center justify-between mb-4 flex-wrap gap-2" style={{scrollMarginTop:"70px"}}><div className="flex items-center gap-3"><span className="kv-num">1</span><h2 className="text-xl font-semibold" style={{color:"#2d1b69"}}>Plan Details</h2></div>{calcMode&&<div className="flex items-center gap-2">
 <button onClick={()=>setCalcMode(null)} style={{fontSize:"0.72rem",color:"#64748b",background:"rgba(15,23,42,0.04)",border:"1px solid rgba(15,23,42,0.1)",borderRadius:"6px",padding:"4px 10px",cursor:"pointer"}}>{calcMode==="sil"?"Roster supports":calcMode==="clinical"?"Therapy & services":"Roster + services"} · change mode</button>
-<button onClick={resetCalculator} title="Clear everything for this participant and start again (undoable)" style={{fontSize:"0.72rem",color:"#dc2626",background:"rgba(239,68,68,0.06)",border:"1px solid rgba(239,68,68,0.25)",borderRadius:"6px",padding:"4px 10px",cursor:"pointer"}}>↺ Reset calculator</button>
+<button onClick={resetCalculator} title="Clear everything for this participant and start again (undoable)" style={{fontSize:"0.72rem",color:"#dc2626",background:"rgba(239,68,68,0.06)",border:"1px solid rgba(239,68,68,0.25)",borderRadius:"6px",padding:"4px 10px",cursor:"pointer"}}><IconReset/> Reset calculator</button>
 </div>}</div>
 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
 <DateField label="Plan Start Date" value={planDates.start} onChange={v=>setPlanDates(p=>({...p,start:v}))}/>
@@ -1567,7 +1593,7 @@ return(
 <div className="flex items-center gap-3 flex-wrap">
 <input ref={planFileRef} type="file" accept=".pdf,application/pdf" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f)handlePlanUpload(f);e.target.value="";}}/>
 <button onClick={()=>{if(!requireSub())return;planFileRef.current?.click()}} disabled={uploadingPlan} className="kv-btn" style={{background:"rgba(212,168,67,0.12)",border:"1px solid rgba(212,168,67,0.35)",color:"#b8901a",padding:"10px 18px",borderRadius:"8px",cursor:"pointer",fontWeight:"600",fontSize:"0.9rem",opacity:uploadingPlan?0.7:1}}>
-{uploadingPlan?"⏳ "+(uploadStage||"Reading plan…"):(isPaid?"📄 Upload NDIS Plan PDF":"🔒 Upload NDIS Plan PDF — paid plan")}
+{uploadingPlan?"⏳ "+(uploadStage||"Reading plan…"):isPaid?<><IconUpload/> Upload NDIS Plan PDF</>:<><IconLock/> Upload NDIS Plan PDF — paid plan</>}
 </button>
 <span style={{color:"#64748b",fontSize:"0.82rem"}}>Upload a plan PDF to auto-fill dates, state &amp; funding — then use ✨ Auto-fill roster (below) to fill the weekly hours from your notes</span>
 {planUploadError&&<div className="w-full mt-1"><span style={{color:"#ef4444",fontSize:"0.85rem"}}>{planUploadError}</span></div>}
@@ -1602,8 +1628,9 @@ return(
 </div>
 </details>
 </div>
+)}
 
-{showSil&&<><div className="rounded-2xl p-6 mb-6" id="sec-budget" style={{scrollMarginTop:"70px",background:"linear-gradient(135deg, #241456 0%, #2d1b69 55%, #3d2787 100%)",boxShadow:"0 14px 40px -18px rgba(35,20,86,0.55)",position:"relative",overflow:"hidden"}}>
+{showSil&&<>{activeTab==="budgets"&&(<><div className="rounded-2xl p-6 mb-6" id="sec-budget" style={{scrollMarginTop:"70px",background:"linear-gradient(135deg, #241456 0%, #2d1b69 55%, #3d2787 100%)",boxShadow:"0 14px 40px -18px rgba(35,20,86,0.55)",position:"relative",overflow:"hidden"}}>
 <div style={{position:"absolute",top:"-100px",right:"-40px",width:"320px",height:"320px",borderRadius:"50%",background:"radial-gradient(circle, rgba(212,168,67,0.16), transparent 65%)"}}/>
 <div style={{position:"relative"}}>
 <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
@@ -1673,11 +1700,11 @@ return(
 <div className="mt-5 flex flex-wrap gap-2 items-stretch">
 <button onClick={addLine} className="kv-btn rounded-xl px-4 py-2 font-bold" style={{background:"#d4a843",border:"none",color:"#241456",cursor:"pointer"}}>+ Add support line</button>
 <button onClick={()=>{if(!requireSub())return;setShowSAModal(true)}} className="kv-btn" style={{padding:"10px 14px",background:"#fdf6e3",border:"none",borderRadius:"12px",cursor:"pointer",textAlign:"left"}}>
-  <span style={{display:"block",color:"#b8901a",fontWeight:700,fontSize:"0.9rem"}}>{isPaid?"":"🔒 "}📋 Schedule of Supports</span>
+  <span style={{display:"block",color:"#b8901a",fontWeight:700,fontSize:"0.9rem"}}>{!isPaid&&<><IconLock/>{" "}</>}<IconDoc/> Schedule of Supports</span>
   <span style={{display:"block",color:"#475569",fontSize:"0.74rem",marginTop:"2px"}}>Signable — every support category: roster, budgets, item numbers, signatures</span>
 </button>
 <button onClick={()=>{if(!requireSub())return;setShowClinicalModal(true)}} className="kv-btn" style={{padding:"10px 14px",background:"#eff6ff",border:"none",borderRadius:"12px",cursor:"pointer",textAlign:"left"}}>
-  <span style={{display:"block",color:"#1e40af",fontWeight:700,fontSize:"0.9rem"}}>{isPaid?"":"🔒 "}🩺 Therapy &amp; Services Schedule</span>
+  <span style={{display:"block",color:"#1e40af",fontWeight:700,fontSize:"0.9rem"}}>{!isPaid&&<><IconLock/>{" "}</>}<IconMed/> Therapy &amp; Services Schedule</span>
   <span style={{display:"block",color:"#475569",fontSize:"0.74rem",marginTop:"2px"}}>Signable — psychology, OT, speech, coordination &amp; other hourly services</span>
 </button>
 <div className="w-full flex flex-wrap gap-2 items-center mt-1">
@@ -1736,8 +1763,9 @@ return(
       {pace.status==="under_pace"&&<div className="mt-3 text-sm" style={{color:"#f59e0b"}}>{pace.usingClaims?"Claims are tracking below pace. This may indicate supports aren't being fully delivered — check if hours are being utilised.":"Spend is tracking below pace. This may indicate supports aren't being fully delivered — check if hours are being utilised."}</div>}
     </div>
   );
-})()}
+})()}</>)}
 
+{activeTab==="setup"&&(
 <details className="kv-fold kv-card mb-6">
 <summary className="p-5 flex flex-wrap items-center justify-between gap-3">
   <div className="flex items-center gap-3 flex-wrap">
@@ -1796,17 +1824,19 @@ onFocus={e=>e.target.select()} className="kv-input w-full rounded-lg px-3 py-2"/
 </div>
 </div>
 </details>
+)}
+{activeTab==="roster"&&(<>
 <div id="sec-lines" className="flex items-center gap-3 mb-4 mt-2" style={{scrollMarginTop:"70px"}}><span className="kv-num">3</span><h2 className="text-xl font-semibold" style={{color:"#2d1b69"}}>Support Lines &amp; Weekly Roster</h2></div>
 <div id="autofill-card" className="kv-card p-4 mb-5" style={{scrollMarginTop:"70px"}}>
 <div className="flex items-center gap-2 mb-2 flex-wrap">
-<span className="text-sm font-semibold" style={{color:"#2d1b69"}}>✨ Auto-fill roster from notes</span>
+<span className="text-sm font-semibold" style={{color:"#2d1b69"}}><IconSparkle/> Auto-fill roster from notes</span>
 <span className="text-xs" style={{color:"#94a3b8"}}>describe the supports and the roster fills itself — edit the text and run it again any time</span>
 </div>
 <textarea ref={rosterNotesRef} value={planNotes} onChange={e=>setPlanNotes(e.target.value)} rows={2} maxLength={2000}
 placeholder={'e.g. 6 hrs community access each weekday 9am–3pm, 4 hrs across the weekend, sleepover every night, 100 km per week'}
 className="kv-input w-full rounded-lg px-3 py-2 text-sm" style={{resize:"vertical"}}/>
 <div className="flex items-center gap-3 flex-wrap mt-2">
-<button onClick={()=>{if(!requireSub())return;autofillRoster()}} disabled={autofilling||!planNotes.trim()} className="kv-btn rounded-xl px-4 py-2 font-bold" style={{background:planNotes.trim()&&!autofilling?"#d4a843":"#ecdfb6",border:"none",color:"#241456",cursor:planNotes.trim()&&!autofilling?"pointer":"not-allowed"}}>{autofilling?"⏳ Filling roster…":"✨ Auto-fill roster"}</button>
+<button onClick={()=>{if(!requireSub())return;autofillRoster()}} disabled={autofilling||!planNotes.trim()} className="kv-btn rounded-xl px-4 py-2 font-bold" style={{background:planNotes.trim()&&!autofilling?"#d4a843":"#ecdfb6",border:"none",color:"#241456",cursor:planNotes.trim()&&!autofilling?"pointer":"not-allowed"}}>{autofilling?"⏳ Filling roster…":<><IconSparkle/> Auto-fill roster</>}</button>
 <span className="text-xs" style={{color:"#64748b"}}>Replaces the weekly roster on matching support lines and shows whether it fits the budget.</span>
 </div>
 {autofillError&&<div className="text-sm mt-2" style={{color:"#ef4444"}}>{autofillError}</div>}
@@ -1848,7 +1878,7 @@ return(
 <span className="text-xs font-semibold px-2 py-1 rounded-full" style={{background:status.bg,color:status.color,border:"1px solid "+status.border}}>{status.label}</span>
 </div>
 <div className="flex items-center gap-2">
-<button onClick={()=>duplicateLine(l.id)} title="Duplicate this support line (roster and rates copied, claims left behind)" className="rounded-xl px-3 py-2" style={{background:"rgba(212,168,67,0.08)",border:"1px solid rgba(212,168,67,0.3)",color:"#b8901a",cursor:"pointer",fontSize:"0.85rem"}}>⧉ Duplicate</button>
+<button onClick={()=>duplicateLine(l.id)} title="Duplicate this support line (roster and rates copied, claims left behind)" className="rounded-xl px-3 py-2" style={{background:"rgba(212,168,67,0.08)",border:"1px solid rgba(212,168,67,0.3)",color:"#b8901a",cursor:"pointer",fontSize:"0.85rem"}}><IconCopy/> Duplicate</button>
 <button onClick={()=>deleteLine(l.id)} disabled={lines.length<=1} className="rounded-xl px-3 py-2 disabled:opacity-40" style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",color:"#ef4444"}}>Delete</button>
 </div>
 </div>
@@ -1909,7 +1939,7 @@ const dh=rosterDays.filter((d:string)=>l.roster[d]?.enabled&&((l.roster[d].hours
 if(dh.length===0)return null;
 const dt=dh.filter((d:string)=>(l.roster[d].shifts||[]).some((x:any)=>x.s&&x.e)||l.roster[d].times);
 const done=dt.length===dh.length;
-return(<span className="text-xs px-2.5 py-1 rounded-full" style={{background:done?"rgba(34,197,94,0.08)":"rgba(212,168,67,0.1)",border:"1px solid "+(done?"rgba(34,197,94,0.3)":"rgba(212,168,67,0.4)"),color:done?"#16a34a":"#b8901a",fontWeight:600}}>🕐 shift times on {dt.length}/{dh.length} days{done?" ✓":" — add them to print on the SoS"}</span>);
+return(<span className="text-xs px-2.5 py-1 rounded-full" style={{background:done?"rgba(34,197,94,0.08)":"rgba(212,168,67,0.1)",border:"1px solid "+(done?"rgba(34,197,94,0.3)":"rgba(212,168,67,0.4)"),color:done?"#16a34a":"#b8901a",fontWeight:600}}><IconClock/> shift times on {dt.length}/{dh.length} days{done?" ✓":" — add them to print on the SoS"}</span>);
 })()}
 </div>
 <div className="text-xs mb-3" style={{color:"#94a3b8",lineHeight:1.5}}>Tick the days worked and enter the hours. <span style={{color:"#64748b",fontWeight:600}}>+ add times</span> puts shift times (e.g. 6am–9am) on the Schedule of Supports — costs come from the hours, not the times. <span style={{color:"#64748b",fontWeight:600}}>Copy to Mon–Fri</span> fills every weekday the same.</div>
@@ -1946,10 +1976,10 @@ return(<div className="flex items-center gap-1 flex-wrap">
 const needs=((r.hours||0)+(r.nightHours||0))>0&&shifts.length===0&&!r.times;
 return(<button onClick={()=>updateRosterDay(l.id,d,{shifts:[...shifts,{s:"",e:""}]})} title="Add shift times for this day — they appear on the Schedule of Supports and don't change costs" style={needs
 ?{background:"rgba(212,168,67,0.12)",border:"1px solid rgba(212,168,67,0.5)",color:"#b8901a",borderRadius:"8px",cursor:"pointer",fontSize:"0.72rem",padding:"2px 9px",fontWeight:600}
-:{background:"none",border:"1px dashed rgba(45,27,105,0.25)",color:"#64748b",borderRadius:"8px",cursor:"pointer",fontSize:"0.72rem",padding:"2px 8px"}}>🕐 {shifts.length>0?"+":needs?"add times (for SoS)":"+ add times"}</button>);
+:{background:"none",border:"1px dashed rgba(45,27,105,0.25)",color:"#64748b",borderRadius:"8px",cursor:"pointer",fontSize:"0.72rem",padding:"2px 8px"}}><IconClock/> {shifts.length>0?"+":needs?"add times (for SoS)":"+ add times"}</button>);
 })()}
 {mismatch&&<button onClick={()=>updateRosterDay(l.id,d,{hours:Math.max(0,Math.round((sHrs-(r.nightHours||0))*100)/100)})} title="Set this day's hours to match the shift times" style={{background:"rgba(212,168,67,0.1)",border:"1px solid rgba(212,168,67,0.3)",color:"#b8901a",borderRadius:"8px",cursor:"pointer",fontSize:"0.72rem",padding:"2px 8px"}}>= {sHrs%1===0?sHrs:sHrs.toFixed(2)}h · match hours</button>}
-{d!=="sat"&&d!=="sun"&&((r.hours||0)>0||(r.nightHours||0)>0)&&["mon","tue","wed","thu","fri"].some(wd=>{const o=l.roster[wd];return !o?.enabled||(o.hours||0)!==(r.hours||0)||(o.nightHours||0)!==(r.nightHours||0)||(o.frequency||"every")!==(r.frequency||"every")||shiftsToText(o.shifts,o.times)!==shiftsToText(r.shifts,r.times)})&&<button onClick={()=>copyDayToWeekdays(l.id,d)} title={"Copy "+DL[d]+"'s hours, frequency and times to every weekday (Mon–Fri)"} style={{background:"none",border:"1px dashed rgba(45,27,105,0.25)",color:"#64748b",borderRadius:"8px",cursor:"pointer",fontSize:"0.72rem",padding:"2px 8px"}}>⇒ copy to Mon–Fri</button>}
+{d!=="sat"&&d!=="sun"&&((r.hours||0)>0||(r.nightHours||0)>0)&&["mon","tue","wed","thu","fri"].some(wd=>{const o=l.roster[wd];return !o?.enabled||(o.hours||0)!==(r.hours||0)||(o.nightHours||0)!==(r.nightHours||0)||(o.frequency||"every")!==(r.frequency||"every")||shiftsToText(o.shifts,o.times)!==shiftsToText(r.shifts,r.times)})&&<button onClick={()=>copyDayToWeekdays(l.id,d)} title={"Copy "+DL[d]+"'s hours, frequency and times to every weekday (Mon–Fri)"} style={{background:"none",border:"1px dashed rgba(45,27,105,0.25)",color:"#64748b",borderRadius:"8px",cursor:"pointer",fontSize:"0.72rem",padding:"2px 8px"}}><IconCopy/> copy to Mon–Fri</button>}
 </div>);
 })()}
 </div>)})}
@@ -2094,6 +2124,7 @@ return(<button onClick={()=>updateRosterDay(l.id,d,{shifts:[...shifts,{s:"",e:""
 </div>)}
 </div>)})}
 </div>
+</>)}
 
 {planExtract&&(
 <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.82)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200}}>
@@ -2266,10 +2297,10 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
 )}
 </>}
 
-{showClinical&&(
+{showClinical&&activeTab==="services"&&(
 <div className="rounded-2xl p-6 mb-6" style={{background: "#ffffff",border:"1px solid rgba(100,150,212,0.25)",boxShadow:"0 1px 3px rgba(15,23,42,0.05), 0 1px 2px rgba(15,23,42,0.04)"}}>
   <div className="flex items-center justify-between mb-5">
-    <h2 className="text-xl font-semibold" style={{color:"#1e40af"}}>🩺 Therapy &amp; Services</h2>
+    <h2 className="text-xl font-semibold" style={{color:"#1e40af"}}><IconMed/> Therapy &amp; Services</h2>
     {calcMode==="clinical"&&<button onClick={()=>setCalcMode(null)} style={{fontSize:"0.72rem",color:"#64748b",background:"rgba(15,23,42,0.04)",border:"1px solid rgba(15,23,42,0.1)",borderRadius:"6px",padding:"4px 10px",cursor:"pointer"}}>change mode</button>}
   </div>
 
@@ -2315,14 +2346,14 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
 
   <div className="rounded-xl p-3 mb-4" style={{background:"rgba(100,150,212,0.05)",border:"1px solid rgba(100,150,212,0.2)"}}>
     <div className="flex items-center gap-2 mb-2 flex-wrap">
-      <span className="text-sm font-semibold" style={{color:"#1e40af"}}>✨ Auto-fill services from notes</span>
+      <span className="text-sm font-semibold" style={{color:"#1e40af"}}><IconSparkle/> Auto-fill services from notes</span>
       <span className="text-xs" style={{color:"#64748b"}}>describe the clinical services — edit the text and run again any time; replaces the list below</span>
     </div>
     <textarea value={clinicalNotes} onChange={e=>setClinicalNotes(e.target.value)} rows={2} maxLength={2000}
       placeholder="e.g. 20 hrs comprehensive BSP development, fortnightly 1 hr OT sessions across the plan, 6 psychology sessions of 1.5 hrs"
       className="kv-input w-full rounded-lg px-3 py-2 text-sm" style={{resize:"vertical"}}/>
     <div className="flex items-center gap-3 flex-wrap mt-2">
-      <button onClick={()=>{if(!requireSub())return;autofillClinical()}} disabled={clinicalAutofilling||!clinicalNotes.trim()} className="kv-btn rounded-xl px-4 py-2 font-bold" style={{background:clinicalNotes.trim()&&!clinicalAutofilling?"#1e40af":"#c7d7f5",border:"none",color:"#ffffff",cursor:clinicalNotes.trim()&&!clinicalAutofilling?"pointer":"not-allowed"}}>{clinicalAutofilling?"⏳ Filling services…":"✨ Auto-fill services"}</button>
+      <button onClick={()=>{if(!requireSub())return;autofillClinical()}} disabled={clinicalAutofilling||!clinicalNotes.trim()} className="kv-btn rounded-xl px-4 py-2 font-bold" style={{background:clinicalNotes.trim()&&!clinicalAutofilling?"#1e40af":"#c7d7f5",border:"none",color:"#ffffff",cursor:clinicalNotes.trim()&&!clinicalAutofilling?"pointer":"not-allowed"}}>{clinicalAutofilling?"⏳ Filling services…":<><IconSparkle/> Auto-fill services</>}</button>
       {clinicalAutofillResult&&(()=>{
         const over=!clinicalBudgetLinked&&clinicalFunding>0&&clinicalAutofillResult.totalCost>clinicalFunding;
         return(<span className="text-sm kv-money" style={{color:over?"#dc2626":"#16a34a"}}>✓ {clinicalAutofillResult.count} service{clinicalAutofillResult.count===1?"":"s"} — {clinicalAutofillResult.totalHours%1===0?clinicalAutofillResult.totalHours:clinicalAutofillResult.totalHours.toFixed(1)}h, {money(clinicalAutofillResult.totalCost)}{!clinicalBudgetLinked&&clinicalFunding>0?(over?" — OVER the "+money(clinicalFunding)+" funding":" — fits the "+money(clinicalFunding)+" funding"):""}</span>);
@@ -2389,7 +2420,7 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
   )}
 
   <button onClick={()=>{if(!requireSub())return;if(clinicalServices.length>0)setClinicalScheduleItems(clinicalServices.map(s=>({...s})));setShowClinicalModal(true)}} style={{padding:"10px 16px",background:"rgba(100,150,212,0.1)",border:"1px solid rgba(100,150,212,0.35)",borderRadius:"12px",cursor:"pointer",textAlign:"left"}}>
-    <span style={{display:"block",color:"#1e40af",fontWeight:700,fontSize:"0.88rem"}}>{isPaid?"":"🔒 "}🩺 Generate Therapy &amp; Services Schedule</span>
+    <span style={{display:"block",color:"#1e40af",fontWeight:700,fontSize:"0.88rem"}}>{!isPaid&&<><IconLock/>{" "}</>}<IconMed/> Generate Therapy &amp; Services Schedule</span>
     <span style={{display:"block",color:"#64748b",fontSize:"0.72rem",marginTop:"2px"}}>Services pre-filled from your list above</span>
   </button>
 </div>
@@ -2445,7 +2476,7 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
 <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:"16px"}}>
 <div style={{background:"#f8fafc",border:"1px solid rgba(212,168,67,0.3)",borderRadius:"16px",maxWidth:"680px",width:"100%",maxHeight:"90vh",overflowY:"auto",padding:"32px"}}>
   <div className="flex items-center justify-between mb-6">
-    <h2 className="text-xl font-bold" style={{color:"#d4a843"}}>📋 Schedule of Supports</h2>
+    <h2 className="text-xl font-bold" style={{color:"#d4a843"}}><IconDoc/> Schedule of Supports</h2>
     <button onClick={()=>setShowSAModal(false)} style={{background:"rgba(15,23,42,0.05)",border:"1px solid rgba(15,23,42,0.1)",color:"#334155",borderRadius:"8px",padding:"6px 12px",cursor:"pointer"}}>✕</button>
   </div>
 
@@ -2484,7 +2515,7 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
           <button onClick={()=>setProviderDetails(p=>{const n={...p};delete n.logo;return n;})} style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.25)",color:"#ef4444",padding:"7px 14px",borderRadius:"8px",cursor:"pointer",fontSize:"0.8rem"}}>Remove</button>
         </div>
       ):(
-        <button onClick={()=>logoFileRef.current?.click()} className="kv-btn" style={{background:"none",border:"1px dashed rgba(45,27,105,0.3)",color:"#64748b",padding:"9px 16px",borderRadius:"8px",cursor:"pointer",fontSize:"0.85rem"}}>⬆ Upload logo (PNG or JPG)</button>
+        <button onClick={()=>logoFileRef.current?.click()} className="kv-btn" style={{background:"none",border:"1px dashed rgba(45,27,105,0.3)",color:"#64748b",padding:"9px 16px",borderRadius:"8px",cursor:"pointer",fontSize:"0.85rem"}}><IconUpload/> Upload logo (PNG or JPG)</button>
       )}
       <div className="text-xs mt-1" style={{color:"#94a3b8"}}>Without a logo, documents show your organisation name in the header instead.</div>
     </div>
@@ -2586,6 +2617,21 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
 </div>
 )}
 
+{toast&&(
+<div className={"kv-toast"+(toast.kind==="err"?" err":"")} role="status">{toast.msg}</div>
+)}
+{confirmState&&(
+<div className="kv-dialog-backdrop" onClick={()=>setConfirmState(null)}>
+<div className="kv-dialog" onClick={e=>e.stopPropagation()}>
+<div style={{fontSize:"1.05rem",fontWeight:800,color:"#2d1b69",marginBottom:"8px"}}>{confirmState.title}</div>
+<div style={{fontSize:"0.9rem",color:"#475569",lineHeight:1.6,marginBottom:"20px"}}>{confirmState.msg}</div>
+<div className="flex gap-3 justify-end">
+<button onClick={()=>setConfirmState(null)} className="kv-btn" style={{padding:"9px 18px",background:"rgba(15,23,42,0.05)",border:"1px solid rgba(15,23,42,0.1)",color:"#334155",borderRadius:"9px",cursor:"pointer",fontSize:"0.9rem"}}>Cancel</button>
+<button onClick={()=>{const y=confirmState.onYes;setConfirmState(null);y();}} className="kv-btn" style={{padding:"9px 18px",background:confirmState.danger?"#dc2626":"#d4a843",border:"none",color:"#ffffff",borderRadius:"9px",cursor:"pointer",fontWeight:700,fontSize:"0.9rem"}}>{confirmState.confirmLabel}</button>
+</div>
+</div>
+</div>
+)}
 {undoState&&(
 <div style={{position:"fixed",bottom:"18px",left:"50%",transform:"translateX(-50%)",zIndex:250,background:"#241456",color:"#ffffff",borderRadius:"999px",padding:"9px 10px 9px 18px",boxShadow:"0 12px 32px rgba(20,10,60,0.45)",display:"flex",gap:"12px",alignItems:"center",maxWidth:"92vw"}}>
 <span className="text-sm" style={{whiteSpace:"nowrap"}}>{undoState.label}</span>
@@ -2598,7 +2644,7 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
 <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:"16px"}}>
 <div style={{background:"#f8fafc",border:"1px solid rgba(100,150,212,0.4)",borderRadius:"16px",maxWidth:"760px",width:"100%",maxHeight:"90vh",overflowY:"auto",padding:"32px"}}>
   <div className="flex items-center justify-between mb-6">
-    <h2 className="text-xl font-bold" style={{color:"#1e40af"}}>🩺 Therapy &amp; Services Schedule</h2>
+    <h2 className="text-xl font-bold" style={{color:"#1e40af"}}><IconMed/> Therapy &amp; Services Schedule</h2>
     <button onClick={()=>setShowClinicalModal(false)} style={{background:"rgba(15,23,42,0.05)",border:"1px solid rgba(15,23,42,0.1)",color:"#334155",borderRadius:"8px",padding:"6px 12px",cursor:"pointer"}}>✕</button>
   </div>
   <div className="text-sm mb-5" style={{color:"#334155"}}>For clinical/therapeutic services (Behaviour Support, allied health, etc). Enter your price guide, services, and practitioner details. Practitioner details are saved for next time.</div>
