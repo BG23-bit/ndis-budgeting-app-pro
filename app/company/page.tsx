@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { useCloudSync, NDIS_RATES_2026_27, type ProviderDetails } from "../client";
+import { useCloudSync, NDIS_RATES_2026_27, ROLE_TYPES, type ProviderDetails } from "../client";
 import { BUILTIN_CATALOGUE, parseCatalogueCSV } from "@/lib/price-guide";
 
 // Dedicated company profile page. Same storage as the calculator's provider
@@ -137,6 +137,13 @@ export function CompanyForm() {
               <input value={pd[f.key] as string || ""} onChange={(e) => setPd((p) => ({ ...p, [f.key]: e.target.value }))} placeholder={f.placeholder} className="kv-input w-full rounded-lg px-3 py-2 text-sm" />
             </div>
           ))}
+          <div>
+            <div className="text-xs mb-1 font-semibold" style={{ color: "#334155" }}>Your role <span style={{ color: "#94a3b8", fontWeight: 400 }}>— tunes calculator &amp; document defaults</span></div>
+            <select value={pd.roleType || ""} onChange={(e) => setPd((p) => ({ ...p, roleType: e.target.value || undefined }))} className="kv-input w-full rounded-lg px-3 py-2 text-sm">
+              <option value="">Not set</option>
+              {ROLE_TYPES.map((rt) => (<option key={rt.key} value={rt.key}>{rt.label}</option>))}
+            </select>
+          </div>
           <div className="sm:col-span-2">
             <div className="text-xs mb-1 font-semibold" style={{ color: "#334155" }}>Address</div>
             <input value={pd.address} onChange={(e) => setPd((p) => ({ ...p, address: e.target.value }))} placeholder="e.g. 47 McPhail Rd, Narangba QLD 4504" className="kv-input w-full rounded-lg px-3 py-2 text-sm" />

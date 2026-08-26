@@ -9,7 +9,13 @@ type Claim = { id: string; date: string; amount: number; note: string };
 type BudgetAllocation = { id: string; name: string; amount: number; item?: string };
 type SupportLine = { id: string; code: string; description: string; totalFunding: number; ratio: string; allocations?: BudgetAllocation[]; excludedHolidays: string[]; roster: { [key: string]: DayRoster }; activeSleepoverHours: number; activeSleepoverFreq: string; fixedSleepovers: number; fixedSleepoverFreq: string; kmsPerWeek: number; kmRate: number; kmFreq: string; claims: Claim[]; lineRates: Rates };
 export type CustomHoliday = { date: string; name: string };
-export type ProviderDetails = { orgName: string; abn: string; contactName: string; email: string; phone: string; address: string; registrationNumber: string; defaultRates?: Partial<Rates>; customHolidays?: CustomHoliday[]; logo?: string };
+export type ProviderDetails = { orgName: string; abn: string; contactName: string; email: string; phone: string; address: string; registrationNumber: string; defaultRates?: Partial<Rates>; customHolidays?: CustomHoliday[]; logo?: string; roleType?: string };
+export const ROLE_TYPES:{key:string;label:string;mode:"sil"|"clinical"|"both"}[]=[
+  {key:"sil",label:"SIL / Support Provider",mode:"sil"},
+  {key:"therapy",label:"Therapy / Allied Health",mode:"clinical"},
+  {key:"cos",label:"Support Coordinator (CoS)",mode:"both"},
+  {key:"planmgr",label:"Plan Manager",mode:"both"},
+];
 const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
 const DAY_DOW:{[k:string]:number}={mon:1,tue:2,wed:3,thu:4,fri:5,sat:6,sun:0};
 const DL: {[k:string]:string} = {mon:"Monday",tue:"Tuesday",wed:"Wednesday",thu:"Thursday",fri:"Friday",sat:"Saturday",sun:"Sunday"};
@@ -1400,7 +1406,7 @@ tbody td{padding:9px 10px;vertical-align:top}
 </head><body>
 <div class="header">
   <div>${providerDetails.logo&&providerDetails.logo.startsWith("data:image/")?`<div style="background:#fff;padding:6px 12px;border-radius:8px;display:inline-block"><img src="${providerDetails.logo}" style="max-height:42px;max-width:210px;display:block"/></div>`:providerDetails.orgName?`<div class="brand">${escapeHtml(providerDetails.orgName)}</div>`:`<div class="brand">&#10022; KEVRIA</div><div class="doc-label">Kevria Calc</div>`}</div>
-  <div style="text-align:right;font-size:9px;color:rgba(255,255,255,.6)"><div style="font-size:10.5px;color:white;font-weight:700;text-transform:uppercase;letter-spacing:.1em">Clinical Schedule of Supports</div><div style="margin-top:3px">Generated: ${escapeHtml(dt)}</div></div>
+  <div style="text-align:right;font-size:9px;color:rgba(255,255,255,.6)"><div style="font-size:10.5px;color:white;font-weight:700;text-transform:uppercase;letter-spacing:.1em">Therapy &amp; Services Schedule</div><div style="margin-top:3px">Generated: ${escapeHtml(dt)}</div></div>
 </div>
 <div class="content">
   <div class="doc-title">Schedule of Supports</div>
@@ -1530,7 +1536,7 @@ return(
 
 <div className="kv-card p-6 mb-6">
 <div id="sec-plan" className="flex items-center justify-between mb-4 flex-wrap gap-2" style={{scrollMarginTop:"70px"}}><div className="flex items-center gap-3"><span className="kv-num">1</span><h2 className="text-xl font-semibold" style={{color:"#2d1b69"}}>Plan Details</h2></div>{calcMode&&<div className="flex items-center gap-2">
-<button onClick={()=>setCalcMode(null)} style={{fontSize:"0.72rem",color:"#64748b",background:"rgba(15,23,42,0.04)",border:"1px solid rgba(15,23,42,0.1)",borderRadius:"6px",padding:"4px 10px",cursor:"pointer"}}>{calcMode==="sil"?"SIL / Core":calcMode==="clinical"?"Clinical / Therapy":"SIL + Clinical"} · change mode</button>
+<button onClick={()=>setCalcMode(null)} style={{fontSize:"0.72rem",color:"#64748b",background:"rgba(15,23,42,0.04)",border:"1px solid rgba(15,23,42,0.1)",borderRadius:"6px",padding:"4px 10px",cursor:"pointer"}}>{calcMode==="sil"?"Roster supports":calcMode==="clinical"?"Therapy & services":"Roster + services"} · change mode</button>
 <button onClick={resetCalculator} title="Clear everything for this participant and start again (undoable)" style={{fontSize:"0.72rem",color:"#dc2626",background:"rgba(239,68,68,0.06)",border:"1px solid rgba(239,68,68,0.25)",borderRadius:"6px",padding:"4px 10px",cursor:"pointer"}}>↺ Reset calculator</button>
 </div>}</div>
 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -1667,12 +1673,12 @@ return(
 <div className="mt-5 flex flex-wrap gap-2 items-stretch">
 <button onClick={addLine} className="kv-btn rounded-xl px-4 py-2 font-bold" style={{background:"#d4a843",border:"none",color:"#241456",cursor:"pointer"}}>+ Add support line</button>
 <button onClick={()=>{if(!requireSub())return;setShowSAModal(true)}} className="kv-btn" style={{padding:"10px 14px",background:"#fdf6e3",border:"none",borderRadius:"12px",cursor:"pointer",textAlign:"left"}}>
-  <span style={{display:"block",color:"#b8901a",fontWeight:700,fontSize:"0.9rem"}}>{isPaid?"":"🔒 "}📋 Schedule of Supports (SIL / Core)</span>
-  <span style={{display:"block",color:"#475569",fontSize:"0.74rem",marginTop:"2px"}}>Signable agreement — roster, item numbers, signatures</span>
+  <span style={{display:"block",color:"#b8901a",fontWeight:700,fontSize:"0.9rem"}}>{isPaid?"":"🔒 "}📋 Schedule of Supports</span>
+  <span style={{display:"block",color:"#475569",fontSize:"0.74rem",marginTop:"2px"}}>Signable — every support category: roster, budgets, item numbers, signatures</span>
 </button>
 <button onClick={()=>{if(!requireSub())return;setShowClinicalModal(true)}} className="kv-btn" style={{padding:"10px 14px",background:"#eff6ff",border:"none",borderRadius:"12px",cursor:"pointer",textAlign:"left"}}>
-  <span style={{display:"block",color:"#1e40af",fontWeight:700,fontSize:"0.9rem"}}>{isPaid?"":"🔒 "}🏥 Schedule of Supports (Clinical)</span>
-  <span style={{display:"block",color:"#475569",fontSize:"0.74rem",marginTop:"2px"}}>Signable agreement — behaviour support, allied health, therapy</span>
+  <span style={{display:"block",color:"#1e40af",fontWeight:700,fontSize:"0.9rem"}}>{isPaid?"":"🔒 "}🩺 Therapy &amp; Services Schedule</span>
+  <span style={{display:"block",color:"#475569",fontSize:"0.74rem",marginTop:"2px"}}>Signable — psychology, OT, speech, coordination &amp; other hourly services</span>
 </button>
 <div className="w-full flex flex-wrap gap-2 items-center mt-1">
 <span className="text-xs" style={{color:"rgba(255,255,255,0.45)"}}>Internal tools:</span>
@@ -1867,11 +1873,23 @@ return(
 ):lineMode==="hourly"?(
 <div className="kv-sub rounded-xl p-4 lg:col-span-2">
 <div className="text-sm mb-3 font-semibold" style={{color:"#d4a843"}}>Service Hours<span style={{color:"#64748b",fontWeight:"normal",fontSize:"0.8rem",marginLeft:"8px"}}>flat hourly service — no day-by-day roster needed</span></div>
+{CLINICAL_TYPES.some(t=>t.code===l.code)&&(
+<div className="flex items-center gap-2 flex-wrap mb-2">
+<span className="text-xs" style={{color:"#475569"}}>Service type:</span>
+<select value="" onChange={e=>{const t=CLINICAL_TYPES.find(x=>x.key===e.target.value);if(t)updateLine(l.id,{description:t.label,lineRates:{...(l.lineRates||rates),weekdayOrd:t.rate}});}} className="kv-input rounded-lg px-2 py-1" style={{fontSize:"0.8rem"}}>
+<option value="">pick to set the rate…</option>
+{CLINICAL_TYPES.filter(t=>t.code===l.code).map(t=>(<option key={t.key} value={t.key}>{t.label} — ${t.rate}/hr</option>))}
+</select>
+<span className="text-xs" style={{color:"#94a3b8"}}>each discipline has its own price cap</span>
+</div>
+)}
 <div className="flex items-center gap-2 flex-wrap">
 <span className="text-xs" style={{color:"#475569"}}>Hours per week:</span>
 <SmallField value={DAYS.reduce((s,d)=>s+(l.roster[d]?.enabled?((l.roster[d].hours||0)+(l.roster[d].nightHours||0)):0),0)} onChange={v=>updateLine(l.id,{roster:{...defaultRoster(),mon:{enabled:v>0,hours:v,nightHours:0,frequency:l.roster.mon?.frequency||"every"}}})}/>
 <SmallSelect value={l.roster.mon?.frequency||"every"} options={Object.entries(FREQ).map(([k,v])=>({value:k,label:v.label}))} onChange={v=>updateRosterDay(l.id,"mon",{frequency:v})}/>
-<span className="text-xs" style={{color:"#475569"}}>@ <span className="kv-money font-semibold" style={{color:"#b8901a"}}>{money((l.lineRates?.weekdayOrd||0)/(RATIOS[l.ratio]?.divisor||1))}</span>/hr</span>
+<span className="text-xs" style={{color:"#475569"}}>@ $</span>
+<SmallField value={Math.round((l.lineRates?.weekdayOrd||0)*100)/100} step={0.01} onChange={v=>updateLine(l.id,{lineRates:{...(l.lineRates||rates),weekdayOrd:v}})}/>
+<span className="text-xs" style={{color:"#475569"}}>/hr — the rate you charge{(CATEGORY_PRESETS[l.code]?.rates.weekdayOrd||0)>0?<span style={{color:"#94a3b8"}}> (guide ${CATEGORY_PRESETS[l.code]?.rates.weekdayOrd})</span>:null}</span>
 </div>
 <div className="flex items-center gap-2 flex-wrap mt-2"><span className="text-xs" style={{color:"#475569"}}>KMs per week:</span><SmallField value={l.kmsPerWeek} step={1} onChange={v=>updateLine(l.id,{kmsPerWeek:v})}/><span className="text-xs" style={{color:"#475569"}}>@ $</span><SmallField value={l.kmRate} step={0.01} onChange={v=>updateLine(l.id,{kmRate:v})}/><span className="text-xs" style={{color:"#475569"}}>/km</span><SmallSelect value={l.kmFreq} options={Object.entries(FREQ).map(([k,v])=>({value:k,label:v.label}))} onChange={v=>updateLine(l.id,{kmFreq:v})}/></div>
 {DAYS.some(d=>d!=="mon"&&l.roster[d]?.enabled&&((l.roster[d].hours||0)>0||(l.roster[d].nightHours||0)>0))&&<div className="text-xs mt-2" style={{color:"#94a3b8"}}>Total includes hours saved across several days from an earlier roster — editing the number consolidates them into one weekly figure.</div>}
@@ -2251,7 +2269,7 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
 {showClinical&&(
 <div className="rounded-2xl p-6 mb-6" style={{background: "#ffffff",border:"1px solid rgba(100,150,212,0.25)",boxShadow:"0 1px 3px rgba(15,23,42,0.05), 0 1px 2px rgba(15,23,42,0.04)"}}>
   <div className="flex items-center justify-between mb-5">
-    <h2 className="text-xl font-semibold" style={{color:"#1e40af"}}>🏥 Clinical / Therapy Services</h2>
+    <h2 className="text-xl font-semibold" style={{color:"#1e40af"}}>🩺 Therapy &amp; Services</h2>
     {calcMode==="clinical"&&<button onClick={()=>setCalcMode(null)} style={{fontSize:"0.72rem",color:"#64748b",background:"rgba(15,23,42,0.04)",border:"1px solid rgba(15,23,42,0.1)",borderRadius:"6px",padding:"4px 10px",cursor:"pointer"}}>change mode</button>}
   </div>
 
@@ -2371,7 +2389,7 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
   )}
 
   <button onClick={()=>{if(!requireSub())return;if(clinicalServices.length>0)setClinicalScheduleItems(clinicalServices.map(s=>({...s})));setShowClinicalModal(true)}} style={{padding:"10px 16px",background:"rgba(100,150,212,0.1)",border:"1px solid rgba(100,150,212,0.35)",borderRadius:"12px",cursor:"pointer",textAlign:"left"}}>
-    <span style={{display:"block",color:"#1e40af",fontWeight:700,fontSize:"0.88rem"}}>{isPaid?"":"🔒 "}🏥 Generate Clinical Schedule of Supports</span>
+    <span style={{display:"block",color:"#1e40af",fontWeight:700,fontSize:"0.88rem"}}>{isPaid?"":"🔒 "}🩺 Generate Therapy &amp; Services Schedule</span>
     <span style={{display:"block",color:"#64748b",fontSize:"0.72rem",marginTop:"2px"}}>Services pre-filled from your list above</span>
   </button>
 </div>
@@ -2386,17 +2404,32 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
   <div style={{maxWidth:"720px",width:"100%",textAlign:"center",background:"#ffffff",border:"1px solid #cbd5e1",borderRadius:"20px",padding:"40px 32px",boxShadow:"0 20px 50px rgba(15,23,42,0.25)"}}>
     <div style={{fontSize:"1.8rem",color:"#d4a843",marginBottom:"12px"}}>✦</div>
     <h2 style={{fontSize:"1.5rem",fontWeight:800,color: "#2d1b69",marginBottom:"8px"}}>What are you calculating for{participantName?" "+participantName:""}?</h2>
-    <p style={{color:"#475569",fontSize:"0.88rem",marginBottom:"32px",lineHeight:1.6}}>Choose the type of support. This sets up the right calculator view.<br/>You can change it any time from the Plan Details section.</p>
+    <p style={{color:"#475569",fontSize:"0.88rem",marginBottom:"18px",lineHeight:1.6}}>Choose the type of support. This sets up the right calculator view.<br/>You can change it any time from the Plan Details section.</p>
+    {!providerDetails.roleType&&(
+    <div style={{marginBottom:"26px"}}>
+      <div style={{fontSize:"0.8rem",fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:"10px"}}>Quick start — what best describes you?</div>
+      <div className="flex flex-wrap justify-center" style={{gap:"8px"}}>
+        {ROLE_TYPES.map(rt=>(
+          <button key={rt.key} onClick={()=>{
+            setProviderDetails(prev=>({...prev,roleType:rt.key}));
+            setCalcMode(rt.mode);
+            if(rt.key==="sil"){setSaUseSilItems(true);setSaLayout("daily");}
+          }} style={{padding:"9px 16px",background:"rgba(212,168,67,0.08)",border:"1px solid rgba(212,168,67,0.4)",borderRadius:"999px",cursor:"pointer",color:"#b8901a",fontWeight:600,fontSize:"0.85rem"}}>{rt.label}</button>
+        ))}
+      </div>
+      <div style={{fontSize:"0.74rem",color:"#94a3b8",marginTop:"8px"}}>One tap sets up the right view and document defaults for your role — or pick a view below.</div>
+    </div>
+    )}
     <div className="grid grid-cols-1 sm:grid-cols-3" style={{gap:"14px"}}>
       <button onClick={()=>setCalcMode("sil")} style={{padding:"28px 16px",background:"#fdf6e3",border:"2px solid #d4a843",borderRadius:"16px",cursor:"pointer",textAlign:"center",boxShadow:"0 1px 3px rgba(15,23,42,0.06)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:"12px"}}>🏠</div>
-        <div style={{color:"#b8901a",fontWeight:700,fontSize:"1rem",marginBottom:"8px"}}>SIL / Core Supports</div>
-        <div style={{color:"#475569",fontSize:"0.78rem",lineHeight:1.6}}>Roster-based with day, night, weekend &amp; public holiday rates</div>
+        <div style={{color:"#b8901a",fontWeight:700,fontSize:"1rem",marginBottom:"8px"}}>Roster Supports</div>
+        <div style={{color:"#475569",fontSize:"0.78rem",lineHeight:1.6}}>SIL, core &amp; community — day, evening, weekend &amp; public holiday rates</div>
       </button>
       <button onClick={()=>setCalcMode("clinical")} style={{padding:"28px 16px",background:"#eff6ff",border:"2px solid #3b82f6",borderRadius:"16px",cursor:"pointer",textAlign:"center",boxShadow:"0 1px 3px rgba(15,23,42,0.06)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:"12px"}}>🏥</div>
-        <div style={{color:"#1e40af",fontWeight:700,fontSize:"1rem",marginBottom:"8px"}}>Clinical / Therapy</div>
-        <div style={{color:"#475569",fontSize:"0.78rem",lineHeight:1.6}}>Behaviour support, allied health, therapy — flat hourly packages</div>
+        <div style={{color:"#1e40af",fontWeight:700,fontSize:"1rem",marginBottom:"8px"}}>Therapy &amp; Services</div>
+        <div style={{color:"#475569",fontSize:"0.78rem",lineHeight:1.6}}>Psychology, OT, speech, behaviour support, coordination — hourly services</div>
       </button>
       <button onClick={()=>setCalcMode("both")} style={{padding:"28px 16px",background:"#f0fdf4",border:"2px solid #22c55e",borderRadius:"16px",cursor:"pointer",textAlign:"center",boxShadow:"0 1px 3px rgba(15,23,42,0.06)"}}>
         <div style={{fontSize:"2.2rem",marginBottom:"12px"}}>📋</div>
@@ -2565,7 +2598,7 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
 <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:"16px"}}>
 <div style={{background:"#f8fafc",border:"1px solid rgba(100,150,212,0.4)",borderRadius:"16px",maxWidth:"760px",width:"100%",maxHeight:"90vh",overflowY:"auto",padding:"32px"}}>
   <div className="flex items-center justify-between mb-6">
-    <h2 className="text-xl font-bold" style={{color:"#1e40af"}}>🏥 Clinical Schedule of Supports</h2>
+    <h2 className="text-xl font-bold" style={{color:"#1e40af"}}>🩺 Therapy &amp; Services Schedule</h2>
     <button onClick={()=>setShowClinicalModal(false)} style={{background:"rgba(15,23,42,0.05)",border:"1px solid rgba(15,23,42,0.1)",color:"#334155",borderRadius:"8px",padding:"6px 12px",cursor:"pointer"}}>✕</button>
   </div>
   <div className="text-sm mb-5" style={{color:"#334155"}}>For clinical/therapeutic services (Behaviour Support, allied health, etc). Enter your price guide, services, and practitioner details. Practitioner details are saved for next time.</div>
