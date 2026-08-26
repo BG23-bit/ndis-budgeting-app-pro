@@ -158,7 +158,7 @@ useEffect(()=>{async function load(){const cloud=await loadFromCloud(STORAGE_KEY
 // manually pre-divided the rate (the old workaround) gets restored to the
 // full flat rate so it isn't divided twice.
 m.lineRates=migrateSleepoverRate(m.ratio,m.lineRates);
-return m;}));if(raw?.weeksOverride!=null)setWeeksOverride(raw.weeksOverride);if(raw?.calcMode!==undefined)setCalcMode(raw.calcMode as any);else{const hasLines=Array.isArray(raw?.lines)&&raw.lines.some((l:any)=>(l?.totalFunding||0)>0);const hasClinical=Array.isArray(raw?.clinicalServices)&&raw.clinicalServices.length>0;if(hasLines&&hasClinical)setCalcMode("both");else if(hasClinical&&!hasLines)setCalcMode("clinical");else if(hasLines)setCalcMode("sil");}if(typeof raw?.planNotes==="string")setPlanNotes(raw.planNotes);if(typeof raw?.clinicalNotes==="string")setClinicalNotes(raw.clinicalNotes);if(typeof raw?.clinicalFunding==="number")setClinicalFunding(raw.clinicalFunding);if(Array.isArray(raw?.clinicalServices))setClinicalServices(raw.clinicalServices);if(typeof raw?.clinicalBudgetLinked==="boolean")setClinicalBudgetLinked(raw.clinicalBudgetLinked);setLoaded(true);}load()},[]);
+return m;}));if(raw?.weeksOverride!=null)setWeeksOverride(raw.weeksOverride);if(raw?.calcMode!==undefined)setCalcMode(raw.calcMode as any);else{const hasLines=Array.isArray(raw?.lines)&&raw.lines.some((l:any)=>(l?.totalFunding||0)>0);const hasClinical=Array.isArray(raw?.clinicalServices)&&raw.clinicalServices.length>0;if(hasLines&&hasClinical)setCalcMode("both");else if(hasClinical&&!hasLines)setCalcMode("clinical");else if(hasLines)setCalcMode("sil");}if(typeof raw?.planNotes==="string")setPlanNotes(raw.planNotes);if(typeof raw?.clinicalNotes==="string")setClinicalNotes(raw.clinicalNotes);if(typeof raw?.clinicalFunding==="number")setClinicalFunding(raw.clinicalFunding);if(Array.isArray(raw?.clinicalServices))setClinicalServices(raw.clinicalServices);if(typeof raw?.clinicalBudgetLinked==="boolean")setClinicalBudgetLinked(raw.clinicalBudgetLinked);if(Array.isArray(raw?.docHistory))setDocHistory(raw.docHistory);setLoaded(true);}load()},[]);
 const[calcMode,setCalcMode]=useState<"sil"|"clinical"|"both"|null>(null);
 // Workspace tabs: one job on screen at a time instead of an endless scroll.
 const[activeTab,setActiveTab]=useState<"setup"|"budgets"|"roster"|"services"|"documents">("setup");
@@ -169,11 +169,17 @@ const[clinicalFunding,setClinicalFunding]=useState(0);
 const[clinicalServices,setClinicalServices]=useState<{id:string;code:string;description:string;hours:number;rate:number;note:string;item?:string;typeKey?:string}[]>([]);
 const[clinicalBudgetLinked,setClinicalBudgetLinked]=useState(false);
 const[planNotes,setPlanNotes]=useState("");
+// Documents history: a lightweight record per generation (no stored PDFs) so
+// providers have an audit trail of what was issued and when.
+const[docHistory,setDocHistory]=useState<{id:string;ts:string;type:string;layout?:string;total:number}[]>([]);
+function recordDoc(type:string,total:number,layout?:string){
+  setDocHistory(prev=>[{id:uid(),ts:new Date().toISOString(),type,total,...(layout?{layout}:{})},...prev].slice(0,25));
+}
 const[clinicalNotes,setClinicalNotes]=useState("");
-const saveData={rates,lines,planDates,weeksOverride,calcMode,clinicalFunding,clinicalServices,clinicalBudgetLinked,planNotes,clinicalNotes};
+const saveData={rates,lines,planDates,weeksOverride,calcMode,clinicalFunding,clinicalServices,clinicalBudgetLinked,planNotes,clinicalNotes,docHistory};
 // Don't persist until the initial load has finished — otherwise the mount-time save
 // overwrites stored data with defaults before the async load can read it.
-useEffect(()=>{if(!loaded)return;try{localStorage.setItem(STORAGE_KEY,JSON.stringify(saveData))}catch{}},[loaded,rates,lines,planDates,weeksOverride,calcMode,clinicalFunding,clinicalServices,clinicalBudgetLinked,planNotes,clinicalNotes]);
+useEffect(()=>{if(!loaded)return;try{localStorage.setItem(STORAGE_KEY,JSON.stringify(saveData))}catch{}},[loaded,rates,lines,planDates,weeksOverride,calcMode,clinicalFunding,clinicalServices,clinicalBudgetLinked,planNotes,clinicalNotes,docHistory]);
 const saveState=useCloudSync(loaded?STORAGE_KEY:"",saveData);
 const perLine=useMemo(()=>{
 // When the clinical budget is drawn from the plan, each clinical service's cost
@@ -1278,6 +1284,7 @@ tbody td{padding:9px 10px;vertical-align:top}
 </div>
 </body></html>`;
   printHtml(html);
+  recordDoc("Schedule of Supports",grandTotal+clinicalGrand,saLayout==="daily"?"day-by-day":"summary");
 }
 function generateClinicalSoS(){
   const pName=participantName||"[Participant Name]";
@@ -1394,6 +1401,7 @@ tbody td{padding:9px 10px;vertical-align:top}
 </div>
 </body></html>`;
   printHtml(html);
+  recordDoc("Therapy & Services Schedule",grandTotal);
 }
 const totalStatus=getBudgetStatus(totals.remaining,totals.totalFunding);
 const showSil=calcMode==="sil"||calcMode==="both";
@@ -2249,6 +2257,22 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
 <button onClick={()=>claimsFileRef.current?.click()} className="kv-btn rounded-lg" style={{padding:"6px 13px",fontSize:"0.8rem",background:"rgba(15,23,42,0.03)",border:"1px solid rgba(15,23,42,0.12)",color:"#475569",cursor:"pointer"}} title="Import an NDIS payment request export to log claims automatically">Import Claims CSV</button>
 </div>
 {claimsImportError&&<div className="text-sm mt-2" style={{color:"#dc2626"}}>{claimsImportError}</div>}
+{docHistory.length>0&&(
+<div className="mt-6 pt-4" style={{borderTop:"1px solid #eef0f6"}}>
+<div className="text-xs font-semibold mb-2" style={{color:"#64748b",textTransform:"uppercase",letterSpacing:"0.06em"}}>Generated documents</div>
+<div className="grid gap-1">
+{docHistory.map(d=>(
+<div key={d.id} className="flex items-center gap-3 text-sm py-1.5 px-2 rounded flex-wrap" style={{background:"rgba(15,23,42,0.02)"}}>
+<span style={{color:"#334155",fontWeight:600}}>{d.type}</span>
+{d.layout&&<span className="text-xs px-1.5 py-0.5 rounded" style={{background:"rgba(212,168,67,0.1)",color:"#b8901a"}}>{d.layout}</span>}
+<span className="kv-money" style={{color:"#475569"}}>{money(d.total)}</span>
+<span className="text-xs" style={{color:"#94a3b8",marginLeft:"auto"}}>{new Date(d.ts).toLocaleString("en-AU",{day:"numeric",month:"short",year:"numeric",hour:"numeric",minute:"2-digit"})}</span>
+</div>
+))}
+</div>
+<div className="text-xs mt-2" style={{color:"#94a3b8"}}>A record of what was generated and its total at the time — regenerate any document above with the current data.</div>
+</div>
+)}
 </div>
 )}
 
