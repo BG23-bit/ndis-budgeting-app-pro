@@ -273,7 +273,7 @@ m.lineRates=migrateSleepoverRate(m.ratio,m.lineRates);
 return m;}));if(raw?.weeksOverride!=null)setWeeksOverride(raw.weeksOverride);if(raw?.calcMode!==undefined)setCalcMode(raw.calcMode as any);else{const hasLines=Array.isArray(raw?.lines)&&raw.lines.some((l:any)=>(l?.totalFunding||0)>0);const hasClinical=Array.isArray(raw?.clinicalServices)&&raw.clinicalServices.length>0;if(hasLines&&hasClinical)setCalcMode("both");else if(hasClinical&&!hasLines)setCalcMode("clinical");else if(hasLines)setCalcMode("sil");}if(typeof raw?.planNotes==="string")setPlanNotes(raw.planNotes);if(typeof raw?.clinicalNotes==="string")setClinicalNotes(raw.clinicalNotes);if(typeof raw?.clinicalFunding==="number")setClinicalFunding(raw.clinicalFunding);if(Array.isArray(raw?.clinicalServices))setClinicalServices(raw.clinicalServices);if(typeof raw?.clinicalBudgetLinked==="boolean")setClinicalBudgetLinked(raw.clinicalBudgetLinked);setLoaded(true);}load()},[]);
 const[calcMode,setCalcMode]=useState<"sil"|"clinical"|"both"|null>(null);
 // Workspace tabs: one job on screen at a time instead of an endless scroll.
-const[activeTab,setActiveTab]=useState<"setup"|"budgets"|"roster"|"services">("setup");
+const[activeTab,setActiveTab]=useState<"setup"|"budgets"|"roster"|"services"|"documents">("setup");
 const tabInitRef=React.useRef(false);
 const[loaded,setLoaded]=useState(false);
 const isFreshRef=React.useRef(false);
@@ -1542,7 +1542,7 @@ return(
 <div style={{position:"sticky",top:0,zIndex:40,background:"rgba(245,246,250,0.88)",backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",borderBottom:"1px solid #e9eaf2",marginBottom:"24px"}}>
 <div className="mx-auto max-w-6xl px-6 py-2.5 flex items-center justify-between gap-3 flex-wrap">
 <div className="kv-tabs">
-{([["setup","Setup"],["budgets","Budgets"],...(showSil?[["roster","Roster"]]:[]),...(showClinical?[["services","Services"]]:[])] as [string,string][]).map(([k,lbl])=>(
+{([["setup","Setup"],["budgets","Budgets"],...(showSil?[["roster","Roster"]]:[]),...(showClinical?[["services","Services"]]:[]),["documents","Documents"]] as [string,string][]).map(([k,lbl])=>(
 <button key={k} type="button" className={"kv-tab"+(activeTab===k?" active":"")} onClick={()=>{setActiveTab(k as any);window.scrollTo({top:0});}}>{lbl}</button>
 ))}
 </div>
@@ -1726,22 +1726,7 @@ return(
 <div className="text-xs mt-1 text-right" style={{color:"rgba(255,255,255,0.6)"}}>{totals.totalFunding>0?((totals.planCost/totals.totalFunding)*100).toFixed(1):0}% used</div></div>
 <div className="mt-5 flex flex-wrap gap-2 items-stretch">
 <button onClick={addLine} className="kv-btn rounded-xl px-4 py-2 font-bold" style={{background:"#d4a843",border:"none",color:"#241456",cursor:"pointer"}}>+ Add support line</button>
-<button onClick={()=>{if(!requireSub())return;setShowSAModal(true)}} className="kv-btn" style={{padding:"10px 14px",background:"#fdf6e3",border:"none",borderRadius:"12px",cursor:"pointer",textAlign:"left"}}>
-  <span style={{display:"block",color:"#b8901a",fontWeight:700,fontSize:"0.9rem"}}>{!isPaid&&<><IconLock/>{" "}</>}<IconDoc/> Schedule of Supports</span>
-  <span style={{display:"block",color:"#475569",fontSize:"0.74rem",marginTop:"2px"}}>Signable — every support category: roster, budgets, item numbers, signatures</span>
-</button>
-<button onClick={()=>{if(!requireSub())return;setShowClinicalModal(true)}} className="kv-btn" style={{padding:"10px 14px",background:"#eff6ff",border:"none",borderRadius:"12px",cursor:"pointer",textAlign:"left"}}>
-  <span style={{display:"block",color:"#1e40af",fontWeight:700,fontSize:"0.9rem"}}>{!isPaid&&<><IconLock/>{" "}</>}<IconMed/> Therapy &amp; Services Schedule</span>
-  <span style={{display:"block",color:"#475569",fontSize:"0.74rem",marginTop:"2px"}}>Signable — psychology, OT, speech, coordination &amp; other hourly services</span>
-</button>
-<div className="w-full flex flex-wrap gap-2 items-center mt-1">
-<span className="text-xs" style={{color:"rgba(255,255,255,0.45)"}}>Internal tools:</span>
-<button onClick={()=>{if(!requireSub())return;exportCSV()}} className="kv-btn rounded-lg" style={{padding:"5px 12px",fontSize:"0.78rem",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.15)",color:"rgba(255,255,255,0.65)",cursor:"pointer"}} title="Spreadsheet of budgets, roster costs and claims — for your own records">{isPaid?"":"🔒 "}Budget CSV</button>
-<button onClick={()=>{if(!requireSub())return;exportPDF()}} className="kv-btn rounded-lg" style={{padding:"5px 12px",fontSize:"0.78rem",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.15)",color:"rgba(255,255,255,0.65)",cursor:"pointer"}} title="Internal budget report — for the signable document use the Schedule of Supports buttons">{isPaid?"":"🔒 "}Budget Report PDF</button>
-<input ref={claimsFileRef} type="file" accept=".csv,text/csv" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f)handleClaimsCsv(f);e.target.value="";}}/>
-<button onClick={()=>claimsFileRef.current?.click()} className="kv-btn rounded-lg" style={{padding:"5px 12px",fontSize:"0.78rem",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.15)",color:"rgba(255,255,255,0.65)",cursor:"pointer"}} title="Import an NDIS payment request export to log claims automatically">Import Claims CSV</button>
-</div>
-{claimsImportError&&<div className="w-full text-sm" style={{color:"#fda4af"}}>{claimsImportError}</div>}
+<button onClick={()=>{setActiveTab("documents");window.scrollTo({top:0});}} className="kv-btn rounded-xl px-4 py-2" style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.22)",color:"rgba(255,255,255,0.9)",cursor:"pointer"}}><IconDoc/> Documents tab →</button>
 </div>
 </div></div>
 
@@ -2324,6 +2309,33 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
 )}
 </>}
 
+{activeTab==="documents"&&(
+<div className="kv-card p-6 mb-6">
+<div className="flex items-center gap-3 mb-1"><span className="kv-num"><IconDoc/></span><h2 className="text-xl font-semibold" style={{color:"#2d1b69"}}>Documents</h2></div>
+<p className="text-sm mb-5" style={{color:"#64748b"}}>Everything you&apos;ve set up — budgets, roster, services, branding and item numbers — flows into these. Generate as often as you like.</p>
+<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+<button onClick={()=>{if(!requireSub())return;setShowSAModal(true)}} className="kv-btn" style={{padding:"20px 18px",background:"#fdf6e3",border:"1px solid rgba(212,168,67,0.35)",borderRadius:"14px",cursor:"pointer",textAlign:"left"}}>
+  <span style={{display:"block",color:"#b8901a",fontWeight:800,fontSize:"1.02rem"}}>{!isPaid&&<><IconLock/>{" "}</>}<IconDoc/> Schedule of Supports</span>
+  <span style={{display:"block",color:"#475569",fontSize:"0.8rem",marginTop:"6px",lineHeight:1.5}}>The signable schedule — every support category with roster, budgets &amp; remaining, item numbers and signatures. Pick summary or day-by-day layout.</span>
+</button>
+{showClinical&&(
+<button onClick={()=>{if(!requireSub())return;if(clinicalServices.length>0)setClinicalScheduleItems(clinicalServices.map(sv=>({...sv})));setShowClinicalModal(true)}} className="kv-btn" style={{padding:"20px 18px",background:"#eff6ff",border:"1px solid rgba(100,150,212,0.35)",borderRadius:"14px",cursor:"pointer",textAlign:"left"}}>
+  <span style={{display:"block",color:"#1e40af",fontWeight:800,fontSize:"1.02rem"}}>{!isPaid&&<><IconLock/>{" "}</>}<IconMed/> Therapy &amp; Services Schedule</span>
+  <span style={{display:"block",color:"#475569",fontSize:"0.8rem",marginTop:"6px",lineHeight:1.5}}>The standalone services document — psychology, OT, speech, coordination and other hourly services, pre-filled from the Services tab.</span>
+</button>
+)}
+</div>
+<div className="flex flex-wrap gap-2 items-center">
+<span className="text-xs" style={{color:"#94a3b8"}}>Internal tools:</span>
+<button onClick={()=>{if(!requireSub())return;exportCSV()}} className="kv-btn rounded-lg" style={{padding:"6px 13px",fontSize:"0.8rem",background:"rgba(15,23,42,0.03)",border:"1px solid rgba(15,23,42,0.12)",color:"#475569",cursor:"pointer"}} title="Spreadsheet of budgets, roster costs and claims — for your own records">{isPaid?"":"🔒 "}Budget CSV</button>
+<button onClick={()=>{if(!requireSub())return;exportPDF()}} className="kv-btn rounded-lg" style={{padding:"6px 13px",fontSize:"0.8rem",background:"rgba(15,23,42,0.03)",border:"1px solid rgba(15,23,42,0.12)",color:"#475569",cursor:"pointer"}} title="Internal budget report — for the signable document use Schedule of Supports">{isPaid?"":"🔒 "}Budget Report PDF</button>
+<input ref={claimsFileRef} type="file" accept=".csv,text/csv" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f)handleClaimsCsv(f);e.target.value="";}}/>
+<button onClick={()=>claimsFileRef.current?.click()} className="kv-btn rounded-lg" style={{padding:"6px 13px",fontSize:"0.8rem",background:"rgba(15,23,42,0.03)",border:"1px solid rgba(15,23,42,0.12)",color:"#475569",cursor:"pointer"}} title="Import an NDIS payment request export to log claims automatically">Import Claims CSV</button>
+</div>
+{claimsImportError&&<div className="text-sm mt-2" style={{color:"#dc2626"}}>{claimsImportError}</div>}
+</div>
+)}
+
 {showClinical&&activeTab==="services"&&(
 <div className="rounded-2xl p-6 mb-6" style={{background: "#ffffff",border:"1px solid rgba(100,150,212,0.25)",boxShadow:"0 1px 3px rgba(15,23,42,0.05), 0 1px 2px rgba(15,23,42,0.04)"}}>
   <div className="flex items-center justify-between mb-5">
@@ -2456,8 +2468,8 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
 {calcMode!==null&&(()=>{
 // Guided flow: every tab ends with the next step, so nobody has to guess
 // where to go — the last step loops back to the documents.
-const order=(["setup","budgets",...(showSil?["roster"]:[]),...(showClinical?["services"]:[])]) as ("setup"|"budgets"|"roster"|"services")[];
-const labels:{[k:string]:string}={setup:"Set up the plan",budgets:"Enter the budgets",roster:"Fill the roster",services:"Add therapy & services"};
+const order=(["setup","budgets",...(showSil?["roster"]:[]),...(showClinical?["services"]:[]),"documents"]) as ("setup"|"budgets"|"roster"|"services"|"documents")[];
+const labels:{[k:string]:string}={setup:"Set up the plan",budgets:"Enter the budgets",roster:"Fill the roster",services:"Add therapy & services",documents:"Generate the documents"};
 const idx=order.indexOf(activeTab);
 const next=idx>=0?order[idx+1]:undefined;
 return(
@@ -2466,7 +2478,7 @@ return(
 {next?(
 <button onClick={()=>{setActiveTab(next);window.scrollTo({top:0});}} className="kv-btn rounded-xl px-5 py-2.5 font-bold" style={{background:"#d4a843",border:"none",color:"#241456",cursor:"pointer",fontSize:"0.92rem"}}>Next: {labels[next]} <IconArrowRight/></button>
 ):(
-<button onClick={()=>{setActiveTab("budgets");window.scrollTo({top:0});}} className="kv-btn rounded-xl px-5 py-2.5 font-bold" style={{background:"#2d1b69",border:"none",color:"#ffffff",cursor:"pointer",fontSize:"0.92rem"}}><IconDoc/> Done — generate the documents</button>
+<span className="text-sm font-semibold" style={{color:"#16a34a"}}>✓ Everything above feeds the documents on this page</span>
 )}
 </div>
 );})()}
