@@ -60,11 +60,15 @@ function computeBudget(raw: any, customHolidays?: { date: string; name: string }
       planCost += base + ph.extraCost - ph.savedCost;
     }
 
-    // Standalone clinical budget (when not drawn from the plan lines above)
+    const services = Array.isArray(raw.clinicalServices) ? raw.clinicalServices : [];
     if (!raw.clinicalBudgetLinked) {
+      // Standalone clinical budget
       totalFunding += raw.clinicalFunding || 0;
-      const services = Array.isArray(raw.clinicalServices) ? raw.clinicalServices : [];
       planCost += services.reduce((s: number, i: any) => s + (i.hours || 0) * (i.rate || 0), 0);
+    } else {
+      // Linked: services draw down the matching category lines (mirror client.tsx)
+      const lineCodes = new Set(lines.map((l: any) => l.code));
+      planCost += services.reduce((s: number, i: any) => s + (lineCodes.has(i.code || "15") ? (i.hours || 0) * (i.rate || 0) : 0), 0);
     }
 
     const remaining = totalFunding - planCost;

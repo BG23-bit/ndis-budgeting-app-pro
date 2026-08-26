@@ -276,8 +276,17 @@ const saveData={rates,lines,planDates,weeksOverride,calcMode,clinicalFunding,cli
 // overwrites stored data with defaults before the async load can read it.
 useEffect(()=>{if(!loaded)return;try{localStorage.setItem(STORAGE_KEY,JSON.stringify(saveData))}catch{}},[loaded,rates,lines,planDates,weeksOverride,calcMode,clinicalFunding,clinicalServices,clinicalBudgetLinked,planNotes,clinicalNotes]);
 const saveState=useCloudSync(loaded?STORAGE_KEY:"",saveData);
-const perLine=useMemo(()=>{return lines.map(l=>{const lr=l.lineRates||rates;const wt=calcWeeklyCost(l,lr);const weeklyGST=wt*(lr.gstRate||0);const weeklyWithGST=wt+weeklyGST;const basePlanCost=calcDayCountPlanCost(l,srvStart,srvEnd,planWeeks,lr)*(1+(lr.gstRate||0));const phImpact=calcPHImpact(l,holidays,lr);const phAdjustment=phImpact.extraCost-phImpact.savedCost;const planTotal=basePlanCost+phAdjustment;const remaining=l.totalFunding-planTotal;const totalClaimed=(l.claims||[]).reduce((a:number,c:Claim)=>a+c.amount,0);const actualRemaining=l.totalFunding-totalClaimed;return{...l,weeklyTotal:wt,weeklyGST,weeklyWithGST,basePlanCost,phImpact,phAdjustment,planTotal,remaining,totalClaimed,actualRemaining}})},[lines,rates,planWeeks,holidays]);
-const totals=useMemo(()=>{const totalFunding=perLine.reduce((a,l)=>a+l.totalFunding,0);const weekly=perLine.reduce((a,l)=>a+l.weeklyWithGST,0);const planCost=perLine.reduce((a,l)=>a+l.planTotal,0);const totalPH=perLine.reduce((a,l)=>a+l.phAdjustment,0);const remaining=totalFunding-planCost;const totalClaimed=perLine.reduce((a,l)=>a+(l as any).totalClaimed,0);const actualRemaining=totalFunding-totalClaimed;return{totalFunding,weekly,planCost,totalPH,remaining,totalClaimed,actualRemaining}},[perLine]);
+const perLine=useMemo(()=>{
+// When the clinical budget is drawn from the plan, each clinical service's cost
+// draws down the FIRST support line with a matching category code.
+const clinicalByCode:{[c:string]:number}={};
+if(clinicalBudgetLinked)for(const sv of clinicalServices){if((sv.hours||0)>0)clinicalByCode[sv.code||"15"]=(clinicalByCode[sv.code||"15"]||0)+(sv.hours||0)*(sv.rate||0);}
+const claimedCodes=new Set<string>();
+return lines.map(l=>{const lr=l.lineRates||rates;const wt=calcWeeklyCost(l,lr);const weeklyGST=wt*(lr.gstRate||0);const weeklyWithGST=wt+weeklyGST;const basePlanCost=calcDayCountPlanCost(l,srvStart,srvEnd,planWeeks,lr)*(1+(lr.gstRate||0));const phImpact=calcPHImpact(l,holidays,lr);const phAdjustment=phImpact.extraCost-phImpact.savedCost;const planTotal=basePlanCost+phAdjustment;
+let clinicalDraw=0;
+if(clinicalBudgetLinked&&clinicalByCode[l.code]&&!claimedCodes.has(l.code)){claimedCodes.add(l.code);clinicalDraw=clinicalByCode[l.code];}
+const remaining=l.totalFunding-planTotal-clinicalDraw;const totalClaimed=(l.claims||[]).reduce((a:number,c:Claim)=>a+c.amount,0);const actualRemaining=l.totalFunding-totalClaimed;return{...l,weeklyTotal:wt,weeklyGST,weeklyWithGST,basePlanCost,phImpact,phAdjustment,planTotal,clinicalDraw,remaining,totalClaimed,actualRemaining}})},[lines,rates,planWeeks,holidays,clinicalBudgetLinked,clinicalServices]);
+const totals=useMemo(()=>{const totalFunding=perLine.reduce((a,l)=>a+l.totalFunding,0);const weekly=perLine.reduce((a,l)=>a+l.weeklyWithGST,0);const planCost=perLine.reduce((a,l)=>a+l.planTotal+((l as any).clinicalDraw||0),0);const totalPH=perLine.reduce((a,l)=>a+l.phAdjustment,0);const remaining=totalFunding-planCost;const totalClaimed=perLine.reduce((a,l)=>a+(l as any).totalClaimed,0);const actualRemaining=totalFunding-totalClaimed;return{totalFunding,weekly,planCost,totalPH,remaining,totalClaimed,actualRemaining}},[perLine]);
 const saRows=useMemo(()=>perLine.flatMap((l:any)=>{
   const mode=getLineMode(l.code);const rows:{key:string;code:string;rateType:string;label:string}[]=[];
   if(mode==="lump"){rows.push({key:l.id+"_lump",code:l.code,rateType:"lump",label:l.description});return rows;}
@@ -1186,7 +1195,7 @@ function generateScheduleOfSupports(){
   const budgetSummaryHtml=(()=>{
     if(!saShowRemaining)return"";
     const rows=perLine.filter((l:any)=>l.totalFunding>0).map((l:any)=>{
-      const planned=getLineMode(l.code)==="lump"?l.totalFunding:l.planTotal;
+      const planned=(getLineMode(l.code)==="lump"?l.totalFunding:l.planTotal)+((l as any).clinicalDraw||0);
       const rem=l.totalFunding-planned;
       return`<tr><td>${escapeHtml(l.description)}${l.ratio&&l.ratio!=="1:1"?" ("+escapeHtml(l.ratio)+")":""}</td><td style="text-align:right">${escapeHtml(money(l.totalFunding))}</td><td style="text-align:right">${escapeHtml(money(planned))}</td><td style="text-align:right;font-weight:700;color:${rem<0?"#dc2626":"#16a34a"}">${escapeHtml(money(rem))}</td></tr>`;
     });
@@ -1605,14 +1614,18 @@ return(
 <span className="text-xs font-semibold" style={{color:"rgba(255,255,255,0.85)"}}>Quick category budgets</span>
 <span className="text-xs" style={{color:"rgba(255,255,255,0.5)"}}>type the funding for each category here &mdash; build the rosters whenever you like</span>
 </div>
-<div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+<div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
 {lines.map(l=>(
 <div key={l.id} className="flex items-center gap-2">
-<span className="kv-money text-xs px-1.5 py-0.5 rounded" style={{background:"rgba(255,255,255,0.12)",color:"#d4a843",flexShrink:0}}>{l.code}</span>
-<span className="text-xs truncate" style={{color:"rgba(255,255,255,0.8)",flex:1,minWidth:0}} title={l.description}>{l.description}</span>
-<input type="number" step={100} min={0} value={l.totalFunding||""} placeholder="$0" onChange={e=>updateLine(l.id,{totalFunding:num(e.target.value)})} onFocus={e=>e.target.select()} className="rounded-lg px-2 py-1 outline-none kv-money" style={{width:"110px",background:"rgba(255,255,255,0.92)",border:"none",color:"#241456",fontWeight:700,fontSize:"0.85rem"}}/>
+<select value={l.code} onChange={e=>updateLineCode(l.id,e.target.value)} className="rounded-lg px-1.5 py-1 outline-none" style={{width:"64px",background:"rgba(255,255,255,0.12)",border:"none",color:"#d4a843",fontSize:"0.78rem",fontWeight:700,flexShrink:0}}>
+{Object.entries(CATEGORY_PRESETS).map(([k,v])=>(<option key={k} value={k} style={{color:"#241456"}}>{k} — {v.name}</option>))}
+</select>
+<input value={l.description} onChange={e=>updateLine(l.id,{description:e.target.value})} placeholder="Category name" className="rounded-lg px-2 py-1 outline-none" style={{flex:1,minWidth:0,background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.15)",color:"#ffffff",fontSize:"0.82rem"}}/>
+<input type="number" step={100} min={0} value={l.totalFunding||""} placeholder="$0" onChange={e=>updateLine(l.id,{totalFunding:num(e.target.value)})} onFocus={e=>e.target.select()} className="rounded-lg px-2 py-1 outline-none kv-money" style={{width:"110px",background:"rgba(255,255,255,0.92)",border:"none",color:"#241456",fontWeight:700,fontSize:"0.85rem",flexShrink:0}}/>
+<button onClick={()=>deleteLine(l.id)} disabled={lines.length<=1} title="Remove this category" style={{background:"none",border:"none",color:"rgba(255,255,255,0.45)",cursor:lines.length<=1?"not-allowed":"pointer",fontSize:"0.85rem",padding:"2px 4px",flexShrink:0}}>✕</button>
 </div>))}
 </div>
+<button onClick={addLine} className="mt-2" style={{background:"none",border:"1px dashed rgba(255,255,255,0.3)",color:"rgba(255,255,255,0.75)",borderRadius:"8px",cursor:"pointer",fontSize:"0.78rem",padding:"5px 12px"}}>+ Add category</button>
 </div>
 <div className="flex items-end justify-between flex-wrap gap-2">
 <div>
@@ -1838,6 +1851,7 @@ return(
 <div className="mt-4 text-sm" style={{color:"#334155"}}>
 <div>Weekly total: <span className="kv-money font-semibold" style={{color: "#0f172a"}}>{money(l.weeklyWithGST)}</span></div>
 <div>Plan total: <span className="kv-money font-semibold" style={{color: "#0f172a"}}>{money(l.planTotal)}</span></div>
+{(l as any).clinicalDraw>0&&<div>Clinical services from this budget: <span className="kv-money font-semibold" style={{color:"#1e40af"}}>{money((l as any).clinicalDraw)}</span></div>}
 <div className="text-lg font-bold mt-2 kv-money" style={{color:status.color}}>Remaining: {money(l.remaining)}</div>
 </div>
 </div>
@@ -1906,6 +1920,7 @@ return(<button onClick={()=>updateRosterDay(l.id,d,{shifts:[...shifts,{s:"",e:""
 <div>Base plan cost: <span className="font-semibold" style={{color: "#0f172a"}}>{money(l.basePlanCost)}</span></div>
 {lineMode==="full"&&<div>PH adjustment: <span className="font-semibold" style={{color:l.phAdjustment>0?"#ef4444":l.phAdjustment<0?"#22c55e":"#334155"}}>{l.phAdjustment>0?"+":""}{money(l.phAdjustment)}</span></div>}
 <div className="mt-1">Plan total: <span className="font-semibold" style={{color: "#0f172a"}}>{money(l.planTotal)}</span></div>
+{(l as any).clinicalDraw>0&&<div>Clinical services from this budget: <span className="font-semibold" style={{color:"#1e40af"}}>{money((l as any).clinicalDraw)}</span></div>}
 <div>Ratio: <span className="font-semibold" style={{color:"#d4a843"}}>{RATIOS[l.ratio]?.label||l.ratio}</span></div>
 <div className="text-lg font-bold mt-2" style={{color:status.color}}>Remaining: {money(l.remaining)}</div>
 </div></div>
@@ -2223,7 +2238,7 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
       </div>
       <div className="text-xs" style={{color:"#64748b"}}>
         {clinicalBudgetLinked
-          ?"Clinical spend counts toward the support lines above — no separate budget needed here."
+          ?"Each service draws down the support line with its category code (e.g. code 15 services draw from your 15 budget above)."
           :"This clinical funding is separate from the SIL/Core plan (e.g. a standalone therapy plan or ECEI package)."}
       </div>
     </div>
