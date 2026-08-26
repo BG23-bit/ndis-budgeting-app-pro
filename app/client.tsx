@@ -6,7 +6,8 @@ type PlanDates = { start: string; end: string; state: string; serviceStart?: str
 type Shift = { s: string; e: string };
 type DayRoster = { enabled: boolean; hours: number; nightHours: number; frequency: string; times?: string; shifts?: Shift[] };
 type Claim = { id: string; date: string; amount: number; note: string };
-type SupportLine = { id: string; code: string; description: string; totalFunding: number; ratio: string; excludedHolidays: string[]; roster: { [key: string]: DayRoster }; activeSleepoverHours: number; activeSleepoverFreq: string; fixedSleepovers: number; fixedSleepoverFreq: string; kmsPerWeek: number; kmRate: number; kmFreq: string; claims: Claim[]; lineRates: Rates };
+type BudgetAllocation = { id: string; name: string; amount: number; item?: string };
+type SupportLine = { id: string; code: string; description: string; totalFunding: number; ratio: string; allocations?: BudgetAllocation[]; excludedHolidays: string[]; roster: { [key: string]: DayRoster }; activeSleepoverHours: number; activeSleepoverFreq: string; fixedSleepovers: number; fixedSleepoverFreq: string; kmsPerWeek: number; kmRate: number; kmFreq: string; claims: Claim[]; lineRates: Rates };
 export type CustomHoliday = { date: string; name: string };
 export type ProviderDetails = { orgName: string; abn: string; contactName: string; email: string; phone: string; address: string; registrationNumber: string; defaultRates?: Partial<Rates>; customHolidays?: CustomHoliday[]; logo?: string };
 const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
@@ -371,6 +372,7 @@ async function buyMoreUploads(){
   }finally{setBuyingUploads(false);}
 }
 const[removeOnApply,setRemoveOnApply]=useState<Set<string>>(new Set());
+const[openAllocs,setOpenAllocs]=useState<Set<string>>(new Set());
 const[newHolDate,setNewHolDate]=useState("");
 const[newHolName,setNewHolName]=useState("");
 // Regional/custom public holidays live on the organisation profile (cloud-synced),
@@ -1197,7 +1199,8 @@ function generateScheduleOfSupports(){
     const rows=perLine.filter((l:any)=>l.totalFunding>0).map((l:any)=>{
       const planned=(getLineMode(l.code)==="lump"?l.totalFunding:l.planTotal)+((l as any).clinicalDraw||0);
       const rem=l.totalFunding-planned;
-      return`<tr><td>${escapeHtml(l.description)}${l.ratio&&l.ratio!=="1:1"?" ("+escapeHtml(l.ratio)+")":""}</td><td style="text-align:right">${escapeHtml(money(l.totalFunding))}</td><td style="text-align:right">${escapeHtml(money(planned))}</td><td style="text-align:right;font-weight:700;color:${rem<0?"#dc2626":"#16a34a"}">${escapeHtml(money(rem))}</td></tr>`;
+      const subRows=(l.allocations||[]).filter((a:any)=>a.name||a.amount>0).map((a:any)=>`<tr><td style="padding-left:24px;color:#64748b;font-size:8.5pt">↳ ${escapeHtml(a.name||"Allocation")}</td><td style="text-align:right;color:#64748b;font-size:8.5pt">${escapeHtml(money(a.amount||0))}</td><td></td><td></td></tr>`).join("");
+      return`<tr><td>${escapeHtml(l.description)}${l.ratio&&l.ratio!=="1:1"?" ("+escapeHtml(l.ratio)+")":""}</td><td style="text-align:right">${escapeHtml(money(l.totalFunding))}</td><td style="text-align:right">${escapeHtml(money(planned))}</td><td style="text-align:right;font-weight:700;color:${rem<0?"#dc2626":"#16a34a"}">${escapeHtml(money(rem))}</td></tr>`+subRows;
     });
     if(clinicalGrand>0&&!clinicalBudgetLinked&&clinicalFunding>0)rows.push(`<tr><td>Clinical / Therapy Services</td><td style="text-align:right">${escapeHtml(money(clinicalFunding))}</td><td style="text-align:right">${escapeHtml(money(clinicalGrand))}</td><td style="text-align:right;font-weight:700;color:${clinicalFunding-clinicalGrand<0?"#dc2626":"#16a34a"}">${escapeHtml(money(clinicalFunding-clinicalGrand))}</td></tr>`);
     if(rows.length===0)return"";
@@ -1614,16 +1617,40 @@ return(
 <span className="text-xs font-semibold" style={{color:"rgba(255,255,255,0.85)"}}>Quick category budgets</span>
 <span className="text-xs" style={{color:"rgba(255,255,255,0.5)"}}>type the funding for each category here &mdash; build the rosters whenever you like</span>
 </div>
-<div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
-{lines.map(l=>(
-<div key={l.id} className="flex items-center gap-2">
+<div className="grid grid-cols-1 gap-2">
+{lines.map(l=>{
+const allocs=l.allocations||[];
+const allocated=allocs.reduce((t,a)=>t+(a.amount||0),0);
+const over=allocated>l.totalFunding+0.005&&l.totalFunding>0;
+const openA=openAllocs.has(l.id);
+const dupCode=lines.filter(x=>x.code===l.code).length>1;
+return(
+<div key={l.id} className="rounded-lg px-2 py-1.5" style={{background:openA?"rgba(255,255,255,0.05)":"transparent"}}>
+<div className="flex items-center gap-2">
 <select value={l.code} onChange={e=>updateLineCode(l.id,e.target.value)} className="rounded-lg px-1.5 py-1 outline-none" style={{width:"64px",background:"rgba(255,255,255,0.12)",border:"none",color:"#d4a843",fontSize:"0.78rem",fontWeight:700,flexShrink:0}}>
 {Object.entries(CATEGORY_PRESETS).map(([k,v])=>(<option key={k} value={k} style={{color:"#241456"}}>{k} — {v.name}</option>))}
 </select>
 <input value={l.description} onChange={e=>updateLine(l.id,{description:e.target.value})} placeholder="Category name" className="rounded-lg px-2 py-1 outline-none" style={{flex:1,minWidth:0,background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.15)",color:"#ffffff",fontSize:"0.82rem"}}/>
 <input type="number" step={100} min={0} value={l.totalFunding||""} placeholder="$0" onChange={e=>updateLine(l.id,{totalFunding:num(e.target.value)})} onFocus={e=>e.target.select()} className="rounded-lg px-2 py-1 outline-none kv-money" style={{width:"110px",background:"rgba(255,255,255,0.92)",border:"none",color:"#241456",fontWeight:700,fontSize:"0.85rem",flexShrink:0}}/>
+<button onClick={()=>setOpenAllocs(prev=>{const n=new Set(prev);n.has(l.id)?n.delete(l.id):n.add(l.id);return n})} title="Split this budget into named allocations (e.g. Psychology $7,500) — splits never change the total" style={{background:allocs.length?"rgba(212,168,67,0.2)":"none",border:"1px dashed rgba(255,255,255,0.3)",color:allocs.length?"#d4a843":"rgba(255,255,255,0.7)",borderRadius:"6px",cursor:"pointer",fontSize:"0.72rem",padding:"3px 8px",flexShrink:0}}>{openA?"▴":"▾"} split{allocs.length?` (${allocs.length})`:""}</button>
 <button onClick={()=>deleteLine(l.id)} disabled={lines.length<=1} title="Remove this category" style={{background:"none",border:"none",color:"rgba(255,255,255,0.45)",cursor:lines.length<=1?"not-allowed":"pointer",fontSize:"0.85rem",padding:"2px 4px",flexShrink:0}}>✕</button>
+</div>
+{dupCode&&<div className="text-xs mt-1" style={{color:"#fbbf24"}}>⚠ Another line also uses code {l.code} — their budgets ADD together. To split one budget, use ▾ split instead of a second line.</div>}
+{openA&&(
+<div className="mt-2 pl-4" style={{borderLeft:"2px solid rgba(212,168,67,0.35)"}}>
+{allocs.map(a=>(
+<div key={a.id} className="flex items-center gap-2 mb-1.5">
+<input value={a.name} onChange={e=>updateLine(l.id,{allocations:allocs.map(x=>x.id===a.id?{...x,name:e.target.value}:x)})} placeholder="e.g. Psychology" className="rounded px-2 py-1 outline-none" style={{flex:1,minWidth:0,background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.15)",color:"#ffffff",fontSize:"0.78rem"}}/>
+<input type="number" step={100} min={0} value={a.amount||""} placeholder="$0" onChange={e=>updateLine(l.id,{allocations:allocs.map(x=>x.id===a.id?{...x,amount:num(e.target.value)}:x)})} onFocus={e=>e.target.select()} className="rounded px-2 py-1 outline-none kv-money" style={{width:"100px",background:"rgba(255,255,255,0.85)",border:"none",color:"#241456",fontWeight:700,fontSize:"0.8rem",flexShrink:0}}/>
+<button onClick={()=>updateLine(l.id,{allocations:allocs.filter(x=>x.id!==a.id)})} style={{background:"none",border:"none",color:"rgba(255,255,255,0.45)",cursor:"pointer",fontSize:"0.8rem",padding:"2px 4px"}}>✕</button>
 </div>))}
+<div className="flex items-center gap-3 flex-wrap">
+<button onClick={()=>updateLine(l.id,{allocations:[...allocs,{id:uid(),name:"",amount:0}]})} style={{background:"none",border:"1px dashed rgba(255,255,255,0.3)",color:"rgba(255,255,255,0.75)",borderRadius:"6px",cursor:"pointer",fontSize:"0.74rem",padding:"3px 10px"}}>+ add split</button>
+{allocs.length>0&&<span className="text-xs kv-money" style={{color:over?"#f87171":"rgba(255,255,255,0.75)"}}>allocated {money(allocated)} of {money(l.totalFunding)}{over?" — OVER the category total":allocated<l.totalFunding?` (${money(l.totalFunding-allocated)} unallocated)`:" ✓"}</span>}
+</div>
+</div>
+)}
+</div>);})}
 </div>
 <button onClick={addLine} className="mt-2" style={{background:"none",border:"1px dashed rgba(255,255,255,0.3)",color:"rgba(255,255,255,0.75)",borderRadius:"8px",cursor:"pointer",fontSize:"0.78rem",padding:"5px 12px"}}>+ Add category</button>
 </div>
