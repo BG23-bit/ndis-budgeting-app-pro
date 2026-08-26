@@ -321,6 +321,22 @@ function resetCalculator(){
   const who=participantName?` for ${participantName}`:"";
   askConfirm("Reset calculator?",`This clears plan dates, support lines, roster, claims, notes and services${who} so you can start again. You can undo straight after.`,"Reset everything",()=>doResetCalculator());
 }
+// One-click plan renewal: keeps roster, budgets, rates and splits; clears
+// claims and holiday exclusions (they reference old dates); new period starts
+// the day after the current plan ends.
+function renewPlan(){
+  askConfirm("Start a new plan period?","Keeps the roster, budgets, rates and splits. Clears logged claims and holiday exclusions, and starts the new period the day after the current plan ends. You can undo straight after.","Start new period",()=>{
+    setUndoState({label:"New plan period started",lines:JSON.parse(JSON.stringify(lines)),planDates:{...planDates}});
+    const oldEnd=new Date(planDates.end);
+    const ns=new Date(oldEnd.getTime()+86400000);
+    const ne=new Date(ns.getTime()+364*86400000);
+    const iso=(d:Date)=>d.toISOString().slice(0,10);
+    setPlanDates(pd=>{const n={...pd,start:iso(ns),end:iso(ne)};delete n.serviceStart;delete n.serviceEnd;return n;});
+    setLines(prev=>prev.map(l=>({...l,claims:[],excludedHolidays:[]})));
+    setActiveTab("setup");
+    notify("New plan period started — check the dates, then review the roster.");
+  },false);
+}
 function doResetCalculator(){
   setUndoState({label:"Calculator reset",lines:JSON.parse(JSON.stringify(lines)),planDates:{...planDates},rates:{...rates},weeksOverride,calcMode,clinicalServices:JSON.parse(JSON.stringify(clinicalServices)),clinicalFunding,clinicalBudgetLinked,planNotes,clinicalNotes});
   setLines([{id:uid(),code:"01",description:"Core Supports",totalFunding:0,ratio:"1:1",excludedHolidays:[],roster:defaultRoster(),activeSleepoverHours:0,activeSleepoverFreq:"every",fixedSleepovers:0,fixedSleepoverFreq:"every",kmsPerWeek:0,kmRate:1.00,kmFreq:"every",claims:[],lineRates:applyProviderDefaults(NDIS_RATES_2026_27,providerDetails.defaultRates)}]);
@@ -1473,6 +1489,21 @@ return(<div style={{height:"4px",background:"rgba(15,23,42,0.06)"}}><div style={
 </div>
 ):(<div style={{height:"24px"}}/>)}
 <div className="mx-auto max-w-6xl p-6 pt-0">
+{calcMode!==null&&(()=>{
+if(!planDates.end)return null;
+const daysToEnd=Math.ceil((new Date(planDates.end).getTime()-Date.now())/86400000);
+if(daysToEnd>60)return null;
+const ended=daysToEnd<0;
+const col=ended||daysToEnd<=14?{bg:"rgba(239,68,68,0.06)",bd:"rgba(239,68,68,0.3)",tx:"#dc2626"}:{bg:"rgba(245,158,11,0.07)",bd:"rgba(245,158,11,0.35)",tx:"#b45309"};
+return(
+<div className="rounded-xl p-4 mb-5 flex flex-wrap items-center justify-between gap-3" style={{background:col.bg,border:"1px solid "+col.bd}}>
+<div>
+<div style={{color:col.tx,fontWeight:700,fontSize:"0.92rem"}}>{ended?`This plan ended ${Math.abs(daysToEnd)} day${Math.abs(daysToEnd)===1?"":"s"} ago`:`This plan ends in ${daysToEnd} day${daysToEnd===1?"":"s"} (${planDates.end})`}</div>
+<div className="text-xs mt-0.5" style={{color:"#64748b"}}>Start the next period with the same roster, budgets and rates — claims reset for the new plan.</div>
+</div>
+<button onClick={renewPlan} className="kv-btn rounded-xl px-4 py-2 font-bold" style={{background:"#d4a843",border:"none",color:"#241456",cursor:"pointer",fontSize:"0.88rem"}}><IconReset/> Start new plan period</button>
+</div>
+);})()}
 
 {activeTab==="setup"&&(
 <div className="kv-card p-6 mb-6">

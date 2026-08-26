@@ -21,8 +21,13 @@ function money(n: number): string {
   return v.toLocaleString("en-AU", { style: "currency", currency: "AUD" });
 }
 
-type Budget = { totalFunding: number; planCost: number; remaining: number; status: string };
+type Budget = { totalFunding: number; planCost: number; remaining: number; status: string; planEnd?: string };
 const EMPTY_BUDGET: Budget = { totalFunding: 0, planCost: 0, remaining: 0, status: "empty" };
+function daysUntil(dateStr?: string): number | null {
+  if (!dateStr) return null;
+  const d = Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86400000);
+  return Number.isFinite(d) ? d : null;
+}
 
 // Mirrors the per-line maths in client.tsx (roster data model + line rates + PH adjustment)
 // so the overview cards match what the calculator shows inside.
@@ -77,7 +82,7 @@ function computeBudget(raw: any, customHolidays?: { date: string; name: string }
     else if (remaining < 0) status = "over";
     else if (totalFunding > 0 && (remaining / totalFunding) * 100 < 10) status = "low";
 
-    return { totalFunding, planCost, remaining, status };
+    return { totalFunding, planCost, remaining, status, planEnd: planDates.end || undefined };
   } catch {
     return EMPTY_BUDGET;
   }
@@ -760,6 +765,13 @@ export default function DashboardPage() {
                         <div className="text-sm" style={{ color: "#334155" }}>Remaining</div>
                         <div className="font-semibold" style={{ color: statusColors.color }}>{money(budget.remaining)}</div>
                       </div>
+                      {(() => {
+                        const d = daysUntil(budget.planEnd);
+                        if (d === null || d > 60) return null;
+                        const ended = d < 0;
+                        const c = ended || d <= 14 ? "#ef4444" : "#f59e0b";
+                        return <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{ background: ended ? "rgba(239,68,68,0.1)" : "rgba(245,158,11,0.1)", color: c, border: "1px solid " + c }}>{ended ? "PLAN ENDED" : `Plan ends ${d}d`}</span>;
+                      })()}
                       <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{
                         background: statusColors.bg, color: statusColors.color, border: "1px solid " + statusColors.border,
                       }}>{statusColors.label}</span>
