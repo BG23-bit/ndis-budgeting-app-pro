@@ -27,6 +27,7 @@ function num(x:any):number{const v=Number(x);return Number.isFinite(v)?v:0}
 function uid():string{return Math.random().toString(16).slice(2)+Date.now().toString(16)}
 function escapeHtml(s:string){return s.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;")}
 import {parseCSV,findCol,normDate,parseMoney,type ClaimsImportRow,type ClaimsImportPreview} from "@/lib/claims-import";
+import {BUILTIN_CATALOGUE,mergeWithBuiltins,findCatalogueItem,cataloguePrice,type CatalogueItem} from "@/lib/price-guide";
 // Print via a hidden iframe instead of window.open so popup blockers can't break exports.
 function printHtml(html:string){
 const iframe=document.createElement("iframe");
@@ -582,6 +583,28 @@ function lineHasData(l:SupportLine):boolean{
   return (l.claims||[]).length>0||Object.values(l.roster||{}).some((r:any)=>r?.enabled&&((r.hours||0)>0||(r.nightHours||0)>0))||(l.activeSleepoverHours||0)>0||(l.fixedSleepovers||0)>0;
 }
 const[showSAModal,setShowSAModal]=useState(false);
+// Full support-item catalogue: built-in essentials plus the official NDIA
+// Support Catalogue imported on the Company page (account-wide).
+const[catalogue,setCatalogue]=useState<CatalogueItem[]>(BUILTIN_CATALOGUE);
+useEffect(()=>{(async()=>{
+  try{const raw=localStorage.getItem("kevria_catalogue");if(raw){const arr=JSON.parse(raw);if(Array.isArray(arr)&&arr.length)setCatalogue(mergeWithBuiltins(arr));}}catch{}
+  try{const{data:{user}}=await supabase.auth.getUser();if(user){
+    const{data:row}=await supabase.from("calculator_data").select("data").eq("user_id",user.id).eq("participant_id","ndis_price_guide").maybeSingle();
+    const arr=(row?.data as any)?.items;
+    if(Array.isArray(arr)&&arr.length){setCatalogue(mergeWithBuiltins(arr));try{localStorage.setItem("kevria_catalogue",JSON.stringify(arr))}catch{}}
+  }}catch{}
+})()},[]);
+// Type an item number (or pick from the suggestions) and the catalogue fills
+// the rate for the participant's state plus the description when empty.
+function applyCatalogueToService(idx:number,val:string){
+  const t=findCatalogueItem(catalogue,val);
+  setClinicalServices(p=>p.map((x,j)=>{
+    if(j!==idx)return x;
+    if(!t)return{...x,item:val};
+    const price=cataloguePrice(t,planDates.state);
+    return{...x,item:val,rate:price!=null?price:x.rate,description:x.description||t.name,code:/^\d{2}/.test(t.item)?t.item.slice(0,2):x.code};
+  }));
+}
 const[saSpecificReqs,setSaSpecificReqs]=useState({behavioursOfConcern:false,regulatedRestrictivePractice:false,medicationManagement:false});
 const[saShowSpecificReqs,setSaShowSpecificReqs]=useState(true);
 const[saEstFee,setSaEstFee]=useState("");
@@ -1456,6 +1479,7 @@ const pace=useMemo(()=>{
 },[srvStart,srvEnd,planWeeks,totals.totalFunding,totals.weekly,totals.totalClaimed]);
 return(
 <main className="min-h-screen" style={{background:"#f5f6fa",color: "#0f172a"}}>
+<datalist id="ndis-catalogue">{catalogue.map(ci=>{const pr=cataloguePrice(ci,planDates.state);return(<option key={ci.item} value={ci.item}>{ci.name}{pr!=null?" — $"+pr.toFixed(2):""}</option>);})}</datalist>
 <div style={{background:"linear-gradient(135deg, #241456 0%, #2d1b69 45%, #3d2787 100%)",position:"relative",overflow:"hidden",padding:"34px 0 30px"}}>
 <div style={{position:"absolute",top:"-120px",right:"-60px",width:"380px",height:"380px",borderRadius:"50%",background:"radial-gradient(circle, rgba(212,168,67,0.22), transparent 65%)"}}/>
 <div style={{position:"absolute",bottom:"-140px",left:"12%",width:"300px",height:"300px",borderRadius:"50%",background:"radial-gradient(circle, rgba(255,255,255,0.06), transparent 65%)"}}/>
@@ -2271,7 +2295,7 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
             <option key={t.key} value={t.key}>{t.label} — ${t.rate}/hr</option>
           ))}
         </select>
-        <input value={si.item||""} onChange={e=>{const i=idx;setClinicalServices(p=>p.map((x,j)=>j===i?{...x,item:e.target.value}:x))}} placeholder="item number"
+        <input value={si.item||""} list="ndis-catalogue" onChange={e=>applyCatalogueToService(idx,e.target.value)} placeholder="item number — type to search"
           className="rounded px-2 py-0.5 mt-1 w-full outline-none" style={{background:"#ffffff",border:"1px solid rgba(100,150,212,0.12)",color:"#64748b",fontFamily:"monospace",fontSize:"0.68rem"}}/>
         </div>
         <input value={si.description} onChange={e=>{const i=idx;setClinicalServices(p=>p.map((x,j)=>j===i?{...x,description:e.target.value}:x))}} placeholder="e.g. Comprehensive BSP Development"
@@ -2442,7 +2466,7 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
     {saRows.map(row=>(
       <div key={row.key} className="flex items-center gap-2 mb-2">
         <div className="text-xs flex-1 truncate" style={{color:"#1e293b",minWidth:0}}>{row.label}</div>
-        <input value={saItemNumbers[row.key]||""} onChange={e=>setSaItemNumbers(p=>({...p,[row.key]:e.target.value}))}
+        <input value={saItemNumbers[row.key]||""} list="ndis-catalogue" onChange={e=>setSaItemNumbers(p=>({...p,[row.key]:e.target.value}))}
           placeholder={getDefaultItemNumber(row.code,row.rateType,saUseSilItems)||"e.g. 01_011_0107_1_1"}
           className="kv-input kv-money rounded px-2 py-1 text-xs"
           style={{width:"180px",flexShrink:0}}/>

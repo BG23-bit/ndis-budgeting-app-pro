@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useCloudSync, NDIS_RATES_2026_27, type ProviderDetails } from "../client";
+import { BUILTIN_CATALOGUE, parseCatalogueCSV } from "@/lib/price-guide";
 
 // Dedicated company profile page. Same storage as the calculator's provider
 // details (cloud row "ndis_provider_details" + localStorage mirror), so edits
@@ -59,6 +60,47 @@ export function CompanyForm() {
     };
     img.onerror = () => { URL.revokeObjectURL(url); alert("Couldn't read that image — use a PNG or JPG."); };
     img.src = url;
+  }
+
+  // Official NDIA Support Catalogue import — makes every support item
+  // selectable (with its price limit) across the app, account-wide.
+  const catFileRef = useRef<HTMLInputElement>(null);
+  const [catCount, setCatCount] = useState(0);
+  const [catMsg, setCatMsg] = useState("");
+  useEffect(() => {
+    try { const raw = localStorage.getItem("kevria_catalogue"); if (raw) { const arr = JSON.parse(raw); if (Array.isArray(arr)) setCatCount(arr.length); } } catch {}
+    (async () => { try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: row } = await supabase.from("calculator_data").select("data").eq("user_id", user.id).eq("participant_id", "ndis_price_guide").maybeSingle();
+        const arr = (row?.data as any)?.items;
+        if (Array.isArray(arr) && arr.length) { setCatCount(arr.length); try { localStorage.setItem("kevria_catalogue", JSON.stringify(arr)); } catch {} }
+      }
+    } catch {} })();
+  }, []);
+  function handleCatalogueImport(file: File) {
+    setCatMsg("");
+    file.text().then(async (text) => {
+      const { items, error } = parseCatalogueCSV(text);
+      if (error) { setCatMsg(error); return; }
+      try { localStorage.setItem("kevria_catalogue", JSON.stringify(items)); } catch {}
+      setCatCount(items.length);
+      setCatMsg(`Imported ${items.length} support items — now selectable everywhere.`);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) await supabase.from("calculator_data").upsert(
+          { user_id: user.id, participant_id: "ndis_price_guide", data: { items, importedAt: new Date().toISOString() }, updated_at: new Date().toISOString() },
+          { onConflict: "user_id,participant_id" });
+      } catch {}
+    }).catch(() => setCatMsg("Couldn't read that file — save the catalogue as CSV and try again."));
+  }
+  async function clearCatalogue() {
+    try { localStorage.removeItem("kevria_catalogue"); } catch {}
+    setCatCount(0); setCatMsg("Imported catalogue removed — the built-in item set still applies.");
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) await supabase.from("calculator_data").delete().eq("user_id", user.id).eq("participant_id", "ndis_price_guide");
+    } catch {}
   }
 
   const rateFields: { key: keyof typeof NDIS_RATES_2026_27; label: string }[] = [
@@ -132,6 +174,22 @@ export function CompanyForm() {
             );
           })}
         </div>
+      </div>
+
+      <div className="kv-card p-6">
+        <h2 className="text-lg font-semibold mb-1" style={{ color: "#2d1b69" }}>NDIS Price Guide</h2>
+        <p className="text-sm mb-3" style={{ color: "#64748b" }}>
+          {catCount > 0
+            ? <>Official Support Catalogue imported — <strong>{catCount} items</strong> selectable across the app (plus the {BUILTIN_CATALOGUE.length} built-ins).</>
+            : <>The app ships with {BUILTIN_CATALOGUE.length} common support items. Import the official <strong>NDIA Support Catalogue</strong> to make every support item selectable with its price limit: download it from ndis.gov.au (Pricing arrangements page), open it and <strong>save as CSV</strong>, then import it here.</>}
+        </p>
+        <input ref={catFileRef} type="file" accept=".csv,text/csv" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleCatalogueImport(f); e.target.value = ""; }} />
+        <div className="flex items-center gap-3 flex-wrap">
+          <button onClick={() => catFileRef.current?.click()} className="kv-btn" style={{ background: "rgba(212,168,67,0.12)", border: "1px solid rgba(212,168,67,0.35)", color: "#b8901a", padding: "9px 18px", borderRadius: "8px", cursor: "pointer", fontWeight: 600, fontSize: "0.88rem" }}>⬆ Import Support Catalogue (CSV)</button>
+          {catCount > 0 && <button onClick={clearCatalogue} style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", color: "#ef4444", padding: "9px 16px", borderRadius: "8px", cursor: "pointer", fontSize: "0.85rem" }}>Remove imported catalogue</button>}
+        </div>
+        {catMsg && <div className="text-sm mt-2" style={{ color: catMsg.startsWith("Imported") ? "#16a34a" : "#dc2626" }}>{catMsg}</div>}
+        <div className="text-xs mt-2" style={{ color: "#94a3b8" }}>Re-import each July when the NDIA publishes the new catalogue — rates update everywhere instantly.</div>
       </div>
 
       <div className="kv-card p-6">
