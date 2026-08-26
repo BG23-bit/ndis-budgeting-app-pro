@@ -157,6 +157,22 @@ const NDIS_ITEM_DEFAULTS:{[code:string]:{[rateType:string]:string}}={
 // SIL-specific line items (01_8xx series) — used instead of the self-care 01 items
 // when the provider marks the schedule as a SIL roster.
 const SIL_ITEM_DEFAULTS:{[rateType:string]:string}={weekday:"01_801_0115_1_1",weekdayNight:"01_802_0115_1_1",sat:"01_804_0115_1_1",satNight:"01_804_0115_1_1",sun:"01_805_0115_1_1",sunNight:"01_805_0115_1_1",publicHoliday:"01_806_0115_1_1",activeSleepover:"01_803_0115_1_1",fixedSleepover:"01_832_0115_1_1",lump:"01_801_0115_1_1"};
+// Clinical service types: distinct therapies with their own default item numbers
+// and hourly rates. Rates follow the app's 2026-27 presets; item numbers are the
+// commonly used supports — all editable per service row.
+export const CLINICAL_TYPES:{key:string;code:string;label:string;rate:number;item:string}[]=[
+  {key:"ot",code:"15",label:"Occupational Therapy",rate:156.16,item:"15_617_0128_1_3"},
+  {key:"physio",code:"15",label:"Physiotherapy",rate:156.16,item:"15_055_0128_1_3"},
+  {key:"speech",code:"15",label:"Speech Pathology",rate:156.16,item:"15_622_0128_1_3"},
+  {key:"psych",code:"15",label:"Psychology",rate:252.99,item:"15_054_0128_1_3"},
+  {key:"dietetics",code:"15",label:"Dietetics",rate:156.16,item:"15_062_0128_1_3"},
+  {key:"ta2",code:"15",label:"Therapy Assistant (Level 2)",rate:86.79,item:"15_053_0128_1_3"},
+  {key:"exphys",code:"12",label:"Exercise Physiology",rate:161.99,item:"12_027_0126_3_3"},
+  {key:"bsp",code:"11",label:"Behaviour Support Practitioner",rate:252.99,item:"11_022_0110_7_3"},
+  {key:"coord",code:"07",label:"Support Coordination / Recovery Coach",rate:100.14,item:"07_002_0106_8_3"},
+  {key:"planmgmt",code:"14",label:"Plan Management",rate:100.14,item:"14_034_0127_8_3"},
+  {key:"learning",code:"13",label:"Improved Learning",rate:83.87,item:"13_030_0102_4_3"},
+];
 function getDefaultItemNumber(code:string,rateType:string,useSilItems?:boolean):string{if(useSilItems&&code==="01"&&SIL_ITEM_DEFAULTS[rateType])return SIL_ITEM_DEFAULTS[rateType];return NDIS_ITEM_DEFAULTS[code]?.[rateType]||""}
 // Merge proposedRoster entries (from plan-upload notes) for one category code into roster fields
 function rosterFromProposal(prs:any[]):{roster:{[k:string]:DayRoster};aso:number;fso:number;kms:number}{
@@ -250,7 +266,7 @@ const[calcMode,setCalcMode]=useState<"sil"|"clinical"|"both"|null>(null);
 const[loaded,setLoaded]=useState(false);
 const isFreshRef=React.useRef(false);
 const[clinicalFunding,setClinicalFunding]=useState(0);
-const[clinicalServices,setClinicalServices]=useState<{id:string;code:string;description:string;hours:number;rate:number;note:string}[]>([]);
+const[clinicalServices,setClinicalServices]=useState<{id:string;code:string;description:string;hours:number;rate:number;note:string;item?:string;typeKey?:string}[]>([]);
 const[clinicalBudgetLinked,setClinicalBudgetLinked]=useState(false);
 const[planNotes,setPlanNotes]=useState("");
 const[clinicalNotes,setClinicalNotes]=useState("");
@@ -618,6 +634,12 @@ useEffect(()=>{try{localStorage.setItem("kevria_item_numbers",JSON.stringify(saI
 useEffect(()=>{try{setSaUseSilItems(localStorage.getItem("kevria_sa_use_sil")==="1")}catch{}},[]);
 useEffect(()=>{try{localStorage.setItem("kevria_sa_use_sil",saUseSilItems?"1":"0")}catch{}},[saUseSilItems]);
 const[saLayout,setSaLayout]=useState<"summary"|"daily">("summary");
+const[saIncludeClinical,setSaIncludeClinical]=useState(true);
+const[saShowRemaining,setSaShowRemaining]=useState(true);
+useEffect(()=>{try{if(localStorage.getItem("kevria_sa_clinical")==="0")setSaIncludeClinical(false)}catch{}},[]);
+useEffect(()=>{try{localStorage.setItem("kevria_sa_clinical",saIncludeClinical?"1":"0")}catch{}},[saIncludeClinical]);
+useEffect(()=>{try{if(localStorage.getItem("kevria_sa_remaining")==="0")setSaShowRemaining(false)}catch{}},[]);
+useEffect(()=>{try{localStorage.setItem("kevria_sa_remaining",saShowRemaining?"1":"0")}catch{}},[saShowRemaining]);
 useEffect(()=>{try{if(localStorage.getItem("kevria_sa_layout")==="daily")setSaLayout("daily")}catch{}},[]);
 useEffect(()=>{try{if(localStorage.getItem("kevria_sa_specreqs")==="0")setSaShowSpecificReqs(false)}catch{}},[]);
 useEffect(()=>{try{localStorage.setItem("kevria_sa_specreqs",saShowSpecificReqs?"1":"0")}catch{}},[saShowSpecificReqs]);
@@ -1129,6 +1151,29 @@ function generateScheduleOfSupports(){
   <table style="margin-top:10px"><tbody><tr class="total-row"><td>Grand total including public holidays${estFee>0?" and establishment fee":""}</td><td style="text-align:right">${escapeHtml(money(grandTotal))}</td></tr></tbody></table>`;
   })();
 
+  // Joint document: clinical/therapy services appended with item numbers, plus a
+  // per-category budget & remaining summary (both toggleable in the modal).
+  const clinicalRows=saIncludeClinical?clinicalServices.filter(sv=>(sv.hours||0)>0):[];
+  const clinicalGrand=clinicalRows.reduce((t,sv)=>t+(sv.hours||0)*(sv.rate||0),0);
+  const clinicalRemainTxt=saShowRemaining&&!clinicalBudgetLinked&&clinicalFunding>0?` &nbsp;&middot;&nbsp; remaining ${escapeHtml(money(clinicalFunding-clinicalGrand))} of ${escapeHtml(money(clinicalFunding))} funded`:"";
+  const clinicalBlockHtml=clinicalGrand>0?`<div class="section-heading" style="margin-top:16px">Clinical / Therapy Services</div>
+  <table style="font-size:9pt"><thead><tr><th style="width:22%">NDIS Item</th><th>Service</th><th style="text-align:right">Hours</th><th style="text-align:right">Rate</th><th style="text-align:right">Total</th></tr></thead><tbody>
+  ${clinicalRows.map(sv=>`<tr><td style="font-family:monospace;font-size:8pt">${escapeHtml(sv.item||"")}</td><td>${escapeHtml(sv.description||"Service")}${sv.note?`<div style="font-size:7.5pt;color:#94a3b8">${escapeHtml(sv.note)}</div>`:""}</td><td style="text-align:right">${(sv.hours||0)%1===0?sv.hours:(sv.hours||0).toFixed(1)}</td><td style="text-align:right;white-space:nowrap">${escapeHtml(money(sv.rate||0))}/hr</td><td style="text-align:right;white-space:nowrap">${escapeHtml(money((sv.hours||0)*(sv.rate||0)))}</td></tr>`).join("")}
+  <tr class="total-row"><td colspan="4">Clinical services total${clinicalRemainTxt}</td><td style="text-align:right">${escapeHtml(money(clinicalGrand))}</td></tr></tbody></table>`:"";
+  const budgetSummaryHtml=(()=>{
+    if(!saShowRemaining)return"";
+    const rows=perLine.filter((l:any)=>l.totalFunding>0).map((l:any)=>{
+      const planned=getLineMode(l.code)==="lump"?l.totalFunding:l.planTotal;
+      const rem=l.totalFunding-planned;
+      return`<tr><td>${escapeHtml(l.description)}${l.ratio&&l.ratio!=="1:1"?" ("+escapeHtml(l.ratio)+")":""}</td><td style="text-align:right">${escapeHtml(money(l.totalFunding))}</td><td style="text-align:right">${escapeHtml(money(planned))}</td><td style="text-align:right;font-weight:700;color:${rem<0?"#dc2626":"#16a34a"}">${escapeHtml(money(rem))}</td></tr>`;
+    });
+    if(clinicalGrand>0&&!clinicalBudgetLinked&&clinicalFunding>0)rows.push(`<tr><td>Clinical / Therapy Services</td><td style="text-align:right">${escapeHtml(money(clinicalFunding))}</td><td style="text-align:right">${escapeHtml(money(clinicalGrand))}</td><td style="text-align:right;font-weight:700;color:${clinicalFunding-clinicalGrand<0?"#dc2626":"#16a34a"}">${escapeHtml(money(clinicalFunding-clinicalGrand))}</td></tr>`);
+    if(rows.length===0)return"";
+    return`<div class="section-heading" style="margin-top:16px">Category Budgets &amp; Remaining</div>
+  <table style="font-size:9pt"><thead><tr><th>Category</th><th style="text-align:right">Funded</th><th style="text-align:right">This schedule</th><th style="text-align:right">Remaining</th></tr></thead><tbody>${rows.join("")}</tbody></table>`;
+  })();
+  const combinedBarHtml=clinicalGrand>0?`<table style="margin-top:10px"><tbody><tr class="total-row"><td>Combined total &mdash; core supports + clinical services</td><td style="text-align:right">${escapeHtml(money(grandTotal+clinicalGrand))}</td></tr></tbody></table>`:"";
+
   const html=`<!doctype html><html><head><meta charset="utf-8"/><title>Schedule of Supports - ${escapeHtml(pName)}</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -1201,6 +1246,10 @@ tbody td{padding:9px 10px;vertical-align:top}
     </tbody>
   </table>
   <div class="note">Prices per the NDIS Pricing Schedule (2026&#8211;27). Plan totals are estimates and may vary based on actual supports delivered. All prices are GST-inclusive where applicable.</div>`}
+
+  ${clinicalBlockHtml}
+  ${budgetSummaryHtml}
+  ${combinedBarHtml}
 
   ${saLayout==="daily"?"":(()=>{
     const rLines=perLine.filter((l:any)=>getLineMode(l.code)!=="lump"&&(Object.values(l.roster).some((r:any)=>r?.enabled)||(l.kmsPerWeek||0)>0));
@@ -1432,6 +1481,8 @@ return(
 </div>
 <div className="flex items-center gap-2">
 {saveState!=="idle"&&<span className="text-xs" style={{color:saveState==="saving"?"#b8901a":"#94a3b8"}}>{saveState==="saving"?"Saving…":"Saved ✓"}</span>}
+<span className="text-xs hidden md:inline" style={{color:"#64748b"}}>Funding <span className="kv-money font-semibold" style={{color:"#0f172a"}}>{money(totals.totalFunding)}</span></span>
+<span className="text-xs hidden md:inline" style={{color:"#64748b"}}>Plan cost <span className="kv-money font-semibold" style={{color:"#0f172a"}}>{money(totals.planCost)}</span></span>
 <span className="kv-label">Remaining</span>
 <span className="kv-money font-bold" style={{color:totalStatus.color}}>{money(totals.remaining)}</span>
 <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full" style={{background:totalStatus.bg,color:totalStatus.color,border:"1px solid "+totalStatus.border}}>{totalStatus.label}</span>
@@ -1524,6 +1575,20 @@ return(
 <div className="kv-money text-lg font-bold" style={{color:col}}>{val}</div>
 </div>
 ))}
+</div>
+<div className="rounded-xl px-4 py-3 mb-5" style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.12)"}}>
+<div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+<span className="text-xs font-semibold" style={{color:"rgba(255,255,255,0.85)"}}>Quick category budgets</span>
+<span className="text-xs" style={{color:"rgba(255,255,255,0.5)"}}>type the funding for each category here &mdash; build the rosters whenever you like</span>
+</div>
+<div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+{lines.map(l=>(
+<div key={l.id} className="flex items-center gap-2">
+<span className="kv-money text-xs px-1.5 py-0.5 rounded" style={{background:"rgba(255,255,255,0.12)",color:"#d4a843",flexShrink:0}}>{l.code}</span>
+<span className="text-xs truncate" style={{color:"rgba(255,255,255,0.8)",flex:1,minWidth:0}} title={l.description}>{l.description}</span>
+<input type="number" step={100} min={0} value={l.totalFunding||""} placeholder="$0" onChange={e=>updateLine(l.id,{totalFunding:num(e.target.value)})} onFocus={e=>e.target.select()} className="rounded-lg px-2 py-1 outline-none kv-money" style={{width:"110px",background:"rgba(255,255,255,0.92)",border:"none",color:"#241456",fontWeight:700,fontSize:"0.85rem"}}/>
+</div>))}
+</div>
 </div>
 <div className="flex items-end justify-between flex-wrap gap-2">
 <div>
@@ -2189,7 +2254,7 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
 
   <div className="rounded-xl mb-5" style={{border:"1px solid rgba(100,150,212,0.15)",overflowX:"auto"}}>
     <div className="grid px-3 py-2" style={{gridTemplateColumns:"1.8fr 2.5fr 1fr 1.3fr 1.5fr auto",gap:"8px",background:"rgba(100,150,212,0.07)",minWidth:"640px"}}>
-      <div className="text-xs font-semibold" style={{color:"#64748b"}}>Category</div>
+      <div className="text-xs font-semibold" style={{color:"#64748b"}}>Service type &amp; item</div>
       <div className="text-xs font-semibold" style={{color:"#64748b"}}>Service Description</div>
       <div className="text-xs font-semibold" style={{color:"#64748b"}}>Hours</div>
       <div className="text-xs font-semibold" style={{color:"#64748b"}}>Rate / hr ($)</div>
@@ -2198,12 +2263,17 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
     </div>
     {clinicalServices.map((si,idx)=>(
       <div key={si.id} className="grid px-3 py-2" style={{gridTemplateColumns:"1.8fr 2.5fr 1fr 1.3fr 1.5fr auto",gap:"8px",alignItems:"center",borderTop:"1px solid rgba(100,150,212,0.1)",minWidth:"640px"}}>
-        <select value={si.code||"15"} onChange={e=>{const i=idx;const c=e.target.value;const preset=CATEGORY_PRESETS[c]?.rates.weekdayOrd||0;setClinicalServices(p=>p.map((x,j)=>j===i?{...x,code:c,rate:preset,description:x.description||CATEGORY_PRESETS[c]?.name||""}:x))}}
-          className="rounded px-2 py-1 text-xs outline-none" style={{background: "#ffffff",border:"1px solid rgba(100,150,212,0.15)",color: "#0f172a"}}>
-          {["07","11","12","13","14","15","20"].map(v=>(
-            <option key={v} value={v}>{v} — {CATEGORY_PRESETS[v]?.name||v}</option>
+        <div>
+        <select value={si.typeKey||""} onChange={e=>{const i=idx;const k=e.target.value;const t=CLINICAL_TYPES.find(x=>x.key===k);setClinicalServices(p=>p.map((x,j)=>j===i?(t?{...x,typeKey:k,code:t.code,rate:t.rate,item:t.item,description:x.description||t.label}:x):x))}}
+          className="rounded px-2 py-1 text-xs outline-none w-full" style={{background: "#ffffff",border:"1px solid rgba(100,150,212,0.15)",color: "#0f172a"}}>
+          <option value="">Service type…</option>
+          {CLINICAL_TYPES.map(t=>(
+            <option key={t.key} value={t.key}>{t.label} — ${t.rate}/hr</option>
           ))}
         </select>
+        <input value={si.item||""} onChange={e=>{const i=idx;setClinicalServices(p=>p.map((x,j)=>j===i?{...x,item:e.target.value}:x))}} placeholder="item number"
+          className="rounded px-2 py-0.5 mt-1 w-full outline-none" style={{background:"#ffffff",border:"1px solid rgba(100,150,212,0.12)",color:"#64748b",fontFamily:"monospace",fontSize:"0.68rem"}}/>
+        </div>
         <input value={si.description} onChange={e=>{const i=idx;setClinicalServices(p=>p.map((x,j)=>j===i?{...x,description:e.target.value}:x))}} placeholder="e.g. Comprehensive BSP Development"
           className="rounded px-2 py-1 text-sm outline-none w-full" style={{background: "#ffffff",border:"1px solid rgba(100,150,212,0.15)",color: "#0f172a"}}/>
         <input type="number" step="0.5" min="0" value={si.hours||""} onChange={e=>{const i=idx;setClinicalServices(p=>p.map((x,j)=>j===i?{...x,hours:num(e.target.value)}:x))}} onFocus={e=>e.target.select()} placeholder="0"
@@ -2348,6 +2418,18 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
         ⚠ No shift times entered yet, so the Times column will print &ldquo;—&rdquo;. Close this and add times on each roster day with the <strong>🕐 + add times</strong> chips (use <strong>⇒ copy to Mon–Fri</strong> to fill the week), then each shift prints as its own row with its times.
       </div>
     )}
+    <div className="flex flex-col gap-2 mt-3">
+    {clinicalServices.some(sv=>(sv.hours||0)>0)&&(
+      <label className="flex items-center gap-2 cursor-pointer text-xs" style={{color:"#334155"}}>
+        <input type="checkbox" checked={saIncludeClinical} onChange={e=>setSaIncludeClinical(e.target.checked)} style={{accentColor:"#d4a843",width:"14px",height:"14px"}}/>
+        Include clinical / therapy services on this document (adds a combined total)
+      </label>
+    )}
+    <label className="flex items-center gap-2 cursor-pointer text-xs" style={{color:"#334155"}}>
+      <input type="checkbox" checked={saShowRemaining} onChange={e=>setSaShowRemaining(e.target.checked)} style={{accentColor:"#d4a843",width:"14px",height:"14px"}}/>
+      Show category budgets &amp; remaining on the document
+    </label>
+    </div>
   </div>
 
   {saRows.length>0&&<div className="rounded-lg p-4 mb-5" style={{background:"rgba(15,23,42,0.03)",border:"1px solid rgba(15,23,42,0.07)"}}>
