@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { dbGet, dbSet } from "@/lib/team";
 import {type Rates,type PlanDates,type Shift,type DayRoster,type Claim,type BudgetAllocation,type SupportLine,DAYS,DAY_DOW,DL,FREQ,RATIOS,defaultRoster,getDayName,getWeeksInPlan,countDayOccurrences,calcDayCountPlanCost,calcWeeklyCost,shiftWindowBands,calcPHImpact,NDIS_RATES_2026_27,CATEGORY_PRESETS,getPresetRates,migrateSleepoverRate,applyProviderDefaults,SIL_ITEM_DEFAULTS,getDefaultItemNumber,splitShiftBands,shiftsToText,shiftHoursTotal} from "@/lib/calc";
 export * from "@/lib/calc";
 export type CustomHoliday = { date: string; name: string };
@@ -54,12 +55,12 @@ const[saveState,setSaveState]=useState<"idle"|"saving"|"saved">("idle");
 const timerRef=React.useRef<any>(null);
 const pendingRef=React.useRef<any>(null);
 useEffect(()=>{supabase.auth.getUser().then(({data:d})=>{setUserId(d.user?.id??null)})},[]);
-const doSave=React.useCallback(async(uid:string,k:string,payload:any)=>{setSaveState("saving");try{await supabase.from("calculator_data").upsert({user_id:uid,participant_id:k,data:payload,updated_at:new Date().toISOString()},{onConflict:"user_id,participant_id"});pendingRef.current=null;setSaveState("saved")}catch(e){console.error("Cloud save error:",e);setSaveState("idle")}},[]);
+const doSave=React.useCallback(async(_uid:string,k:string,payload:any)=>{setSaveState("saving");try{await dbSet(k,payload);pendingRef.current=null;setSaveState("saved")}catch(e){console.error("Cloud save error:",e);setSaveState("idle")}},[]);
 useEffect(()=>{if(!userId||!key)return;pendingRef.current=data;if(timerRef.current)clearTimeout(timerRef.current);timerRef.current=setTimeout(()=>{doSave(userId,key,data)},2000);return()=>{if(timerRef.current)clearTimeout(timerRef.current)}},[userId,key,data,doSave]);
 // Flush pending edits when the tab is hidden or closing so a quick edit-then-close isn't lost to the debounce.
 useEffect(()=>{if(!userId||!key)return;const flush=()=>{if(pendingRef.current!=null){if(timerRef.current)clearTimeout(timerRef.current);doSave(userId,key,pendingRef.current)}};const onVis=()=>{if(document.visibilityState==="hidden")flush()};window.addEventListener("pagehide",flush);document.addEventListener("visibilitychange",onVis);return()=>{window.removeEventListener("pagehide",flush);document.removeEventListener("visibilitychange",onVis)}},[userId,key,doSave]);
 return saveState}
-export async function loadFromCloud(key:string):Promise<any>{try{const{data:d}=await supabase.auth.getUser();if(!d.user)return null;const{data:row}=await supabase.from("calculator_data").select("data").eq("user_id",d.user.id).eq("participant_id",key).single();return row?.data||null}catch{return null}}
+export async function loadFromCloud(key:string):Promise<any>{try{const{data:d}=await supabase.auth.getUser();if(!d.user)return null;return (await dbGet(key))||null}catch{return null}}
 // Sleepovers now divide by the support ratio automatically; restore any manually
 // pre-divided rate (the old workaround) to the flat rate so it isn't divided twice.
 // Overlay the organisation's default rates onto a category preset. Only fields that
@@ -535,7 +536,7 @@ const[catalogue,setCatalogue]=useState<CatalogueItem[]>(BUILTIN_CATALOGUE);
 useEffect(()=>{(async()=>{
   try{const raw=localStorage.getItem("kevria_catalogue");if(raw){const arr=JSON.parse(raw);if(Array.isArray(arr)&&arr.length)setCatalogue(mergeWithBuiltins(arr));}}catch{}
   try{const{data:{user}}=await supabase.auth.getUser();if(user){
-    const{data:row}=await supabase.from("calculator_data").select("data").eq("user_id",user.id).eq("participant_id","ndis_price_guide").maybeSingle();
+    const row={data:await dbGet("ndis_price_guide")};
     const arr=(row?.data as any)?.items;
     if(Array.isArray(arr)&&arr.length){setCatalogue(mergeWithBuiltins(arr));try{localStorage.setItem("kevria_catalogue",JSON.stringify(arr))}catch{}}
   }}catch{}
@@ -570,7 +571,7 @@ useEffect(()=>{(async()=>{
   try{
     const{data:{user}}=await supabase.auth.getUser();
     if(user){
-      const{data:row}=await supabase.from("calculator_data").select("data").eq("user_id",user.id).eq("participant_id","ndis_provider_details").maybeSingle();
+      const row={data:await dbGet("ndis_provider_details")};
       const md:any=user.user_metadata||{};
       setProviderDetails(p=>{
         const merged={...p,...((row?.data&&typeof row.data==="object")?row.data:{})};

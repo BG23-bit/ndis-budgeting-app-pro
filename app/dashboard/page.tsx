@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import { teamCtx, dbGet, dbGetMany, dbKeys, dbDelete, dbListGet, dbListSave, TeamCtx } from "@/lib/team";
 import Client, { defaultRoster, getHolidaysInRange, mergeCustomHolidays, getWeeksInPlan, calcDayCountPlanCost, calcPHImpact, getPresetRates, migrateSleepoverRate, NDIS_RATES_2026_27 } from "../client";
 
 type Participant = {
@@ -114,6 +115,7 @@ export default function DashboardPage() {
   const skipNextSaveRef = useRef(false);
   const deletedIdsRef = useRef<Set<string>>(new Set());
   const [loadError, setLoadError] = useState(false);
+  const [team, setTeam] = useState<TeamCtx | null>(null);
   const [recoverable, setRecoverable] = useState<{ id: string; updated: string }[] | null>(null);
   const router = useRouter();
 
@@ -133,6 +135,10 @@ export default function DashboardPage() {
       const { data: profile } = await supabase.from("profiles").select("paid, stripe_customer_id").eq("id", session.user.id).single();
       if (profile?.paid) setPaid(true);
       if (profile?.stripe_customer_id) setStripeCustomerId(profile.stripe_customer_id);
+      // Team members inherit the owner's subscription and work in their data.
+      const ctx = await teamCtx();
+      setTeam(ctx);
+      if (ctx.isMember && ctx.ownerPaid) setPaid(true);
       setLoading(false);
       // Record activity (fire-and-forget) so /admin can see who is actively using the app.
       fetch("/api/activity", {
@@ -151,28 +157,28 @@ export default function DashboardPage() {
     try {
       const { data: d } = await supabase.auth.getUser();
       if (d.user) {
-        const { data: row, error } = await supabase.from("participant_lists").select("participants").eq("user_id", d.user.id).maybeSingle();
-        if (error) { setLoadError(true); return; }
-        const list = Array.isArray(row?.participants) ? row.participants : [];
+        let cloudList: any[] | null = null;
+        try { cloudList = await dbListGet(); } catch { setLoadError(true); return; }
+        const list = Array.isArray(cloudList) ? cloudList : [];
         if (list.length > 0) setParticipants(list);
         // First-run onboarding: brand-new accounts (no participants, no saved
         // company profile) set up their profile before landing on the dashboard.
         // One-shot — never repeats, and skipped right after checkout success.
         if (list.length === 0 && !localStorage.getItem("kevria_onboarded") && !window.location.search.includes("success=true")) {
-          const { data: prov } = await supabase.from("calculator_data").select("data").eq("user_id", d.user.id).eq("participant_id", "ndis_provider_details").maybeSingle();
+          const prov = await dbGet("ndis_provider_details");
           try { localStorage.setItem("kevria_onboarded", "1"); } catch {}
-          if (!(prov?.data as any)?.orgName) { router.push("/company?welcome=1"); return; }
+          if (!(prov as any)?.orgName) { router.push("/company?welcome=1"); return; }
         }
         // Calculator data with no matching list entry means the list was wiped
         // by a past sync bug (or a pre-cleanup delete) — offer to restore.
-        const { data: rows } = await supabase.from("calculator_data").select("participant_id, updated_at").eq("user_id", d.user.id);
+        const rows = await dbKeys().catch(() => []);
         const listIds = new Set(list.map((p: any) => p.id));
         let dismissed: string[] = [];
         try { dismissed = JSON.parse(localStorage.getItem("ndis_recovery_dismissed") || "[]"); } catch {}
         const dismissedSet = new Set(dismissed);
         const orphans = (rows || [])
           .map((r: any) => ({ id: String(r.participant_id).replace("ndis_participant_", ""), updated: String(r.updated_at || "") }))
-          .filter((o: any) => !["ndis_preview", "ndis_provider_details", "roster_notes_usage", "ndis_price_guide"].includes(String(o.id)) && !listIds.has(o.id) && !dismissedSet.has(o.id) && o.id.length > 8)
+          .filter((o: any) => !["ndis_preview", "ndis_provider_details", "roster_notes_usage", "ndis_price_guide", "team_members", "team_link"].includes(String(o.id)) && !listIds.has(o.id) && !dismissedSet.has(o.id) && o.id.length > 8)
           .sort((a: any, b: any) => b.updated.localeCompare(a.updated));
         if (orphans.length > 0) setRecoverable(orphans);
       } else {
@@ -223,9 +229,9 @@ export default function DashboardPage() {
       try {
         const { data: d } = await supabase.auth.getUser();
         if (!d.user) return;
-        const { data: row } = await supabase.from("participant_lists").select("participants").eq("user_id", d.user.id).maybeSingle();
-        if (!Array.isArray(row?.participants)) return;
-        const cloud = row.participants.filter((p: any) => p?.id && !deletedIdsRef.current.has(p.id));
+        const cloudList = await dbListGet().catch(() => null);
+        if (!Array.isArray(cloudList)) return;
+        const cloud = cloudList.filter((p: any) => p?.id && !deletedIdsRef.current.has(p.id));
         setParticipants((prev) => {
           const cloudIds = new Set(cloud.map((p: any) => p.id));
           const extras = prev.filter((p) => !cloudIds.has(p.id));
@@ -243,7 +249,7 @@ export default function DashboardPage() {
 
   // Realtime sync — keeps all open sessions in sync when 1 login is shared
   useEffect(() => {
-    if (!user) return;
+    if (!user || team?.isMember) return;
     const channel = supabase
       .channel("participant_sync_" + user.id)
       .on("postgres_changes", { event: "*", schema: "public", table: "participant_lists", filter: `user_id=eq.${user.id}` }, (payload: any) => {
@@ -254,7 +260,7 @@ export default function DashboardPage() {
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user]);
+  }, [user, team]);
 
   useEffect(() => {
     if (!hasLoadedRef.current) return;
@@ -267,15 +273,12 @@ export default function DashboardPage() {
           // Merge with the current cloud list before writing so a stale tab can
           // never wipe participants added elsewhere. Same-session deletes are
           // honoured via tombstones.
-          const { data: row } = await supabase.from("participant_lists").select("participants").eq("user_id", d.user.id).maybeSingle();
-          const cloud = Array.isArray(row?.participants) ? row.participants : [];
+          const cloudList = await dbListGet().catch(() => null);
+          const cloud = Array.isArray(cloudList) ? cloudList : [];
           const localIds = new Set(participants.map((p) => p.id));
           const missing = cloud.filter((p: any) => p?.id && !localIds.has(p.id) && !deletedIdsRef.current.has(p.id));
           const merged = [...participants, ...missing];
-          await supabase.from("participant_lists").upsert(
-            { user_id: d.user.id, participants: merged, updated_at: new Date().toISOString() },
-            { onConflict: "user_id" }
-          );
+          await dbListSave(merged);
           if (missing.length > 0) {
             skipNextSaveRef.current = true;
             setParticipants(merged);
@@ -309,19 +312,10 @@ export default function DashboardPage() {
       try {
         const { data: d } = await supabase.auth.getUser();
         if (d.user) {
-          const { data: provRow } = await supabase
-            .from("calculator_data")
-            .select("data")
-            .eq("user_id", d.user.id)
-            .eq("participant_id", "ndis_provider_details")
-            .maybeSingle();
-          if (Array.isArray((provRow?.data as any)?.customHolidays)) customHolidays = (provRow!.data as any).customHolidays;
+          const prov = await dbGet("ndis_provider_details");
+          if (Array.isArray((prov as any)?.customHolidays)) customHolidays = (prov as any).customHolidays;
           const keys = participants.map((p) => "ndis_participant_" + p.id);
-          const { data: rows } = await supabase
-            .from("calculator_data")
-            .select("participant_id, data")
-            .eq("user_id", d.user.id)
-            .in("participant_id", keys);
+          const rows = await dbGetMany(keys);
           for (const row of rows || []) {
             const id = String(row.participant_id).replace(/^ndis_participant_/, "");
             map[id] = computeBudget(row.data, customHolidays);
@@ -458,10 +452,7 @@ export default function DashboardPage() {
     try { localStorage.removeItem("ndis_participant_" + id); } catch {}
     // Also remove their calculator data from the cloud so it doesn't linger on other devices.
     if (user?.id) {
-      supabase.from("calculator_data").delete()
-        .eq("user_id", user.id)
-        .eq("participant_id", "ndis_participant_" + id)
-        .then(({ error }: { error: any }) => { if (error) console.error("Cloud delete error:", error); });
+      dbDelete("ndis_participant_" + id).catch((e) => console.error("Cloud delete error:", e));
     }
   };
 
@@ -617,8 +608,13 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="text-sm mb-8" style={{ color: "#64748b" }}>
-          Powered by <span style={{ color: "#d4a843" }}>Kevria</span> — Participant Overview
+        <div className="text-sm mb-8 flex items-center gap-3 flex-wrap" style={{ color: "#64748b" }}>
+          <span>Powered by <span style={{ color: "#d4a843" }}>Kevria</span> — Participant Overview</span>
+          {team?.isMember && (
+            <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{ background: "rgba(45,27,105,0.07)", color: "#2d1b69", border: "1px solid rgba(45,27,105,0.2)" }}>
+              Team workspace — {team.ownerOrg || team.ownerEmail}
+            </span>
+          )}
         </div>
 
         {!paid && (

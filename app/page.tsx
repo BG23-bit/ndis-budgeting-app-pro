@@ -3,303 +3,231 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+// Marketing homepage. Everything claimed here must exist in the product —
+// keep features honest and CTAs on the trial-first funnel (free preview,
+// no card, paywall only when adding a second participant).
+
+const GOLD = "#d4a843";
+const INK = "#2d1b69";
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return <p style={{ fontSize: "0.78rem", color: GOLD, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: "12px" }}>{children}</p>;
+}
+
 export default function LandingPage() {
   const router = useRouter();
   const [participants, setParticipants] = useState(10);
   const [hourlyRate, setHourlyRate] = useState(80);
 
-  const setupHrs = 2;
-  const monthlyReviewHrs = 5;
-  const phCalcHrs = 1.5;
-  const scheduleHrs = 1.5;
-  const claimsHrs = 3;
+  const setupHrs = 2, monthlyReviewHrs = 5, phCalcHrs = 1.5, scheduleHrs = 1.5, claimsHrs = 3;
   const hrsPerParticipant = setupHrs + monthlyReviewHrs + phCalcHrs + scheduleHrs + claimsHrs;
-
   const totalHrs = Math.round(participants * hrsPerParticipant);
   const valuePerYear = totalHrs * hourlyRate;
-  const annualCost = 79;
-  const roi = Math.round(valuePerYear / annualCost);
+  const roi = Math.round(valuePerYear / 79);
+
+  const start = () => router.push("/login");
 
   return (
-    <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", color: "#0f172a", background: "#ffffff" }}>
+    <div style={{ color: "#0f172a", background: "#ffffff" }}>
+      <style>{`
+        .lp-hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; }
+        .lp-nav-links { display: flex; gap: 26px; align-items: center; }
+        @media (max-width: 900px) {
+          .lp-hero-grid { grid-template-columns: 1fr; gap: 40px; }
+          .lp-nav-links a[data-anchor] { display: none; }
+          .lp-pad { padding-left: 20px !important; padding-right: 20px !important; }
+          .lp-h1 { font-size: 2.4rem !important; }
+        }
+        .lp-cta { transition: transform 0.15s ease, box-shadow 0.15s ease; }
+        .lp-cta:hover { transform: translateY(-1px); }
+        .lp-feature { transition: border-color 0.2s ease, transform 0.2s ease; }
+        .lp-feature:hover { border-color: rgba(212,168,67,0.55) !important; transform: translateY(-2px); }
+      `}</style>
 
       {/* NAV */}
-      <nav style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        padding: "18px 48px",
-        background: "#ffffff",
-        borderBottom: "1px solid rgba(212,168,67,0.12)",
-        position: "sticky",
-        top: 0,
-        zIndex: 50,
-        backdropFilter: "blur(12px)",
-      }}>
+      <nav className="lp-pad" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 48px", background: "rgba(255,255,255,0.92)", borderBottom: "1px solid rgba(212,168,67,0.14)", position: "sticky", top: 0, zIndex: 50, backdropFilter: "blur(12px)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <span style={{ fontSize: "1.4rem", color: "#d4a843" }}>✦</span>
-          <span style={{ fontSize: "1.1rem", fontWeight: "700", letterSpacing: "0.02em", color: "#2d1b69" }}>Kevria Calc</span>
+          <span style={{ fontSize: "1.4rem", color: GOLD }}>✦</span>
+          <span style={{ fontSize: "1.1rem", fontWeight: 700, letterSpacing: "0.02em", color: INK }}>Kevria Calc</span>
         </div>
-        <div style={{ display: "flex", gap: "28px", alignItems: "center" }}>
-          {["Features", "How It Works", "Pricing", "FAQ"].map((label, i) => (
-            <a
-              key={label}
-              href={["#features", "#how", "#pricing", "#faq"][i]}
-              style={{ color: "#475569", textDecoration: "none", fontSize: "0.9rem", fontWeight: "500", transition: "color 0.2s" }}
-              onMouseEnter={e => (e.currentTarget.style.color = "#2d1b69")}
-              onMouseLeave={e => (e.currentTarget.style.color = "#475569")}
-            >{label}</a>
+        <div className="lp-nav-links">
+          {[["Features", "#features"], ["Who it's for", "#roles"], ["Pricing", "#pricing"], ["FAQ", "#faq"]].map(([label, href]) => (
+            <a key={label} data-anchor href={href} style={{ color: "#475569", textDecoration: "none", fontSize: "0.9rem", fontWeight: 500 }}>{label}</a>
           ))}
-          <a href="https://kevria.com" target="_blank" rel="noopener noreferrer"
-            style={{ color: "#d4a843", textDecoration: "none", fontSize: "0.9rem", fontWeight: "600" }}>
-            kevria.com
-          </a>
-          <button onClick={() => router.push("/login")} style={{
-            padding: "9px 22px",
-            backgroundColor: "#d4a843",
-            color: "#0f172a",
-            border: "none",
-            borderRadius: "8px",
-            cursor: "pointer",
-            fontWeight: "700",
-            fontSize: "0.9rem",
-          }}>Log In</button>
+          <button onClick={start} style={{ padding: "9px 14px", background: "none", color: INK, border: "none", cursor: "pointer", fontWeight: 600, fontSize: "0.9rem" }}>Log in</button>
+          <button onClick={start} className="lp-cta" style={{ padding: "9px 22px", backgroundColor: GOLD, color: "#0f172a", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: 700, fontSize: "0.9rem" }}>Start free</button>
         </div>
       </nav>
 
       {/* HERO */}
-      <section style={{
-        background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 60%, #f8fafc 100%)",
-        padding: "80px 48px 100px",
-        position: "relative",
-        overflow: "hidden",
-      }}>
-        {/* Background accents */}
-        <div style={{ position: "absolute", top: "-60px", right: "-60px", width: "400px", height: "400px", borderRadius: "50%", background: "#d4a843", opacity: 0.06, pointerEvents: "none" }} />
-        <div style={{ position: "absolute", bottom: "-80px", left: "-40px", width: "300px", height: "300px", borderRadius: "50%", background: "#d4a843", opacity: 0.12, pointerEvents: "none" }} />
+      <section className="lp-pad" style={{ background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 60%, #f8fafc 100%)", padding: "76px 48px 96px", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: "-60px", right: "-60px", width: "400px", height: "400px", borderRadius: "50%", background: GOLD, opacity: 0.06, pointerEvents: "none" }} />
+        <div style={{ position: "absolute", bottom: "-80px", left: "-40px", width: "300px", height: "300px", borderRadius: "50%", background: GOLD, opacity: 0.1, pointerEvents: "none" }} />
         <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle, rgba(15,23,42,0.03) 1px, transparent 1px)", backgroundSize: "32px 32px", pointerEvents: "none" }} />
 
-        <div style={{ maxWidth: "1200px", margin: "0 auto", position: "relative", zIndex: 1, display: "grid", gridTemplateColumns: "1fr 1fr", gap: "60px", alignItems: "center" }}>
-          {/* Left — copy */}
+        <div className="lp-hero-grid" style={{ maxWidth: "1200px", margin: "0 auto", position: "relative", zIndex: 1 }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "20px" }}>
-              <span style={{ width: "28px", height: "2px", background: "#d4a843", display: "inline-block" }} />
-              <span style={{ fontSize: "0.78rem", color: "#d4a843", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.12em" }}>
-                Built by providers · For providers
-              </span>
+              <span style={{ width: "28px", height: "2px", background: GOLD, display: "inline-block" }} />
+              <span style={{ fontSize: "0.78rem", color: GOLD, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em" }}>Built by providers · For providers</span>
             </div>
-            <h1 style={{
-              fontSize: "3.4rem",
-              fontWeight: "800",
-              lineHeight: "1.08",
-              marginBottom: "20px",
-              letterSpacing: "-0.02em",
-              color: "#2d1b69",
-            }}>
-              The smartest way to manage{" "}
-              <span style={{ color: "#d4a843", position: "relative" }}>NDIS budgets</span>
+            <h1 className="lp-h1" style={{ fontSize: "3.3rem", fontWeight: 800, lineHeight: 1.08, marginBottom: "20px", letterSpacing: "-0.02em", color: INK }}>
+              The NDIS budgeting workspace that <span style={{ color: GOLD }}>does the maths for you</span>
             </h1>
-            <p style={{ fontSize: "1.1rem", color: "#334155", lineHeight: "1.65", marginBottom: "14px", maxWidth: "500px" }}>
-              Track funding, calculate rosters with public holidays, forecast plan spend, and generate Schedule of Supports — all in one tool.
+            <p style={{ fontSize: "1.1rem", color: "#334155", lineHeight: 1.65, marginBottom: "14px", maxWidth: "520px" }}>
+              Build rosters, watch every budget line track live as you type, and generate a Schedule of Supports that reconciles to the cent — public holidays, ratios, sleepovers and evening splits handled automatically.
             </p>
-            <p style={{ fontSize: "0.85rem", color: "#64748b", marginBottom: "36px" }}>
-              SIL · Support Coordination · Community Access · Therapy · Plan Management · Respite
+            <p style={{ fontSize: "0.85rem", color: "#64748b", marginBottom: "34px" }}>
+              SIL · Support Coordination · Plan Management · Community Access · Therapy · Respite
             </p>
-            <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-              <button onClick={() => router.push("/login")} style={{
-                padding: "15px 36px",
-                fontSize: "1rem",
-                backgroundColor: "#2d1b69",
-                color: "#ffffff",
-                border: "none",
-                borderRadius: "10px",
-                cursor: "pointer",
-                fontWeight: "700",
-                boxShadow: "0 4px 14px rgba(45,27,105,0.25)",
-              }}>
-                Get Started — $9.90/mo
+            <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
+              <button onClick={start} className="lp-cta" style={{ padding: "15px 36px", fontSize: "1rem", backgroundColor: INK, color: "#ffffff", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: 700, boxShadow: "0 4px 14px rgba(45,27,105,0.25)" }}>
+                Start free — no card needed
               </button>
-              <button onClick={() => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })} style={{
-                padding: "15px 28px",
-                fontSize: "1rem",
-                backgroundColor: "transparent",
-                color: "#0f172a",
-                border: "1.5px solid rgba(15,23,42,0.2)",
-                borderRadius: "10px",
-                cursor: "pointer",
-                fontWeight: "600",
-              }}>
-                See Features ↓
+              <button onClick={() => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })} style={{ padding: "15px 28px", fontSize: "1rem", backgroundColor: "transparent", color: "#0f172a", border: "1.5px solid rgba(15,23,42,0.2)", borderRadius: "10px", cursor: "pointer", fontWeight: 600 }}>
+                See what&apos;s inside ↓
               </button>
             </div>
+            <p style={{ fontSize: "0.8rem", color: "#64748b", marginTop: "14px" }}>
+              Try the full calculator with one participant free, for as long as you like. Upgrade from $9.90/mo when you&apos;re ready.
+            </p>
           </div>
 
-          {/* Right — product preview card */}
+          {/* Product mock */}
           <div style={{ position: "relative" }}>
-            <div style={{
-              background: "#ffffff",
-              border: "1px solid rgba(212,168,67,0.45)",
-              borderRadius: "20px",
-              padding: "24px",
-              backdropFilter: "blur(12px)",
-              boxShadow: "0 32px 64px rgba(0,0,0,0.4)",
-            }}>
-              {/* Mini header */}
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "20px", paddingBottom: "16px", borderBottom: "1px solid rgba(15,23,42,0.06)" }}>
-                <span style={{ color: "#d4a843", fontSize: "1rem" }}>✦</span>
-                <span style={{ fontSize: "0.85rem", fontWeight: "600", color: "#d4a843" }}>Kevria Calc</span>
+            <div style={{ background: "#ffffff", border: "1px solid rgba(212,168,67,0.45)", borderRadius: "20px", padding: "24px", boxShadow: "0 32px 64px rgba(15,23,42,0.18)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px", paddingBottom: "14px", borderBottom: "1px solid rgba(15,23,42,0.06)" }}>
+                <span style={{ color: GOLD, fontSize: "1rem" }}>✦</span>
+                <span style={{ fontSize: "0.85rem", fontWeight: 600, color: GOLD }}>Kevria Calc</span>
                 <span style={{ marginLeft: "auto", fontSize: "0.75rem", color: "#64748b" }}>2026–27 rates loaded</span>
               </div>
-
-              {/* Budget summary */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "20px" }}>
+              <div style={{ display: "flex", gap: "6px", marginBottom: "18px", flexWrap: "wrap" }}>
+                {["Setup", "Budgets", "Roster", "Documents"].map((t, i) => (
+                  <span key={t} style={{ fontSize: "0.75rem", fontWeight: 700, padding: "5px 14px", borderRadius: "20px", background: i === 2 ? INK : "rgba(15,23,42,0.05)", color: i === 2 ? "#fff" : "#64748b" }}>{t}</span>
+                ))}
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "18px" }}>
                 {[
-                  { label: "Total Funding", value: "$48,500", color: "#d4a843" },
-                  { label: "Weekly Cost", value: "$892.40", color: "#0f172a" },
-                  { label: "Plan Cost", value: "$46,404", color: "#0f172a" },
-                  { label: "Remaining", value: "$2,096", color: "#22c55e" },
-                ].map(s => (
+                  { label: "Total Funding", value: "$148,500", color: GOLD },
+                  { label: "Weekly Cost", value: "$2,689.31", color: "#0f172a" },
+                  { label: "Plan Cost", value: "$142,301", color: "#0f172a" },
+                  { label: "Remaining", value: "$6,199", color: "#22c55e" },
+                ].map((s) => (
                   <div key={s.label} style={{ background: "rgba(15,23,42,0.04)", borderRadius: "10px", padding: "12px 14px" }}>
                     <div style={{ fontSize: "0.7rem", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "4px" }}>{s.label}</div>
-                    <div style={{ fontSize: "1.2rem", fontWeight: "700", color: s.color }}>{s.value}</div>
+                    <div style={{ fontSize: "1.15rem", fontWeight: 700, color: s.color }}>{s.value}</div>
                   </div>
                 ))}
               </div>
-
-              {/* Progress bar */}
-              <div style={{ marginBottom: "20px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
-                  <span style={{ fontSize: "0.75rem", color: "#64748b" }}>Budget usage — 95.7% used</span>
-                  <span style={{ fontSize: "0.72rem", background: "rgba(34,197,94,0.15)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.3)", padding: "2px 8px", borderRadius: "20px", fontWeight: "700" }}>ON TRACK</span>
-                </div>
-                <div style={{ background: "rgba(15,23,42,0.08)", borderRadius: "6px", height: "8px", overflow: "hidden" }}>
-                  <div style={{ width: "95.7%", height: "100%", background: "#22c55e", borderRadius: "6px" }} />
-                </div>
-              </div>
-
-              {/* Roster rows */}
-              <div style={{ fontSize: "0.75rem", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "10px" }}>Weekly Roster</div>
+              <div style={{ fontSize: "0.72rem", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "8px" }}>Live per-line tracking</div>
               {[
-                { day: "Mon", hrs: "8h", rate: "$73.58/hr", cost: "$588.64" },
-                { day: "Sat", hrs: "6h", rate: "$103.54/hr", cost: "$621.24" },
-                { day: "Sun", hrs: "4h", rate: "$133.50/hr", cost: "$534.00" },
-              ].map(r => (
-                <div key={r.day} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "7px 0", borderBottom: "1px solid rgba(15,23,42,0.04)" }}>
-                  <span style={{ width: "32px", fontSize: "0.8rem", color: "#475569", fontWeight: "600" }}>{r.day}</span>
-                  <span style={{ background: "rgba(212,168,67,0.12)", color: "#d4a843", fontSize: "0.75rem", fontWeight: "700", padding: "2px 8px", borderRadius: "6px" }}>{r.hrs}</span>
-                  <span style={{ fontSize: "0.75rem", color: "#64748b", flex: 1 }}>{r.rate}</span>
-                  <span style={{ fontSize: "0.8rem", fontWeight: "600", color: "#334155" }}>{r.cost}</span>
+                { code: "01", label: "Daily Living (SIL) — 1:2", pct: 96, cost: "$118,204" },
+                { code: "04", label: "Community Participation", pct: 74, cost: "$11,097" },
+                { code: "15", label: "Therapy — OT & Speech", pct: 88, cost: "$13,000" },
+              ].map((r) => (
+                <div key={r.code} style={{ padding: "7px 0", borderBottom: "1px solid rgba(15,23,42,0.04)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "5px" }}>
+                    <span style={{ background: "rgba(212,168,67,0.12)", color: "#b8901a", fontSize: "0.72rem", fontWeight: 700, padding: "2px 8px", borderRadius: "6px" }}>{r.code}</span>
+                    <span style={{ fontSize: "0.8rem", color: "#334155", flex: 1, fontWeight: 500 }}>{r.label}</span>
+                    <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#334155" }}>{r.cost}</span>
+                  </div>
+                  <div style={{ background: "rgba(15,23,42,0.07)", borderRadius: "4px", height: "5px", overflow: "hidden" }}>
+                    <div style={{ width: r.pct + "%", height: "100%", background: r.pct > 92 ? "#f59e0b" : "#22c55e", borderRadius: "4px" }} />
+                  </div>
                 </div>
               ))}
-
-              {/* PH badge */}
-              <div style={{ marginTop: "14px", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "8px", padding: "8px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: "0.75rem", color: "#64748b" }}>🗓 Public holidays detected (VIC)</span>
-                <span style={{ fontSize: "0.8rem", color: "#f87171", fontWeight: "600" }}>+$312.06</span>
+              <div style={{ marginTop: "14px", background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "8px", padding: "8px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "4px" }}>
+                <span style={{ fontSize: "0.75rem", color: "#64748b" }}>11 public holidays detected (QLD) — incl. Christmas Eve 6pm–midnight</span>
+                <span style={{ fontSize: "0.8rem", color: "#ef4444", fontWeight: 600 }}>+$4,112.90</span>
               </div>
             </div>
-
-            {/* Floating badge */}
-            <div style={{
-              position: "absolute", bottom: "-18px", left: "24px",
-              background: "#d4a843", color: "#0f172a",
-              padding: "8px 16px", borderRadius: "24px",
-              fontSize: "0.78rem", fontWeight: "800",
-              boxShadow: "0 8px 24px rgba(212,168,67,0.35)",
-              whiteSpace: "nowrap",
-            }}>
-              ✓ Schedule of Supports PDF — 1 click
+            <div style={{ position: "absolute", bottom: "-18px", left: "24px", background: GOLD, color: "#0f172a", padding: "8px 16px", borderRadius: "24px", fontSize: "0.78rem", fontWeight: 800, boxShadow: "0 8px 24px rgba(212,168,67,0.35)", whiteSpace: "nowrap" }}>
+              ✓ Schedule of Supports — day-by-day, to the cent
             </div>
           </div>
         </div>
       </section>
 
       {/* STATS STRIP */}
-      <section style={{
-        background: "#d4a843",
-        padding: "18px 48px",
-      }}>
-        <div style={{ maxWidth: "1100px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: "48px", flexWrap: "wrap" }}>
+      <section className="lp-pad" style={{ background: GOLD, padding: "18px 48px" }}>
+        <div style={{ maxWidth: "1100px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: "44px", flexWrap: "wrap" }}>
           {[
-            { value: "15", label: "NDIS categories covered" },
-            { value: "2026–27", label: "Price guide built in" },
-            { value: "8", label: "States & territories" },
-            { value: "1-click", label: "Schedule of Supports PDF" },
-          ].map(s => (
+            { value: "2026–27", label: "price guide built in" },
+            { value: "Every state", label: "public holidays auto-detected" },
+            { value: "All ratios", label: "1:1 to 2:3 shared supports" },
+            { value: "5 seats", label: "team access included" },
+          ].map((s) => (
             <div key={s.label} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <span style={{ fontSize: "1.1rem", fontWeight: "800", color: "#0f172a" }}>{s.value}</span>
-              <span style={{ fontSize: "0.82rem", color: "rgba(241,245,249,0.65)", fontWeight: "600" }}>{s.label}</span>
+              <span style={{ fontSize: "1.05rem", fontWeight: 800, color: "#0f172a" }}>{s.value}</span>
+              <span style={{ fontSize: "0.82rem", color: "rgba(45,27,105,0.75)", fontWeight: 600 }}>{s.label}</span>
             </div>
           ))}
         </div>
       </section>
 
-      {/* FEATURES */}
-      <section id="features" style={{ background: "#f1f5f9", padding: "100px 48px" }}>
+      {/* ROLES */}
+      <section id="roles" className="lp-pad" style={{ background: "#ffffff", padding: "90px 48px" }}>
         <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: "60px" }}>
-            <p style={{ fontSize: "0.78rem", color: "#d4a843", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: "12px" }}>What you get</p>
-            <h2 style={{ fontSize: "2.4rem", fontWeight: "800", marginBottom: "12px", letterSpacing: "-0.02em", color: "#2d1b69" }}>Everything you need</h2>
-            <p style={{ color: "#475569", fontSize: "1.05rem", maxWidth: "520px", margin: "0 auto" }}>
-              One tool to manage all your NDIS budget calculations — whatever type of support you deliver
-            </p>
+          <div style={{ textAlign: "center", marginBottom: "52px" }}>
+            <SectionLabel>Who it&apos;s for</SectionLabel>
+            <h2 style={{ fontSize: "2.3rem", fontWeight: 800, marginBottom: "12px", letterSpacing: "-0.02em", color: INK }}>Set your role once — the workspace adapts</h2>
+            <p style={{ color: "#475569", fontSize: "1.02rem", maxWidth: "560px", margin: "0 auto" }}>Tell Kevria Calc what kind of provider you are and it tunes the calculators, item numbers and documents to how you actually work.</p>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px" }}>
+            {[
+              { title: "SIL providers", desc: "Shift-based rosters with support ratios (1:1 through 2:3), sleepovers divided correctly, SIL item numbers, and a day-by-day Schedule of Supports with public holiday dates billed at the right rate." },
+              { title: "Support coordinators", desc: "Budgets entered up front, therapy lines per discipline, joint core + clinical schedules, and per-category remaining so nothing quietly runs dry mid-plan." },
+              { title: "Plan managers", desc: "Track projected against actual spend per line, log claims as invoices land, and export clean reports for plan reviews and audits." },
+              { title: "Allied health & community", desc: "Hourly service schedules with the right price caps per discipline — OT, physio, speech, psychology, behaviour support — plus travel and consumables." },
+            ].map((r) => (
+              <div key={r.title} className="lp-feature" style={{ background: "rgba(15,23,42,0.02)", border: "1px solid rgba(15,23,42,0.07)", borderRadius: "16px", padding: "26px" }}>
+                <h3 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: "10px", color: INK }}>{r.title}</h3>
+                <p style={{ color: "#64748b", lineHeight: 1.6, fontSize: "0.88rem" }}>{r.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FEATURES */}
+      <section id="features" className="lp-pad" style={{ background: "#f1f5f9", padding: "90px 48px" }}>
+        <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: "52px" }}>
+            <SectionLabel>What you get</SectionLabel>
+            <h2 style={{ fontSize: "2.3rem", fontWeight: 800, marginBottom: "12px", letterSpacing: "-0.02em", color: INK }}>From plan PDF to signed schedule</h2>
+            <p style={{ color: "#475569", fontSize: "1.02rem", maxWidth: "560px", margin: "0 auto" }}>A guided workspace — Setup, Budgets, Roster, Documents — with the numbers updating live at every step.</p>
           </div>
 
-          {/* Highlight features — 2 col */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: "20px", marginBottom: "20px" }}>
             {[
-              {
-                icon: "📋",
-                title: "Schedule of Supports — Ready to Sign",
-                desc: "Generate a professional PDF in seconds. Shows each support line with NDIS item code, weekly roster, estimated weekly cost, plan total, and signature blocks. Attach to your existing SA template.",
-              },
-              {
-                icon: "📄",
-                title: "Upload Plan PDF — Skip the Data Entry",
-                desc: "Upload the participant's NDIS plan PDF and we extract plan dates, state, support categories, and funding amounts automatically using AI. Review and confirm before anything is applied.",
-              },
+              { title: "Schedule of Supports that reconciles on its face", desc: "One click generates a professional PDF — every support line with its NDIS item number, shift times, ratios, weekly and plan totals, public holiday dates billed at the holiday rate, and signature blocks. Summary or full day-by-day layout." },
+              { title: "Upload the plan PDF — skip the data entry", desc: "Drop in the participant's NDIS plan and the AI reads plan dates, state, categories and funding amounts, and even proposes a roster from your notes. You review and confirm before anything is applied." },
             ].map((f) => (
-              <div key={f.title} style={{
-                background: "rgba(212,168,67,0.05)",
-                border: "1px solid rgba(212,168,67,0.45)",
-                borderRadius: "16px",
-                padding: "32px",
-                display: "flex",
-                gap: "20px",
-                alignItems: "flex-start",
-              }}>
-                <div style={{ fontSize: "2rem", flexShrink: 0, marginTop: "2px" }}>{f.icon}</div>
-                <div>
-                  <h3 style={{ fontSize: "1.05rem", fontWeight: "700", color: "#d4a843", marginBottom: "10px" }}>{f.title}</h3>
-                  <p style={{ color: "#475569", lineHeight: "1.6", fontSize: "0.9rem" }}>{f.desc}</p>
-                </div>
+              <div key={f.title} className="lp-feature" style={{ background: "rgba(212,168,67,0.05)", border: "1px solid rgba(212,168,67,0.45)", borderRadius: "16px", padding: "30px" }}>
+                <h3 style={{ fontSize: "1.05rem", fontWeight: 700, color: "#b8901a", marginBottom: "10px" }}>{f.title}</h3>
+                <p style={{ color: "#475569", lineHeight: 1.6, fontSize: "0.9rem" }}>{f.desc}</p>
               </div>
             ))}
           </div>
 
-          {/* Grid features */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "16px" }}>
             {[
-              { icon: "💰", title: "Per-Category Rates", desc: "Every support line pre-loaded with correct 2026–27 rates for its category. Fully editable." },
-              { icon: "🗂️", title: "Smart Roster Modes", desc: "Full shift, weekday-only, or lump sum — roster adapts to the support type automatically." },
-              { icon: "⚠️", title: "Rate Monitoring", desc: "Yellow warnings flag rates set below the price guide while still allowing negotiated rates." },
-              { icon: "📈", title: "Plan Pace Tracking", desc: "See if spending is on pace, ahead, or behind today's date — act before the budget runs out." },
-              { icon: "🗓️", title: "Public Holiday Auto-Calc", desc: "Holidays detected per state, per line. Toggle each holiday and see the cost impact in real time." },
-              { icon: "🧾", title: "Claims & Actual Spend", desc: "Log actual invoices and track projected vs actual spend side by side." },
-              { icon: "👥", title: "Multiple Participants", desc: "Unlimited participants from one dashboard — each with their own full calculator and tracker." },
-              { icon: "🚗", title: "KM Tracking", desc: "Transport kilometre costs per support line with configurable rates and frequency." },
-              { icon: "📤", title: "CSV & PDF Export", desc: "Professional reports for plan reviews, handovers, audits, and sharing with families." },
-              { icon: "☁️", title: "Cloud Sync", desc: "Saves automatically and syncs across all your devices. Access from anywhere." },
+              { title: "Live tracking while you roster", desc: "Every budget line follows you across tabs — watch remaining funds move as you add shifts, before anything is committed." },
+              { title: "Public holidays, automatically", desc: "Detected per state per plan period — including part-day holidays like QLD's Christmas Eve 6pm–midnight. Toggle any date and see the cost impact." },
+              { title: "Ratios & sleepovers done right", desc: "Shared supports from 2:1 to 2:3 priced per participant, sleepovers divided by ratio, evening and overnight bands split at the correct times." },
+              { title: "Budget envelopes", desc: "Hold a category total fixed and split it into named buckets — $15k in Capacity Building as $7.5k psychology, $7.5k OT — splits can never change the total." },
+              { title: "The whole price guide, selectable", desc: "Import the official NDIA Support Catalogue once and every support item is type-ahead searchable with its price limit, in every state." },
+              { title: "Plan renewals in one click", desc: "Expiry warnings from 60 days out, then start the new period keeping the roster, budgets and rates — claims and holiday exclusions reset for the new year." },
+              { title: "Claims & actual spend", desc: "Log invoices (or import a CSV) and track projected vs actual side by side, with pace warnings before a budget runs out." },
+              { title: "Team seats included", desc: "Invite up to 5 colleagues into your workspace — same participants, budgets and documents, on one subscription." },
+              { title: "Your branding, not ours", desc: "Upload your logo and company details once — every document you generate carries them." },
+              { title: "Documents history", desc: "Every generated schedule is recorded — what, when, which layout, and the total at the time — so there's always an audit trail." },
+              { title: "Whole-caseload dashboard", desc: "Every participant's funding, remaining budget, plan-end countdown and health status on one screen." },
+              { title: "Cloud sync", desc: "Saves automatically and syncs across your devices — and your team's." },
             ].map((f) => (
-              <div key={f.title} style={{
-                background: "rgba(15,23,42,0.03)",
-                border: "1px solid rgba(15,23,42,0.06)",
-                borderRadius: "14px",
-                padding: "24px",
-              }}>
-                <div style={{ fontSize: "1.6rem", marginBottom: "12px" }}>{f.icon}</div>
-                <h3 style={{ fontSize: "0.95rem", fontWeight: "700", marginBottom: "8px", color: "#0f172a" }}>{f.title}</h3>
-                <p style={{ color: "#64748b", lineHeight: "1.55", fontSize: "0.85rem" }}>{f.desc}</p>
+              <div key={f.title} className="lp-feature" style={{ background: "#ffffff", border: "1px solid rgba(15,23,42,0.06)", borderRadius: "14px", padding: "22px" }}>
+                <h3 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: "8px", color: "#0f172a" }}>{f.title}</h3>
+                <p style={{ color: "#64748b", lineHeight: 1.55, fontSize: "0.85rem" }}>{f.desc}</p>
               </div>
             ))}
           </div>
@@ -307,35 +235,23 @@ export default function LandingPage() {
       </section>
 
       {/* HOW IT WORKS */}
-      <section id="how" style={{ background: "#ffffff", padding: "100px 48px" }}>
+      <section id="how" className="lp-pad" style={{ background: "#ffffff", padding: "90px 48px" }}>
         <div style={{ maxWidth: "1000px", margin: "0 auto", textAlign: "center" }}>
-          <p style={{ fontSize: "0.78rem", color: "#d4a843", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: "12px" }}>Getting started</p>
-          <h2 style={{ fontSize: "2.4rem", fontWeight: "800", marginBottom: "12px", letterSpacing: "-0.02em", color: "#2d1b69" }}>Up and running in 2 minutes</h2>
-          <p style={{ color: "#64748b", marginBottom: "64px", fontSize: "1.05rem" }}>No setup, no training required</p>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "40px 30px" }}>
+          <SectionLabel>Getting started</SectionLabel>
+          <h2 style={{ fontSize: "2.3rem", fontWeight: 800, marginBottom: "12px", letterSpacing: "-0.02em", color: INK }}>Try it properly before you pay</h2>
+          <p style={{ color: "#64748b", marginBottom: "56px", fontSize: "1.02rem" }}>The free preview is the real product with one participant — no card, no time limit</p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "36px 28px" }}>
             {[
-              { step: "01", title: "Create Account", desc: "Sign up with your email in seconds" },
-              { step: "02", title: "Choose a Plan", desc: "Monthly ($9.90/mo) or Annual ($79/yr). Cancel anytime." },
-              { step: "03", title: "Add Participants", desc: "Add participants and enter their plan details — or upload their NDIS plan PDF to auto-fill everything instantly" },
-              { step: "04", title: "Build Rosters", desc: "Set up support lines, shifts, and rates. Public holidays and pace tracking are automatic." },
-              { step: "05", title: "Generate Schedule of Supports", desc: "One click — professional PDF with NDIS codes, daily hours, weekly costs, plan totals, and signature blocks" },
-              { step: "06", title: "Track & Monitor", desc: "Log claims as invoices come in and monitor budget health in real time" },
+              { step: "01", title: "Create a free account", desc: "Sign up with your email, tell us your role, add your company details once" },
+              { step: "02", title: "Add a participant", desc: "Enter plan details — or upload the NDIS plan PDF and let the AI fill everything in" },
+              { step: "03", title: "Build the roster", desc: "Shifts, ratios, sleepovers — every line tracks live, holidays and rate bands are automatic" },
+              { step: "04", title: "Generate documents", desc: "Schedule of Supports and therapy schedules, branded with your logo, ready to sign" },
+              { step: "05", title: "Upgrade when ready", desc: "Unlimited participants, AI plan uploads and team seats from $9.90/mo" },
             ].map((s) => (
-              <div key={s.step} style={{ textAlign: "center" }}>
-                <div style={{
-                  width: "52px", height: "52px", borderRadius: "14px",
-                  background: s.step === "05" ? "#d4a843" : "rgba(212,168,67,0.12)",
-                  border: s.step === "05" ? "none" : "1px solid rgba(212,168,67,0.25)",
-                  color: s.step === "05" ? "#f8fafc" : "#d4a843",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: "0.9rem", fontWeight: "800", margin: "0 auto 16px auto",
-                  letterSpacing: "0.02em",
-                }}>
-                  {s.step}
-                </div>
-                <h3 style={{ fontSize: "1rem", fontWeight: "700", marginBottom: "8px", color: s.step === "05" ? "#d4a843" : "#2d1b69" }}>{s.title}</h3>
-                <p style={{ color: "#64748b", fontSize: "0.88rem", lineHeight: "1.55" }}>{s.desc}</p>
+              <div key={s.step}>
+                <div style={{ width: "52px", height: "52px", borderRadius: "14px", background: s.step === "04" ? GOLD : "rgba(212,168,67,0.12)", border: s.step === "04" ? "none" : "1px solid rgba(212,168,67,0.25)", color: s.step === "04" ? "#f8fafc" : GOLD, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.9rem", fontWeight: 800, margin: "0 auto 16px auto" }}>{s.step}</div>
+                <h3 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: "8px", color: s.step === "04" ? "#b8901a" : INK }}>{s.title}</h3>
+                <p style={{ color: "#64748b", fontSize: "0.88rem", lineHeight: 1.55 }}>{s.desc}</p>
               </div>
             ))}
           </div>
@@ -343,106 +259,93 @@ export default function LandingPage() {
       </section>
 
       {/* PRICING */}
-      <section id="pricing" style={{ background: "#f1f5f9", padding: "100px 48px" }}>
-        <div style={{ maxWidth: "800px", margin: "0 auto", textAlign: "center" }}>
-          <p style={{ fontSize: "0.78rem", color: "#d4a843", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: "12px" }}>Pricing</p>
-          <h2 style={{ fontSize: "2.4rem", fontWeight: "800", marginBottom: "12px", letterSpacing: "-0.02em", color: "#2d1b69" }}>Simple, transparent pricing</h2>
-          <p style={{ color: "#64748b", marginBottom: "48px", fontSize: "1.05rem" }}>No lock-in. Cancel anytime. All features included.</p>
+      <section id="pricing" className="lp-pad" style={{ background: "#f1f5f9", padding: "90px 48px" }}>
+        <div style={{ maxWidth: "1000px", margin: "0 auto", textAlign: "center" }}>
+          <SectionLabel>Pricing</SectionLabel>
+          <h2 style={{ fontSize: "2.3rem", fontWeight: 800, marginBottom: "12px", letterSpacing: "-0.02em", color: INK }}>Simple, transparent pricing</h2>
+          <p style={{ color: "#64748b", marginBottom: "44px", fontSize: "1.02rem" }}>Start free. No lock-in. Cancel anytime. All features on every paid plan.</p>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "20px", textAlign: "left" }}>
-            {/* Monthly */}
-            <div style={{ background: "rgba(15,23,42,0.03)", border: "1px solid rgba(15,23,42,0.1)", borderRadius: "20px", padding: "36px" }}>
-              <p style={{ fontSize: "0.78rem", color: "#64748b", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "10px" }}>Monthly</p>
-              <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginBottom: "4px" }}>
-                <span style={{ fontSize: "2.8rem", fontWeight: "800" }}>$9.90</span>
-              </div>
-              <p style={{ color: "#64748b", marginBottom: "28px", fontSize: "0.88rem" }}>AUD / month</p>
-              {["Unlimited participants & support lines", "Schedule of Supports PDF generator", "25 PDF plan uploads / month (add +25 anytime for $4.99/mo)", "Per-category rate presets (01–15)", "Public holiday auto-calc by state", "Plan pace tracking", "Claims & actual spend tracker", "CSV & PDF exports", "Cancel anytime"].map((item, i) => (
-                <div key={i} style={{ padding: "8px 0", borderBottom: i < 8 ? "1px solid rgba(15,23,42,0.05)" : "none", color: "#334155", fontSize: "0.88rem", display: "flex", gap: "10px", alignItems: "center" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "20px", textAlign: "left" }}>
+            {/* Free */}
+            <div style={{ background: "#ffffff", border: "1px solid rgba(15,23,42,0.1)", borderRadius: "20px", padding: "32px" }}>
+              <p style={{ fontSize: "0.78rem", color: "#64748b", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "10px" }}>Free preview</p>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginBottom: "4px" }}><span style={{ fontSize: "2.6rem", fontWeight: 800 }}>$0</span></div>
+              <p style={{ color: "#64748b", marginBottom: "24px", fontSize: "0.88rem" }}>no card, no time limit</p>
+              {["1 participant", "Full calculator & roster", "Public holidays & ratios", "Budget tracking & claims", "Company profile & branding"].map((item, i, arr) => (
+                <div key={i} style={{ padding: "7px 0", borderBottom: i < arr.length - 1 ? "1px solid rgba(15,23,42,0.05)" : "none", color: "#334155", fontSize: "0.86rem", display: "flex", gap: "10px", alignItems: "center" }}>
                   <span style={{ color: "#22c55e", flexShrink: 0 }}>✓</span> {item}
                 </div>
               ))}
-              <button onClick={() => router.push("/login")} style={{ marginTop: "28px", width: "100%", padding: "14px", fontSize: "0.95rem", backgroundColor: "transparent", color: "#d4a843", border: "2px solid #d4a843", borderRadius: "10px", cursor: "pointer", fontWeight: "700" }}>
-                Get Started →
-              </button>
+              <button onClick={start} className="lp-cta" style={{ marginTop: "24px", width: "100%", padding: "13px", fontSize: "0.95rem", backgroundColor: "transparent", color: INK, border: "1.5px solid rgba(45,27,105,0.35)", borderRadius: "10px", cursor: "pointer", fontWeight: 700 }}>Start free</button>
+            </div>
+
+            {/* Monthly */}
+            <div style={{ background: "#ffffff", border: "1px solid rgba(15,23,42,0.1)", borderRadius: "20px", padding: "32px" }}>
+              <p style={{ fontSize: "0.78rem", color: "#64748b", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "10px" }}>Monthly</p>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginBottom: "4px" }}><span style={{ fontSize: "2.6rem", fontWeight: 800 }}>$9.90</span></div>
+              <p style={{ color: "#64748b", marginBottom: "24px", fontSize: "0.88rem" }}>AUD / month</p>
+              {["Unlimited participants", "Everything in the free preview", "25 AI plan uploads / month", "AI roster auto-fill from notes", "5 team seats included", "CSV & PDF exports", "Cancel anytime"].map((item, i, arr) => (
+                <div key={i} style={{ padding: "7px 0", borderBottom: i < arr.length - 1 ? "1px solid rgba(15,23,42,0.05)" : "none", color: "#334155", fontSize: "0.86rem", display: "flex", gap: "10px", alignItems: "center" }}>
+                  <span style={{ color: "#22c55e", flexShrink: 0 }}>✓</span> {item}
+                </div>
+              ))}
+              <button onClick={start} className="lp-cta" style={{ marginTop: "24px", width: "100%", padding: "13px", fontSize: "0.95rem", backgroundColor: "transparent", color: "#b8901a", border: "2px solid " + GOLD, borderRadius: "10px", cursor: "pointer", fontWeight: 700 }}>Get started →</button>
             </div>
 
             {/* Annual */}
-            <div style={{ background: "rgba(212,168,67,0.05)", border: "2px solid #d4a843", borderRadius: "20px", padding: "36px", position: "relative" }}>
-              <div style={{ position: "absolute", top: "-14px", left: "50%", transform: "translateX(-50%)", background: "#d4a843", color: "#0f172a", fontSize: "0.72rem", fontWeight: "800", padding: "4px 16px", borderRadius: "20px", whiteSpace: "nowrap" }}>
-                BEST VALUE — SAVE 34%
-              </div>
-              <p style={{ fontSize: "0.78rem", color: "#d4a843", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "10px" }}>Annual</p>
-              <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginBottom: "4px" }}>
-                <span style={{ fontSize: "2.8rem", fontWeight: "800" }}>$79</span>
-              </div>
-              <p style={{ color: "#64748b", marginBottom: "28px", fontSize: "0.88rem" }}>AUD / year <span style={{ color: "#d4a843" }}>(≈$6.58/mo)</span></p>
-              {["Everything in Monthly", "4 months free vs monthly", "Priority support", "Cancel anytime"].map((item, i) => (
-                <div key={i} style={{ padding: "8px 0", borderBottom: i < 3 ? "1px solid rgba(15,23,42,0.05)" : "none", color: "#334155", fontSize: "0.88rem", display: "flex", gap: "10px", alignItems: "center" }}>
+            <div style={{ background: "rgba(212,168,67,0.05)", border: "2px solid " + GOLD, borderRadius: "20px", padding: "32px", position: "relative" }}>
+              <div style={{ position: "absolute", top: "-14px", left: "50%", transform: "translateX(-50%)", background: GOLD, color: "#0f172a", fontSize: "0.72rem", fontWeight: 800, padding: "4px 16px", borderRadius: "20px", whiteSpace: "nowrap" }}>BEST VALUE — SAVE 34%</div>
+              <p style={{ fontSize: "0.78rem", color: "#b8901a", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "10px" }}>Annual</p>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginBottom: "4px" }}><span style={{ fontSize: "2.6rem", fontWeight: 800 }}>$79</span></div>
+              <p style={{ color: "#64748b", marginBottom: "24px", fontSize: "0.88rem" }}>AUD / year <span style={{ color: "#b8901a" }}>(≈$6.58/mo)</span></p>
+              {["Everything in Monthly", "4 months free vs monthly", "Priority support", "Cancel anytime"].map((item, i, arr) => (
+                <div key={i} style={{ padding: "7px 0", borderBottom: i < arr.length - 1 ? "1px solid rgba(15,23,42,0.05)" : "none", color: "#334155", fontSize: "0.86rem", display: "flex", gap: "10px", alignItems: "center" }}>
                   <span style={{ color: "#22c55e", flexShrink: 0 }}>✓</span> {item}
                 </div>
               ))}
-              <button onClick={() => router.push("/login")} style={{ marginTop: "28px", width: "100%", padding: "14px", fontSize: "0.95rem", backgroundColor: "#d4a843", color: "#0f172a", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "700" }}>
-                Get Started →
-              </button>
+              <button onClick={start} className="lp-cta" style={{ marginTop: "24px", width: "100%", padding: "13px", fontSize: "0.95rem", backgroundColor: GOLD, color: "#0f172a", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: 700 }}>Get started →</button>
             </div>
           </div>
+          <p style={{ color: "#64748b", fontSize: "0.8rem", marginTop: "18px" }}>Bigger caseload? Add 25 more AI plan uploads anytime for $4.99/mo.</p>
         </div>
       </section>
 
-      {/* SAVINGS CALCULATOR */}
-      <section style={{ background: "#ffffff", padding: "100px 48px" }}>
+      {/* ROI CALCULATOR */}
+      <section className="lp-pad" style={{ background: "#ffffff", padding: "90px 48px" }}>
         <div style={{ maxWidth: "780px", margin: "0 auto", textAlign: "center" }}>
-          <p style={{ fontSize: "0.78rem", color: "#d4a843", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: "12px" }}>ROI Calculator</p>
-          <h2 style={{ fontSize: "2.4rem", fontWeight: "800", marginBottom: "12px", letterSpacing: "-0.02em", color: "#2d1b69" }}>How much time will you save?</h2>
-          <p style={{ color: "#64748b", marginBottom: "48px", fontSize: "1.05rem" }}>
-            Adjust to match your caseload and see a breakdown of exactly where the time goes
-          </p>
+          <SectionLabel>ROI Calculator</SectionLabel>
+          <h2 style={{ fontSize: "2.3rem", fontWeight: 800, marginBottom: "12px", letterSpacing: "-0.02em", color: INK }}>How much time will you save?</h2>
+          <p style={{ color: "#64748b", marginBottom: "44px", fontSize: "1.02rem" }}>Adjust to match your caseload and see where the time goes</p>
 
-          <div style={{ background: "#ffffff", border: "1px solid rgba(212,168,67,0.45)", borderRadius: "24px", padding: "40px" }}>
-            {/* Sliders */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "32px", marginBottom: "36px" }}>
+          <div style={{ background: "#ffffff", border: "1px solid rgba(212,168,67,0.45)", borderRadius: "24px", padding: "36px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "28px", marginBottom: "32px" }}>
               <div>
-                <div style={{ fontSize: "0.95rem", color: "#334155", marginBottom: "12px" }}>
-                  I manage <span style={{ color: "#d4a843", fontWeight: "800", fontSize: "1.35rem" }}>{participants}</span> participants
-                </div>
-                <input type="range" min={1} max={50} value={participants} onChange={(e) => setParticipants(Number(e.target.value))}
-                  style={{ width: "100%", accentColor: "#d4a843", height: "6px", cursor: "pointer" }} />
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem", color: "#64748b", marginTop: "6px" }}>
-                  <span>1</span><span>25</span><span>50</span>
-                </div>
+                <div style={{ fontSize: "0.95rem", color: "#334155", marginBottom: "12px" }}>I manage <span style={{ color: "#b8901a", fontWeight: 800, fontSize: "1.35rem" }}>{participants}</span> participants</div>
+                <input type="range" min={1} max={50} value={participants} onChange={(e) => setParticipants(Number(e.target.value))} style={{ width: "100%", accentColor: GOLD, height: "6px", cursor: "pointer" }} />
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem", color: "#64748b", marginTop: "6px" }}><span>1</span><span>25</span><span>50</span></div>
               </div>
               <div>
-                <div style={{ fontSize: "0.95rem", color: "#334155", marginBottom: "12px" }}>
-                  My time is worth <span style={{ color: "#d4a843", fontWeight: "800", fontSize: "1.35rem" }}>${hourlyRate}/hr</span>
-                </div>
-                <input type="range" min={50} max={200} step={10} value={hourlyRate} onChange={(e) => setHourlyRate(Number(e.target.value))}
-                  style={{ width: "100%", accentColor: "#d4a843", height: "6px", cursor: "pointer" }} />
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem", color: "#64748b", marginTop: "6px" }}>
-                  <span>$50</span><span>$125</span><span>$200</span>
-                </div>
+                <div style={{ fontSize: "0.95rem", color: "#334155", marginBottom: "12px" }}>My time is worth <span style={{ color: "#b8901a", fontWeight: 800, fontSize: "1.35rem" }}>${hourlyRate}/hr</span></div>
+                <input type="range" min={50} max={200} step={10} value={hourlyRate} onChange={(e) => setHourlyRate(Number(e.target.value))} style={{ width: "100%", accentColor: GOLD, height: "6px", cursor: "pointer" }} />
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem", color: "#64748b", marginTop: "6px" }}><span>$50</span><span>$125</span><span>$200</span></div>
               </div>
             </div>
 
-            {/* Stats */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "14px", marginBottom: "28px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "14px", marginBottom: "26px" }}>
               {[
-                { label: "Hours saved per year", value: totalHrs + " hrs", color: "#d4a843" },
-                { label: "Value of time saved", value: "$" + valuePerYear.toLocaleString(), color: "#22c55e" },
-                { label: "Return on investment", value: roi + "x", color: "#f0c060" },
+                { label: "Hours saved per year", value: totalHrs + " hrs", color: "#b8901a" },
+                { label: "Value of time saved", value: "$" + valuePerYear.toLocaleString(), color: "#16a34a" },
+                { label: "Return on the annual plan", value: roi + "x", color: INK },
               ].map((stat) => (
-                <div key={stat.label} style={{ background: "rgba(15,23,42,0.04)", borderRadius: "14px", padding: "20px" }}>
-                  <div style={{ fontSize: "1.8rem", fontWeight: "800", color: stat.color, marginBottom: "6px" }}>{stat.value}</div>
+                <div key={stat.label} style={{ background: "rgba(15,23,42,0.04)", borderRadius: "14px", padding: "18px" }}>
+                  <div style={{ fontSize: "1.7rem", fontWeight: 800, color: stat.color, marginBottom: "6px" }}>{stat.value}</div>
                   <div style={{ fontSize: "0.8rem", color: "#64748b" }}>{stat.label}</div>
                 </div>
               ))}
             </div>
 
-            {/* Breakdown */}
-            <div style={{ background: "rgba(0,0,0,0.2)", borderRadius: "12px", padding: "20px", marginBottom: "24px", textAlign: "left" }}>
-              <div style={{ fontSize: "0.72rem", color: "#64748b", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "14px" }}>
-                Where the time comes from — per participant per year
-              </div>
+            <div style={{ background: "rgba(15,23,42,0.03)", border: "1px solid rgba(15,23,42,0.05)", borderRadius: "12px", padding: "18px", marginBottom: "22px", textAlign: "left" }}>
+              <div style={{ fontSize: "0.72rem", color: "#64748b", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "12px" }}>Where the time comes from — per participant per year</div>
               {[
                 { task: "Initial budget setup", detail: "vs building in Excel from scratch", hrs: setupHrs },
                 { task: "Monthly budget reviews", detail: "25 min saved × 12 months", hrs: monthlyReviewHrs },
@@ -450,127 +353,72 @@ export default function LandingPage() {
                 { task: "Schedule of Supports", detail: "45 min manual → 2 min per participant", hrs: scheduleHrs },
                 { task: "Claims & reconciliation", detail: "15 min saved × 12 months", hrs: claimsHrs },
               ].map((row) => (
-                <div key={row.task} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "7px 0", borderBottom: "1px solid rgba(15,23,42,0.04)" }}>
+                <div key={row.task} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "6px 0", borderBottom: "1px solid rgba(15,23,42,0.04)", gap: "10px", flexWrap: "wrap" }}>
                   <div>
-                    <span style={{ color: "#334155", fontSize: "0.88rem", fontWeight: "500" }}>{row.task}</span>
+                    <span style={{ color: "#334155", fontSize: "0.88rem", fontWeight: 500 }}>{row.task}</span>
                     <span style={{ color: "#64748b", fontSize: "0.78rem", marginLeft: "10px" }}>{row.detail}</span>
                   </div>
-                  <span style={{ color: "#d4a843", fontWeight: "700", fontSize: "0.88rem", whiteSpace: "nowrap", marginLeft: "16px" }}>{row.hrs} hrs</span>
+                  <span style={{ color: "#b8901a", fontWeight: 700, fontSize: "0.88rem", whiteSpace: "nowrap" }}>{row.hrs} hrs</span>
                 </div>
               ))}
               <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0 0 0" }}>
-                <span style={{ color: "#64748b", fontSize: "0.85rem", fontWeight: "600" }}>Total per participant per year</span>
-                <span style={{ color: "#d4a843", fontWeight: "800", fontSize: "0.95rem" }}>{hrsPerParticipant} hrs</span>
+                <span style={{ color: "#64748b", fontSize: "0.85rem", fontWeight: 600 }}>Total per participant per year</span>
+                <span style={{ color: "#b8901a", fontWeight: 800, fontSize: "0.95rem" }}>{hrsPerParticipant} hrs</span>
               </div>
             </div>
 
-            <p style={{ color: "#64748b", fontSize: "0.75rem", marginBottom: "24px" }}>
-              Time estimates are conservative averages based on typical provider workflows. Individual savings will vary.
-            </p>
-
-            <button onClick={() => router.push("/login")} style={{
-              padding: "14px 48px", fontSize: "1rem", backgroundColor: "#d4a843", color: "#0f172a",
-              border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "700",
-            }}>
-              Start Saving Time →
-            </button>
+            <p style={{ color: "#94a3b8", fontSize: "0.75rem", marginBottom: "22px" }}>Time estimates are conservative averages based on typical provider workflows. Individual savings will vary.</p>
+            <button onClick={start} className="lp-cta" style={{ padding: "14px 48px", fontSize: "1rem", backgroundColor: GOLD, color: "#0f172a", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: 700 }}>Start free →</button>
           </div>
         </div>
       </section>
 
       {/* FAQ */}
-      <section id="faq" style={{ background: "#f1f5f9", padding: "100px 48px" }}>
+      <section id="faq" className="lp-pad" style={{ background: "#f1f5f9", padding: "90px 48px" }}>
         <div style={{ maxWidth: "700px", margin: "0 auto" }}>
-          <p style={{ fontSize: "0.78rem", color: "#d4a843", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: "12px", textAlign: "center" }}>FAQ</p>
-          <h2 style={{ fontSize: "2.4rem", fontWeight: "800", marginBottom: "48px", textAlign: "center", letterSpacing: "-0.02em", color: "#2d1b69" }}>
-            Frequently Asked Questions
-          </h2>
+          <div style={{ textAlign: "center" }}><SectionLabel>FAQ</SectionLabel></div>
+          <h2 style={{ fontSize: "2.3rem", fontWeight: 800, marginBottom: "44px", textAlign: "center", letterSpacing: "-0.02em", color: INK }}>Frequently asked questions</h2>
           {[
-            {
-              q: "Who is this for?",
-              a: "Any NDIS provider who manages participant budgets. Built originally as an internal tool for a provider's finance team — it works for SIL providers, support coordinators, specialist support coordinators, plan managers, community access providers, allied health providers, employment support providers, and respite services.",
-            },
-            {
-              q: "What is the Schedule of Supports?",
-              a: "A professional PDF listing all funded supports for a participant — NDIS item codes, weekly roster, estimated weekly cost, plan total, provider/participant details, and signature blocks. Most providers attach it to their existing service agreement template.",
-            },
-            {
-              q: "How does the PDF upload work?",
-              a: "Upload a participant's NDIS plan PDF and the tool reads it using AI — extracting the plan period, state, and each support category's funding amount. You review and confirm before anything is applied, so you stay in full control.",
-            },
-            {
-              q: "How are hourly rates handled?",
-              a: "Each support line is pre-loaded from the 2026–27 NDIS Pricing Schedule for that category. Support Coordination (07) loads at $100.14/hr. Core Supports (01) at the standard DSW rates ($73.58/hr weekday daytime). Therapy (15) at $156.16/hr and Behaviour Support at $252.99/hr. All rates are editable with a yellow indicator if set below guide.",
-            },
-            {
-              q: "How does pricing work?",
-              a: "Monthly ($9.90/mo) or Annual ($79/yr — save 34%). Both plans include all features including 25 PDF plan uploads per month — and you can add 25 more anytime for $4.99/mo if you manage a larger caseload. No lock-in — cancel anytime.",
-            },
-            {
-              q: "Can I manage multiple participants?",
-              a: "Yes — unlimited participants, each with their own full budget calculator, support lines, roster, claims tracker, and exports. Manage your whole caseload from one dashboard.",
-            },
-            {
-              q: "Is my data secure?",
-              a: "Your data is stored securely in your Kevria account and syncs across devices. We use your email only for account access — never sold or shared. See our Privacy Policy for full details.",
-            },
-            {
-              q: "Need help?",
-              a: "Contact us at support@kevria.com or visit kevria.com.",
-            },
+            { q: "Who is this for?", a: "Any NDIS provider who manages participant budgets. Built originally as an internal tool for a provider's finance team — it works for SIL providers, support coordinators, plan managers, community access providers, allied health providers and respite services. You pick your role at setup and the workspace adapts." },
+            { q: "What does the free preview include?", a: "The full calculator for one participant — rosters, ratios, public holidays, budget tracking, claims and your company branding — free for as long as you like, no card needed. A subscription unlocks unlimited participants, AI plan uploads, auto-fill, exports and team seats." },
+            { q: "What is the Schedule of Supports?", a: "A professional PDF listing all funded supports for a participant — NDIS item numbers, shift times and ratios, weekly and plan totals, public holiday dates billed at the correct rate, provider details and signature blocks. Choose a summary or a full day-by-day layout that reconciles line by line. Most providers attach it to their existing service agreement." },
+            { q: "How do team seats work?", a: "Every subscription includes 5 seats. Invite colleagues by email from your Company Profile — they log in with their own account and see the same participants, budgets, rosters and documents. Remove a seat anytime and access ends immediately." },
+            { q: "How does the plan PDF upload work?", a: "Upload a participant's NDIS plan and the AI reads the plan period, state and each category's funding. It can also propose a weekly roster from your shift notes. You review and confirm before anything is applied — you stay in control." },
+            { q: "Are the rates current?", a: "The 2026–27 NDIS Pricing Schedule is built in, with per-category presets (core, therapy, coordination, behaviour support and more). You can also import the official NDIA Support Catalogue CSV to make every support item selectable at its price limit — and re-import each July when new prices land. Negotiated rates below the cap are fully supported, with a gentle flag." },
+            { q: "Is my data secure?", a: "Your data is stored securely in your Kevria account, scoped to your login (and any team seats you invite), and syncs across devices. We use your email only for account access — never sold or shared. See our Privacy Policy for details." },
+            { q: "Need help?", a: "Contact us at support@kevria.com — a human reads it." },
           ].map((faq, i) => (
-            <div key={i} style={{ borderBottom: "1px solid rgba(15,23,42,0.07)", padding: "22px 0" }}>
-              <h3 style={{ fontSize: "1rem", fontWeight: "700", marginBottom: "10px", color: "#d4a843" }}>{faq.q}</h3>
-              <p style={{ color: "#475569", lineHeight: "1.65", fontSize: "0.92rem" }}>{faq.a}</p>
+            <div key={i} style={{ borderBottom: "1px solid rgba(15,23,42,0.07)", padding: "20px 0" }}>
+              <h3 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: "8px", color: "#b8901a" }}>{faq.q}</h3>
+              <p style={{ color: "#475569", lineHeight: 1.65, fontSize: "0.92rem" }}>{faq.a}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* CTA BANNER */}
-      <section style={{ background: "#ffffff", padding: "80px 48px" }}>
+      <section className="lp-pad" style={{ background: "#ffffff", padding: "80px 48px" }}>
         <div style={{ maxWidth: "700px", margin: "0 auto" }}>
-          <div style={{
-            background: "linear-gradient(135deg, #f8fafc, #f1f5f9)",
-            border: "1px solid rgba(212,168,67,0.45)",
-            borderRadius: "24px",
-            padding: "56px 48px",
-            textAlign: "center",
-            position: "relative",
-            overflow: "hidden",
-          }}>
-            <div style={{ position: "absolute", top: 0, right: 0, width: "200px", height: "200px", borderRadius: "50%", background: "#d4a843", opacity: 0.06, transform: "translate(30%, -30%)", pointerEvents: "none" }} />
+          <div style={{ background: "linear-gradient(135deg, #2d1b69, #3d2787)", borderRadius: "24px", padding: "52px 40px", textAlign: "center", position: "relative", overflow: "hidden" }}>
+            <div style={{ position: "absolute", top: 0, right: 0, width: "220px", height: "220px", borderRadius: "50%", background: GOLD, opacity: 0.12, transform: "translate(30%, -30%)", pointerEvents: "none" }} />
             <div style={{ position: "relative" }}>
-              <p style={{ fontSize: "0.78rem", color: "#d4a843", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: "12px" }}>Ready to start?</p>
-              <h2 style={{ fontSize: "2rem", fontWeight: "800", marginBottom: "12px", letterSpacing: "-0.02em", color: "#2d1b69" }}>
-                Let&apos;s take the spreadsheets out of NDIS budgets
-              </h2>
-              <p style={{ color: "#475569", marginBottom: "32px", fontSize: "1rem", lineHeight: "1.6" }}>
-                Join providers across Australia using Kevria Calc to manage participant budgets with confidence.
-              </p>
-              <button onClick={() => router.push("/login")} style={{
-                padding: "15px 40px", fontSize: "1rem", backgroundColor: "#d4a843", color: "#0f172a",
-                border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "700",
-              }}>
-                Get Started — $9.90/mo →
-              </button>
-              <p style={{ color: "#64748b", fontSize: "0.8rem", marginTop: "14px" }}>Annual plan available at $79/yr · Cancel anytime</p>
+              <p style={{ fontSize: "0.78rem", color: GOLD, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: "12px" }}>Ready when you are</p>
+              <h2 style={{ fontSize: "2rem", fontWeight: 800, marginBottom: "12px", letterSpacing: "-0.02em", color: "#ffffff" }}>Take the spreadsheets out of NDIS budgets</h2>
+              <p style={{ color: "rgba(255,255,255,0.75)", marginBottom: "30px", fontSize: "1rem", lineHeight: 1.6 }}>Set up your first participant in minutes — free, no card, and the maths is handled.</p>
+              <button onClick={start} className="lp-cta" style={{ padding: "15px 40px", fontSize: "1rem", backgroundColor: GOLD, color: "#0f172a", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: 700 }}>Start free →</button>
+              <p style={{ color: "rgba(255,255,255,0.55)", fontSize: "0.8rem", marginTop: "14px" }}>Paid plans from $9.90/mo · $79/yr · Cancel anytime</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* FOOTER */}
-      <footer style={{
-        background: "#ffffff",
-        padding: "40px 48px",
-        borderTop: "1px solid rgba(15,23,42,0.04)",
-      }}>
+      <footer className="lp-pad" style={{ background: "#ffffff", padding: "40px 48px", borderTop: "1px solid rgba(15,23,42,0.04)" }}>
         <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "20px", marginBottom: "24px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <span style={{ fontSize: "1.3rem", color: "#d4a843" }}>✦</span>
-              <span style={{ fontSize: "1rem", fontWeight: "700", color: "#2d1b69" }}>Kevria Calc</span>
+              <span style={{ fontSize: "1.3rem", color: GOLD }}>✦</span>
+              <span style={{ fontSize: "1rem", fontWeight: 700, color: INK }}>Kevria Calc</span>
             </div>
             <div style={{ display: "flex", gap: "24px", flexWrap: "wrap" }}>
               {[
@@ -578,22 +426,14 @@ export default function LandingPage() {
                 { label: "Privacy Policy", href: "/privacy" },
                 { label: "Terms of Service", href: "/terms" },
                 { label: "support@kevria.com", href: "mailto:support@kevria.com" },
-              ].map(l => (
-                <a key={l.label} href={l.href} target={l.external ? "_blank" : undefined} rel={l.external ? "noopener noreferrer" : undefined}
-                  style={{ color: "#64748b", fontSize: "0.82rem", textDecoration: "none" }}
-                  onMouseEnter={e => (e.currentTarget.style.color = "#d4a843")}
-                  onMouseLeave={e => (e.currentTarget.style.color = "rgba(15,23,42,0.3)")}
-                >{l.label}</a>
+              ].map((l) => (
+                <a key={l.label} href={l.href} target={l.external ? "_blank" : undefined} rel={l.external ? "noopener noreferrer" : undefined} style={{ color: "#64748b", fontSize: "0.82rem", textDecoration: "none" }}>{l.label}</a>
               ))}
             </div>
           </div>
           <div style={{ borderTop: "1px solid rgba(15,23,42,0.04)", paddingTop: "20px", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
-            <p style={{ color: "#64748b", fontSize: "0.75rem" }}>
-              © {new Date().getFullYear()} Kevria. All rights reserved. Powered by <a href="https://kevria.com" target="_blank" rel="noopener noreferrer" style={{ color: "#d4a843", textDecoration: "none" }}>Kevria</a>
-            </p>
-            <p style={{ color: "#64748b", fontSize: "0.72rem", maxWidth: "500px", textAlign: "right" }}>
-              Rates based on the 2026–27 NDIS Pricing Schedule. Not affiliated with NDIA. Not financial advice. Always verify with your plan manager.
-            </p>
+            <p style={{ color: "#64748b", fontSize: "0.75rem" }}>© {new Date().getFullYear()} Kevria. All rights reserved. Powered by <a href="https://kevria.com" target="_blank" rel="noopener noreferrer" style={{ color: "#b8901a", textDecoration: "none" }}>Kevria</a></p>
+            <p style={{ color: "#94a3b8", fontSize: "0.72rem", maxWidth: "500px" }}>Rates based on the 2026–27 NDIS Pricing Schedule. Not affiliated with NDIA. Not financial advice. Always verify with your plan manager.</p>
           </div>
         </div>
       </footer>

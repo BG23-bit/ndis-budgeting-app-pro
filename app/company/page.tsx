@@ -5,6 +5,112 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useCloudSync, NDIS_RATES_2026_27, ROLE_TYPES, type ProviderDetails } from "../client";
 import { BUILTIN_CATALOGUE, parseCatalogueCSV } from "@/lib/price-guide";
+import { teamCtx, teamMembers, teamInvite, teamRemove, dbGet, dbSet, dbDelete, type TeamCtx } from "@/lib/team";
+
+// Team seats: invite up to 5 colleagues into this workspace. Members see and
+// edit the same participants; billing stays on the owner's subscription.
+export function TeamCard() {
+  const [ctx, setCtx] = useState<TeamCtx | null>(null);
+  const [members, setMembers] = useState<{ email: string; status: string }[] | null>(null);
+  const [maxSeats, setMaxSeats] = useState(5);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ text: string; err?: boolean } | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const c = await teamCtx();
+      setCtx(c);
+      if (c.uid && !c.isMember) {
+        try { const r = await teamMembers(); setMembers(r.members); setMaxSeats(r.maxSeats || 5); } catch { setMembers([]); }
+      }
+    })();
+  }, []);
+
+  if (!ctx?.uid) return null;
+
+  if (ctx.isMember) {
+    return (
+      <div className="kv-card p-6">
+        <h2 className="text-lg font-semibold mb-1" style={{ color: "#2d1b69" }}>Team</h2>
+        <p className="text-sm" style={{ color: "#475569" }}>
+          You&apos;re working in <strong>{ctx.ownerOrg || ctx.ownerEmail}</strong>&apos;s workspace — shared participants, budgets and documents. Access comes with their subscription. To leave the team, ask them to remove your seat.
+        </p>
+      </div>
+    );
+  }
+
+  async function doInvite() {
+    const email = inviteEmail.trim();
+    if (!email || busy) return;
+    setBusy(true); setMsg(null);
+    try {
+      const r = await teamInvite(email);
+      setMembers(r.members); setInviteEmail("");
+      setMsg({ text: `Invite sent to ${email} — they log in (or sign up) with that email and the workspace connects automatically.` });
+    } catch (e: any) {
+      setMsg({ text: e?.message || "Couldn't send that invite.", err: true });
+    }
+    setBusy(false);
+  }
+
+  async function doRemove(email: string) {
+    if (busy) return;
+    setBusy(true); setMsg(null);
+    try { const r = await teamRemove(email); setMembers(r.members); setMsg({ text: `${email} removed — their access ends immediately.` }); }
+    catch (e: any) { setMsg({ text: e?.message || "Couldn't remove that seat.", err: true }); }
+    setBusy(false);
+  }
+
+  return (
+    <div className="kv-card p-6">
+      <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
+        <h2 className="text-lg font-semibold" style={{ color: "#2d1b69" }}>Team</h2>
+        {members && <span className="text-xs" style={{ color: "#94a3b8" }}>{members.length} of {maxSeats} seats used</span>}
+      </div>
+      <p className="text-sm mb-4" style={{ color: "#64748b" }}>
+        Invite colleagues into this workspace — they see and edit the same participants, budgets, rosters and documents, on your subscription. Included with your plan ({maxSeats} seats).
+      </p>
+      {members === null ? (
+        <div className="text-sm" style={{ color: "#94a3b8" }}>Loading team…</div>
+      ) : (
+        <>
+          {members.length > 0 && (
+            <div className="grid gap-1 mb-4">
+              {members.map((m) => (
+                <div key={m.email} className="flex items-center gap-3 text-sm py-1.5 px-2 rounded flex-wrap" style={{ background: "rgba(15,23,42,0.03)" }}>
+                  <span style={{ color: "#334155", fontWeight: 600 }}>{m.email}</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full" style={m.status === "active"
+                    ? { background: "rgba(34,197,94,0.1)", color: "#16a34a", border: "1px solid rgba(34,197,94,0.3)" }
+                    : { background: "rgba(245,158,11,0.1)", color: "#b45309", border: "1px solid rgba(245,158,11,0.3)" }}>
+                    {m.status === "active" ? "Active" : "Invited — not joined yet"}
+                  </span>
+                  <button onClick={() => doRemove(m.email)} disabled={busy} style={{ marginLeft: "auto", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", color: "#ef4444", borderRadius: "6px", cursor: "pointer", fontSize: "0.78rem", padding: "3px 10px" }}>Remove</button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex items-center gap-2 flex-wrap">
+            <input
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") doInvite(); }}
+              placeholder="colleague@yourorg.com.au"
+              type="email"
+              className="kv-input rounded-lg px-3 py-2 text-sm"
+              style={{ minWidth: "240px", flex: 1, maxWidth: "340px" }}
+            />
+            <button onClick={doInvite} disabled={busy || !inviteEmail.trim()} className="kv-btn" style={{ background: inviteEmail.trim() ? "#d4a843" : "#ecdfb6", border: "none", color: "#241456", padding: "9px 18px", borderRadius: "8px", cursor: inviteEmail.trim() ? "pointer" : "not-allowed", fontWeight: 700, fontSize: "0.85rem" }}>
+              {busy ? "…" : "Invite"}
+            </button>
+          </div>
+          {msg && <div className="text-sm mt-2" style={{ color: msg.err ? "#dc2626" : "#16a34a" }}>{msg.text}</div>}
+          <div className="text-xs mt-2" style={{ color: "#94a3b8" }}>Invites match by email — the person logs in or creates an account with that address and everything connects. Removing a seat cuts access immediately; nothing they worked on is lost.</div>
+        </>
+      )}
+    </div>
+  );
+}
 
 // Dedicated company profile page. Same storage as the calculator's provider
 // details (cloud row "ndis_provider_details" + localStorage mirror), so edits
@@ -22,7 +128,7 @@ export function CompanyForm() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          const { data: row } = await supabase.from("calculator_data").select("data").eq("user_id", user.id).eq("participant_id", "ndis_provider_details").maybeSingle();
+          const row = { data: await dbGet("ndis_provider_details") };
           const md: any = user.user_metadata || {};
           setPd((p) => {
             const merged = { ...p, ...((row?.data && typeof row.data === "object") ? row.data : {}) };
@@ -72,7 +178,7 @@ export function CompanyForm() {
     (async () => { try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: row } = await supabase.from("calculator_data").select("data").eq("user_id", user.id).eq("participant_id", "ndis_price_guide").maybeSingle();
+        const row = { data: await dbGet("ndis_price_guide") };
         const arr = (row?.data as any)?.items;
         if (Array.isArray(arr) && arr.length) { setCatCount(arr.length); try { localStorage.setItem("kevria_catalogue", JSON.stringify(arr)); } catch {} }
       }
@@ -88,9 +194,7 @@ export function CompanyForm() {
       setCatMsg(`Imported ${items.length} support items — now selectable everywhere.`);
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (user) await supabase.from("calculator_data").upsert(
-          { user_id: user.id, participant_id: "ndis_price_guide", data: { items, importedAt: new Date().toISOString() }, updated_at: new Date().toISOString() },
-          { onConflict: "user_id,participant_id" });
+        if (user) await dbSet("ndis_price_guide", { items, importedAt: new Date().toISOString() });
       } catch {}
     }).catch(() => setCatMsg("Couldn't read that file — save the catalogue as CSV and try again."));
   }
@@ -99,7 +203,7 @@ export function CompanyForm() {
     setCatCount(0); setCatMsg("Imported catalogue removed — the built-in item set still applies.");
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) await supabase.from("calculator_data").delete().eq("user_id", user.id).eq("participant_id", "ndis_price_guide");
+      if (user) await dbDelete("ndis_price_guide");
     } catch {}
   }
 
@@ -265,7 +369,7 @@ export default function CompanyPage() {
             </div>
           </div>
         )}
-        {ready ? <CompanyForm /> : <div className="text-sm py-10 text-center" style={{ color: "#64748b" }}>Loading…</div>}
+        {ready ? <div className="grid gap-6"><CompanyForm />{!welcome && <TeamCard />}</div> : <div className="text-sm py-10 text-center" style={{ color: "#64748b" }}>Loading…</div>}
         {welcome && ready && (
           <button
             onClick={() => router.push("/dashboard")}

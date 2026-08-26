@@ -21,8 +21,8 @@ export async function POST(req: NextRequest) {
     if (authError || !user) {
       return Response.json({ error: "Please log in first." }, { status: 401 });
     }
-    const { data: profile } = await supabase.from("profiles").select("paid").eq("id", user.id).single();
-    if (!profile?.paid) {
+    const { effectivePaid } = await import("@/lib/team-server");
+    if (!(await effectivePaid(supabase, user.id, user.email))) {
       return Response.json({ error: "An active subscription is required." }, { status: 403 });
     }
 

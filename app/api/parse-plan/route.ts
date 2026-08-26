@@ -52,16 +52,20 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (!profile?.paid) {
-      return Response.json({ error: "An active subscription is required to upload plans." }, { status: 403 });
+      // Team members inherit the owner's subscription (upload counts stay per user).
+      const { effectivePaid } = await import("@/lib/team-server");
+      if (!(await effectivePaid(supabase, user.id, user.email))) {
+        return Response.json({ error: "An active subscription is required to upload plans." }, { status: 403 });
+      }
     }
 
     // Check monthly upload limit (base + any "+25 uploads" add-ons)
     const currentMonth = new Date().toISOString().slice(0, 7); // "YYYY-MM"
-    const uploadsThisMonth = profile.pdf_upload_date?.slice(0, 7) === currentMonth
-      ? (profile.pdf_uploads_today ?? 0)
+    const uploadsThisMonth = profile?.pdf_upload_date?.slice(0, 7) === currentMonth
+      ? (profile?.pdf_uploads_today ?? 0)
       : 0;
     if (uploadsThisMonth >= BASE_MONTHLY_LIMIT) {
-      const allowance = await getUploadAllowance(profile.stripe_customer_id ?? null);
+      const allowance = await getUploadAllowance(profile?.stripe_customer_id ?? null);
       if (uploadsThisMonth >= allowance) {
         return Response.json({
           error: `You've used all ${allowance} plan uploads for this month. Add 25 more for $4.99/mo, or enter plan details manually below. The limit resets at the start of next month.`,
