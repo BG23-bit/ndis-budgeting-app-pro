@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { dbGet, dbSet } from "@/lib/team";
-import {type Rates,type PlanDates,type Shift,type DayRoster,type Claim,type BudgetAllocation,type SupportLine,DAYS,DAY_DOW,DL,FREQ,RATIOS,defaultRoster,getDayName,getWeeksInPlan,countDayOccurrences,calcDayCountPlanCost,calcWeeklyCost,shiftWindowBands,calcPHImpact,NDIS_RATES_2026_27,CATEGORY_PRESETS,getPresetRates,migrateSleepoverRate,applyProviderDefaults,SIL_ITEM_DEFAULTS,getDefaultItemNumber,splitShiftBands,shiftsToText,shiftHoursTotal} from "@/lib/calc";
+import {type Rates,type PlanDates,type Shift,type DayRoster,type Claim,type BudgetAllocation,type SupportLine,DAYS,DAY_DOW,DL,FREQ,RATIOS,defaultRoster,getDayName,getWeeksInPlan,countDayOccurrences,calcDayCountPlanCost,calcWeeklyCost,shiftWindowBands,calcPHImpact,NDIS_RATES_2026_27,CATEGORY_PRESETS,getPresetRates,migrateSleepoverRate,applyProviderDefaults,SIL_ITEM_DEFAULTS,getDefaultItemNumber,getLineMode,hourlyTotalHours,splitShiftBands,shiftsToText,shiftHoursTotal} from "@/lib/calc";
 export * from "@/lib/calc";
 export type CustomHoliday = { date: string; name: string };
 export type ProviderDetails = { orgName: string; abn: string; contactName: string; email: string; phone: string; address: string; registrationNumber: string; defaultRates?: Partial<Rates>; customHolidays?: CustomHoliday[]; logo?: string; roleType?: string };
@@ -72,11 +72,13 @@ export async function loadFromCloud(key:string):Promise<any>{try{const{data:d}=a
 // and hourly rates. Rates follow the app's 2026-27 presets; item numbers are the
 // commonly used supports — all editable per service row.
 export const CLINICAL_TYPES:{key:string;code:string;label:string;rate:number;item:string}[]=[
-  {key:"ot",code:"15",label:"Occupational Therapy",rate:156.16,item:"15_617_0128_1_3"},
-  {key:"physio",code:"15",label:"Physiotherapy",rate:156.16,item:"15_055_0128_1_3"},
-  {key:"speech",code:"15",label:"Speech Pathology",rate:156.16,item:"15_622_0128_1_3"},
+  {key:"ot",code:"15",label:"Occupational Therapy",rate:193.99,item:"15_617_0128_1_3"},
+  {key:"physio",code:"15",label:"Physiotherapy",rate:183.99,item:"15_055_0128_1_3"},
+  {key:"speech",code:"15",label:"Speech Pathology",rate:193.99,item:"15_622_0128_1_3"},
   {key:"psych",code:"15",label:"Psychology",rate:252.99,item:"15_054_0128_1_3"},
-  {key:"dietetics",code:"15",label:"Dietetics",rate:156.16,item:"15_062_0128_1_3"},
+  {key:"dietetics",code:"15",label:"Dietetics",rate:178.99,item:"15_062_0128_1_3"},
+  {key:"counselling",code:"15",label:"Counselling",rate:156.16,item:"15_043_0128_1_3"},
+  {key:"other",code:"15",label:"Other Therapy",rate:193.99,item:"15_056_0128_1_3"},
   {key:"ta2",code:"15",label:"Therapy Assistant (Level 2)",rate:86.79,item:"15_053_0128_1_3"},
   {key:"exphys",code:"12",label:"Exercise Physiology",rate:161.99,item:"12_027_0126_3_3"},
   {key:"bsp",code:"11",label:"Behaviour Support Practitioner",rate:252.99,item:"11_022_0110_7_3"},
@@ -133,7 +135,6 @@ function proposalDaysSummary(prs:any[]):string{
   if(kms>0)parts.push(kms+" km/wk");
   return parts.join(" · ");
 }
-function getLineMode(code:string):"full"|"weekday"|"hourly"|"lump"{if(["02","03","05","06","17","18","19"].includes(code))return"lump";if(["07","11","12","13","14","15","20"].includes(code))return"hourly";if(code==="10")return"weekday";return"full"}
 function isBelowGuide(lr:Rates,code:string):boolean{const p=CATEGORY_PRESETS[code]?.rates;if(!p)return false;return(p.weekdayOrd>0&&lr.weekdayOrd<p.weekdayOrd)||(p.weekdayNight>0&&lr.weekdayNight<p.weekdayNight)||(p.sat>0&&lr.sat<p.sat)||(p.sun>0&&lr.sun<p.sun)||(p.publicHoliday>0&&lr.publicHoliday<p.publicHoliday)||(p.activeSleepoverHourly>0&&lr.activeSleepoverHourly<p.activeSleepoverHourly)}
 export default function PageClient({storageKey,participantName,ndisNumber,paid}:{storageKey?:string;participantName?:string;ndisNumber?:string;paid?:boolean}){
 // Free preview: full manual calculator, but document exports and AI features are
@@ -188,10 +189,22 @@ const perLine=useMemo(()=>{
 const clinicalByCode:{[c:string]:number}={};
 if(clinicalBudgetLinked)for(const sv of clinicalServices){if((sv.hours||0)>0)clinicalByCode[sv.code||"15"]=(clinicalByCode[sv.code||"15"]||0)+(sv.hours||0)*(sv.rate||0);}
 const claimedCodes=new Set<string>();
-return lines.map(l=>{const lr=l.lineRates||rates;const wt=calcWeeklyCost(l,lr);const weeklyGST=wt*(lr.gstRate||0);const weeklyWithGST=wt+weeklyGST;const basePlanCost=calcDayCountPlanCost(l,srvStart,srvEnd,planWeeks,lr)*(1+(lr.gstRate||0));const phImpact=calcPHImpact(l,holidays,lr);const phAdjustment=phImpact.extraCost-phImpact.savedCost;const planTotal=basePlanCost+phAdjustment;
+const mapped=lines.map(l=>{const lr=l.lineRates||rates;const basePlanCost=calcDayCountPlanCost(l,srvStart,srvEnd,planWeeks,lr)*(1+(lr.gstRate||0));
+// Sessions-based hourly lines have an empty roster, so derive the weekly
+// figure from the plan cost instead of the roster.
+let wt=calcWeeklyCost(l,lr);
+if(getLineMode(l.code)==="hourly"&&l.hoursMode==="sessions"&&planWeeks>0)wt=basePlanCost/(1+(lr.gstRate||0))/planWeeks;
+const weeklyGST=wt*(lr.gstRate||0);const weeklyWithGST=wt+weeklyGST;const phImpact=calcPHImpact(l,holidays,lr);const phAdjustment=phImpact.extraCost-phImpact.savedCost;const planTotal=basePlanCost+phAdjustment;
 let clinicalDraw=0;
 if(clinicalBudgetLinked&&clinicalByCode[l.code]&&!claimedCodes.has(l.code)){claimedCodes.add(l.code);clinicalDraw=clinicalByCode[l.code];}
-const remaining=l.totalFunding-planTotal-clinicalDraw;const totalClaimed=(l.claims||[]).reduce((a:number,c:Claim)=>a+c.amount,0);const actualRemaining=l.totalFunding-totalClaimed;return{...l,weeklyTotal:wt,weeklyGST,weeklyWithGST,basePlanCost,phImpact,phAdjustment,planTotal,clinicalDraw,remaining,totalClaimed,actualRemaining}})},[lines,rates,planWeeks,holidays,clinicalBudgetLinked,clinicalServices]);
+const remaining=l.totalFunding-planTotal-clinicalDraw;const totalClaimed=(l.claims||[]).reduce((a:number,c:Claim)=>a+c.amount,0);const actualRemaining=l.totalFunding-totalClaimed;return{...l,weeklyTotal:wt,weeklyGST,weeklyWithGST,basePlanCost,phImpact,phAdjustment,planTotal,clinicalDraw,remaining,totalClaimed,actualRemaining}});
+// Lines sharing a category code draw down ONE pooled budget: the pool's
+// funding is the sum entered across those lines and every line's spend
+// deducts from it, so adding supports on one line lowers the remaining
+// shown on all of them (no more manually adjusting budgets between lines).
+const pools:{[code:string]:{funding:number;cost:number;claimed:number;count:number}}={};
+for(const l of mapped){const p=pools[l.code]||(pools[l.code]={funding:0,cost:0,claimed:0,count:0});p.funding+=l.totalFunding;p.cost+=l.planTotal+l.clinicalDraw;p.claimed+=l.totalClaimed;p.count++;}
+return mapped.map(l=>{const p=pools[l.code];return{...l,poolCount:p.count,poolFunding:p.funding,poolRemaining:p.funding-p.cost,poolClaimed:p.claimed}});},[lines,rates,planWeeks,holidays,clinicalBudgetLinked,clinicalServices]);
 useEffect(()=>{
   if(!loaded||tabInitRef.current)return;
   tabInitRef.current=true;
@@ -203,6 +216,7 @@ const totals=useMemo(()=>{const totalFunding=perLine.reduce((a,l)=>a+l.totalFund
 const saRows=useMemo(()=>perLine.flatMap((l:any)=>{
   const mode=getLineMode(l.code);const rows:{key:string;code:string;rateType:string;label:string}[]=[];
   if(mode==="lump"){rows.push({key:l.id+"_lump",code:l.code,rateType:"lump",label:l.description});return rows;}
+  if(mode==="hourly"){rows.push({key:l.id+"_weekday",code:l.code,rateType:"weekday",label:l.description});return rows;}
   const wkDays=["mon","tue","wed","thu","fri"];
   const wkdOrdHrs=wkDays.reduce((s:number,d:string)=>{const r=l.roster[d];return r?.enabled&&(r.hours||0)>0?s+(r.hours||0)*(FREQ[r.frequency]?.multiplier||1)*planWeeks:s},0);
   const wkdNightHrs=wkDays.reduce((s:number,d:string)=>{const r=l.roster[d];return r?.enabled&&(r.nightHours||0)>0?s+(r.nightHours||0)*(FREQ[r.frequency]?.multiplier||1)*planWeeks:s},0);
@@ -552,6 +566,14 @@ function applyCatalogueToService(idx:number,val:string){
     return{...x,item:val,rate:price!=null?price:x.rate,description:x.description||t.name,code:/^\d{2}/.test(t.item)?t.item.slice(0,2):x.code};
   }));
 }
+// Effective hourly cap for a clinical service type: the imported official
+// catalogue (state-aware) wins over the built-in preset rate, so every
+// discipline shows ITS OWN price, not one flat figure.
+function typeRate(t:{item:string;rate:number}):number{
+  const ci=findCatalogueItem(catalogue,t.item);
+  const p=ci?cataloguePrice(ci,planDates.state):undefined;
+  return p!=null?p:t.rate;
+}
 const[saSpecificReqs,setSaSpecificReqs]=useState({behavioursOfConcern:false,regulatedRestrictivePractice:false,medicationManagement:false});
 const[saShowSpecificReqs,setSaShowSpecificReqs]=useState(true);
 const[saEstFee,setSaEstFee]=useState("");
@@ -598,6 +620,19 @@ useEffect(()=>{
   isFreshRef.current=false;
   setRates(r=>applyProviderDefaults(r,def));
   setLines(prev=>prev.map(l=>({...l,lineRates:applyProviderDefaults(l.lineRates||getPresetRates(l.code),def)})));
+},[loaded,providerLoaded]);
+// The account's role (SIL/Core provider, therapist, CoS, plan manager) drives
+// the view: participants with no saved mode open straight into the role's
+// calculator instead of the mode picker. "Change mode" still lets anyone
+// switch per participant.
+const roleAppliedRef=React.useRef(false);
+useEffect(()=>{
+  if(!loaded||!providerLoaded||roleAppliedRef.current)return;
+  roleAppliedRef.current=true;
+  if(calcMode!==null)return;
+  const rt=ROLE_TYPES.find(r=>r.key===providerDetails.roleType);
+  if(!rt)return;
+  setCalcMode(rt.mode);
 },[loaded,providerLoaded]);
 useEffect(()=>{try{const raw=localStorage.getItem("kevria_item_numbers");if(raw)setSaItemNumbers(JSON.parse(raw))}catch{}},[]);
 useEffect(()=>{try{localStorage.setItem("kevria_item_numbers",JSON.stringify(saItemNumbers))}catch{}},[saItemNumbers]);
@@ -922,6 +957,20 @@ function generateScheduleOfSupports(){
       rows.push({key:l.id+"_lump",code:l.code,rateType:"lump",category:escapeHtml(l.description),price:null,hours:null,total:l.totalFunding});
       return rows;
     }
+    // Hourly service categories (therapy, coordination…): one row of exact
+    // hours × the hourly cap — sessions print as "N sessions × Mh".
+    if(mode==="hourly"){
+      const totalHrs=hourlyTotalHours(l,planWeeks);
+      const rate=(l.lineRates?.weekdayOrd||0)/div;
+      if(totalHrs>0){
+        const hrsLabel=l.hoursMode==="sessions"?`${l.sessionCount||0} sessions × ${l.sessionLength||0}h`:String(Math.round(totalHrs*100)/100);
+        rows.push({key:l.id+"_weekday",code:l.code,rateType:"weekday",category:desc,price:rate,hours:hrsLabel,total:rate*totalHrs});
+      }
+      const kf=FREQ[l.kmFreq]?.multiplier||1;const totalKm=(l.kmsPerWeek||0)*kf*planWeeks;
+      if(totalKm>0&&(l.kmRate||0)>0)rows.push({key:l.id+"_km",code:l.code,rateType:"km",category:escapeHtml(l.description)+" - Transport (km)",price:l.kmRate,hours:Math.round(totalKm)+"km",total:l.kmRate*totalKm});
+      if(rows.length===0)rows.push({key:l.id+"_lump",code:l.code,rateType:"lump",category:escapeHtml(l.description),price:null,hours:null,total:l.totalFunding});
+      return rows;
+    }
     const wkDays=["mon","tue","wed","thu","fri"];
     // Use countDayOccurrences (same as main calc) so SoS totals match exactly
     const wkdOrdHrs=wkDays.reduce((s:number,d:string)=>{const r=l.roster[d];if(!r?.enabled||(r.hours||0)<=0)return s;const occ=countDayOccurrences(srvStart,srvEnd,DAY_DOW[d])*(FREQ[r.frequency]?.multiplier||1);return s+(r.hours||0)*occ;},0);
@@ -1009,6 +1058,18 @@ function generateScheduleOfSupports(){
         body+=rowH([cell("&mdash;"),cell("&mdash;"),cell(escapeHtml(saItemNumbers[l.id+"_lump"]||getDefaultItemNumber(l.code,"lump",saUseSilItems)),"left","font-family:monospace;font-size:8pt"),cell("&mdash;","right"),cell("&mdash;","right"),cell("Lump sum"),cell("&mdash;","right"),cell("<strong>"+escapeHtml(money(l.totalFunding))+"</strong>","right")]);
         continue;
       }
+      if(mode==="hourly"){
+        const totalHrs=hourlyTotalHours(l,wk);
+        const rate=(l.lineRates?.weekdayOrd||0)/div;
+        const item=saItemNumbers[l.id+"_weekday"]||getDefaultItemNumber(l.code,"weekday",saUseSilItems);
+        const freqLbl=l.hoursMode==="sessions"?`${l.sessionCount||0} sessions × ${l.sessionLength||0}h`:"Hours per week";
+        const hd=totalHrs%1===0?String(totalHrs):totalHrs.toFixed(2);
+        body+=rowH([cell("Service hours"),cell("&mdash;"),cell(escapeHtml(item)+ratioSuf,"left","font-family:monospace;font-size:8pt"),cell(hd,"right"),cell(escapeHtml(money(rate))+"/hr","right"),cell(escapeHtml(freqLbl)),cell(wk>0?escapeHtml(money(totalHrs*rate/wk)):"&mdash;","right"),cell(escapeHtml(money(totalHrs*rate)),"right")]);
+        const kf2=FREQ[l.kmFreq]?.multiplier||1;
+        if((l.kmsPerWeek||0)>0&&(l.kmRate||0)>0){const wkly=l.kmsPerWeek*l.kmRate*kf2;body+=rowH([cell("Transport (km)"),cell("&mdash;"),cell("&mdash;"),cell(String(l.kmsPerWeek)+"km/wk","right"),cell(escapeHtml(money(l.kmRate))+"/km","right"),cell(escapeHtml(FREQ[l.kmFreq]?.label||"Every week")),cell(escapeHtml(money(wkly)),"right"),cell(escapeHtml(money(wkly*wk)),"right")]);}
+        body+=`<tr class="total-row"><td colspan="7">${escapeHtml(l.description)} &mdash; plan total</td><td style="text-align:right">${escapeHtml(money(l.basePlanCost||0))}</td></tr>`;
+        continue;
+      }
       // Full-day public holiday dates come OUT of the day rows (occurrence
       // deducted) and are billed at the full PH rate in the PH section below —
       // the way SIL providers audit. Excluded PH dates are deducted with no PH
@@ -1086,7 +1147,8 @@ function generateScheduleOfSupports(){
     let phTotal=0;
     const dmDow2:{[k:number]:string}={0:"sun",1:"mon",2:"tue",3:"wed",4:"thu",5:"fri",6:"sat"};
     for(const l of perLine as any[]){
-      if(getLineMode(l.code)==="lump")continue;
+      const md=getLineMode(l.code);
+      if(md==="lump"||md==="hourly")continue;
       const div2=RATIOS[l.ratio]?.divisor||1;
       const pr=(l.lineRates?.publicHoliday||0)/div2;
       for(const h of holidays){
@@ -1479,11 +1541,20 @@ return(<>
 {(activeTab==="roster"||activeTab==="services")&&perLine.filter((l:any)=>l.totalFunding>0||l.planTotal>0).length>0&&(
 <div className="mx-auto max-w-6xl px-6 pb-2 flex items-center gap-2 flex-wrap">
 <span className="kv-label" style={{flexShrink:0}}>Live budgets</span>
-{perLine.filter((l:any)=>l.totalFunding>0||l.planTotal>0).map((l:any)=>{
-const st=getBudgetStatus(l.remaining,l.totalFunding);
+{(()=>{
+// One chip per pooled category: lines sharing a code share one budget, so
+// they get a single combined chip instead of misleading per-line figures.
+const seen=new Set<string>();
+return perLine.filter((l:any)=>l.totalFunding>0||l.planTotal>0).filter((l:any)=>{if((l as any).poolCount>1){if(seen.has(l.code))return false;seen.add(l.code);}return true;});
+})().map((l:any)=>{
+const shared=l.poolCount>1;
+const rem=shared?l.poolRemaining:l.remaining;
+const fund=shared?l.poolFunding:l.totalFunding;
+const label=shared?CATEGORY_PRESETS[l.code]?.name||l.description:l.description;
+const st=getBudgetStatus(rem,fund);
 return(
-<button key={l.id} type="button" onClick={()=>{if(activeTab==="roster")document.getElementById("line-"+l.id)?.scrollIntoView({behavior:"smooth",block:"start"});}} className="kv-money kv-btn" title={l.description+" — "+money(l.remaining)+" remaining of "+money(l.totalFunding)} style={{display:"inline-flex",alignItems:"center",gap:"6px",padding:"3px 10px",borderRadius:"999px",background:st.bg,border:"1px solid "+st.border,color:st.color,fontSize:"0.74rem",fontWeight:700,cursor:activeTab==="roster"?"pointer":"default"}}>
-<span style={{opacity:0.7}}>{l.code}</span>{(l.description||"").length>16?(l.description||"").slice(0,16)+"…":l.description}<span>· {money(l.remaining)} left</span>
+<button key={shared?"pool-"+l.code:l.id} type="button" onClick={()=>{if(activeTab==="roster")document.getElementById("line-"+l.id)?.scrollIntoView({behavior:"smooth",block:"start"});}} className="kv-money kv-btn" title={label+(shared?" (shared across "+l.poolCount+" lines)":"")+" — "+money(rem)+" remaining of "+money(fund)} style={{display:"inline-flex",alignItems:"center",gap:"6px",padding:"3px 10px",borderRadius:"999px",background:st.bg,border:"1px solid "+st.border,color:st.color,fontSize:"0.74rem",fontWeight:700,cursor:activeTab==="roster"?"pointer":"default"}}>
+<span style={{opacity:0.7}}>{l.code}</span>{(label||"").length>16?(label||"").slice(0,16)+"…":label}<span>· {money(rem)} left</span>
 </button>
 );})}
 </div>
@@ -1623,7 +1694,7 @@ return(
 <button onClick={()=>setOpenAllocs(prev=>{const n=new Set(prev);n.has(l.id)?n.delete(l.id):n.add(l.id);return n})} title="Split this budget into named allocations (e.g. Psychology $7,500) — splits never change the total" style={{background:allocs.length?"rgba(212,168,67,0.2)":"none",border:"1px dashed rgba(255,255,255,0.3)",color:allocs.length?"#d4a843":"rgba(255,255,255,0.7)",borderRadius:"6px",cursor:"pointer",fontSize:"0.72rem",padding:"3px 8px",flexShrink:0}}>{openA?"▴":"▾"} split{allocs.length?` (${allocs.length})`:""}</button>
 <button onClick={()=>deleteLine(l.id)} disabled={lines.length<=1} title="Remove this category" style={{background:"none",border:"none",color:"rgba(255,255,255,0.45)",cursor:lines.length<=1?"not-allowed":"pointer",fontSize:"0.85rem",padding:"2px 4px",flexShrink:0}}>✕</button>
 </div>
-{dupCode&&<div className="text-xs mt-1" style={{color:"#fbbf24"}}>⚠ Another line also uses code {l.code} — their budgets ADD together. To split one budget, use ▾ split instead of a second line.</div>}
+{dupCode&&<div className="text-xs mt-1" style={{color:"#fbbf24"}}>Lines with code {l.code} share ONE pooled category budget — enter the category total once and leave the other {l.code} lines at $0. Supports on any of them deduct from the shared remaining automatically.</div>}
 {openA&&(
 <div className="mt-2 pl-4" style={{borderLeft:"2px solid rgba(212,168,67,0.35)"}}>
 {allocs.map(a=>(
@@ -1800,7 +1871,10 @@ return(
 </div>
 <div className="grid gap-6">
 {perLine.map((l:any)=>{
-const status=getBudgetStatus(l.remaining,l.totalFunding);
+// Lines sharing a category code report against the pooled category budget,
+// so spending on any line of the code deducts from the remaining shown here.
+const shared=l.poolCount>1;
+const status=getBudgetStatus(shared?l.poolRemaining:l.remaining,shared?l.poolFunding:l.totalFunding);
 const suggestions=getSuggestions(l,l.lineRates||rates);
 const belowGuide=isBelowGuide(l.lineRates||rates,l.code);
 const lineMode=getLineMode(l.code);
@@ -1834,36 +1908,68 @@ return(
 <div className="text-sm font-semibold mb-2" style={{color:"#d4a843"}}>{CATEGORY_PRESETS[l.code]?.name||"Support Category"}</div>
 {l.code==="17"?(<div className="text-sm mb-4 rounded-lg px-3 py-2" style={{color:"#c0a060",background:"rgba(212,168,67,0.07)",border:"1px solid rgba(212,168,67,0.45)"}}>⚠️ SDA is a fixed annual housing payment set in the participant's plan — not an hourly rate. Enter the total SDA funding amount below and track it as a lump sum.</div>):(<div className="text-sm mb-4" style={{color:"#475569"}}>This category covers lump sum items (equipment, modifications, transport, consumables). No roster needed — just set the total funding.</div>)}
 <div className="text-sm" style={{color:"#334155"}}>Budget: <span className="font-semibold" style={{color:"#d4a843"}}>{money(l.totalFunding)}</span></div>
-<div className="text-lg font-bold mt-2" style={{color:status.color}}>Remaining: {money(l.remaining)}</div>
+<div className="text-lg font-bold mt-2" style={{color:status.color}}>Remaining: {money(shared?l.poolRemaining:l.remaining)}</div>
+{shared&&<div className="text-xs mt-0.5" style={{color:"#64748b"}}>Shared category {l.code} budget — {money(l.poolFunding)} pooled across {l.poolCount} lines; every line&apos;s supports deduct from it automatically.</div>}
 </div>
 ):lineMode==="hourly"?(
 <div className="kv-sub rounded-xl p-4 lg:col-span-2">
 <div className="text-sm mb-3 font-semibold" style={{color:"#d4a843"}}>Service Hours<span style={{color:"#64748b",fontWeight:"normal",fontSize:"0.8rem",marginLeft:"8px"}}>flat hourly service — no day-by-day roster needed</span></div>
-{CLINICAL_TYPES.some(t=>t.code===l.code)&&(
+{CLINICAL_TYPES.some(t=>t.code===l.code)&&(()=>{
+const selectedType=CLINICAL_TYPES.find(t=>t.code===l.code&&t.label===l.description);
+return(
 <div className="flex items-center gap-2 flex-wrap mb-2">
 <span className="text-xs" style={{color:"#475569"}}>Service type:</span>
-<select value="" onChange={e=>{const t=CLINICAL_TYPES.find(x=>x.key===e.target.value);if(t)updateLine(l.id,{description:t.label,lineRates:{...(l.lineRates||rates),weekdayOrd:t.rate}});}} className="kv-input rounded-lg px-2 py-1" style={{fontSize:"0.8rem"}}>
+<select value={selectedType?.key||""} onChange={e=>{const t=CLINICAL_TYPES.find(x=>x.key===e.target.value);if(t){updateLine(l.id,{description:t.label,lineRates:{...(l.lineRates||rates),weekdayOrd:typeRate(t)}});setSaItemNumbers(p=>({...p,[l.id+"_weekday"]:t.item}));}}} className="kv-input rounded-lg px-2 py-1" style={{fontSize:"0.8rem"}}>
 <option value="">pick to set the rate…</option>
-{CLINICAL_TYPES.filter(t=>t.code===l.code).map(t=>(<option key={t.key} value={t.key}>{t.label} — ${t.rate}/hr</option>))}
+{CLINICAL_TYPES.filter(t=>t.code===l.code).map(t=>(<option key={t.key} value={t.key}>{t.label} — ${typeRate(t).toFixed(2)}/hr</option>))}
 </select>
+{selectedType&&<span className="text-xs font-semibold kv-money" style={{color:"#b8901a"}}>{money(typeRate(selectedType))}/hr cap</span>}
 <span className="text-xs" style={{color:"#94a3b8"}}>each discipline has its own price cap</span>
 </div>
-)}
+);})()}
+<div className="flex items-center gap-2 flex-wrap mb-2">
+<span className="text-xs" style={{color:"#475569"}}>NDIS item:</span>
+<input value={saItemNumbers[l.id+"_weekday"]||""} list="ndis-catalogue" onChange={e=>{const val=e.target.value;setSaItemNumbers(p=>({...p,[l.id+"_weekday"]:val}));const t=findCatalogueItem(catalogue,val);if(t){const price=cataloguePrice(t,planDates.state);const patch:Partial<SupportLine>={};if(price!=null)patch.lineRates={...(l.lineRates||rates),weekdayOrd:price};if(!l.description||l.description===CATEGORY_PRESETS[l.code]?.name||l.description==="New Support Line")patch.description=t.name;if(Object.keys(patch).length)updateLine(l.id,patch);}}}
+placeholder={getDefaultItemNumber(l.code,"weekday",false)||"item number — type to search"} className="kv-input kv-money rounded-lg px-2 py-1" style={{fontSize:"0.76rem",fontFamily:"monospace",width:"190px"}}/>
+<span className="text-xs" style={{color:"#94a3b8"}}>prints on the Schedule of Supports — picking one sets the rate</span>
+</div>
+<div className="flex items-center gap-2 flex-wrap mb-3">
+<span className="text-xs" style={{color:"#475569"}}>Bill by:</span>
+{([["weekly","Hours per week"],["sessions","Number of sessions"]] as ["weekly"|"sessions",string][]).map(([mv,mlbl])=>{
+const on=(l.hoursMode||"weekly")===mv;
+return(<button key={mv} type="button" onClick={()=>updateLine(l.id,{hoursMode:mv,...(mv==="sessions"&&!(l.sessionLength||0)?{sessionLength:1}:{})})} className="kv-btn" style={{padding:"4px 12px",borderRadius:"999px",fontSize:"0.76rem",fontWeight:600,cursor:"pointer",background:on?"rgba(212,168,67,0.15)":"rgba(15,23,42,0.03)",border:"1px solid "+(on?"rgba(212,168,67,0.55)":"rgba(15,23,42,0.1)"),color:on?"#b8901a":"#64748b"}}>{mlbl}</button>);
+})}
+<span className="text-xs" style={{color:"#94a3b8"}}>sessions suit therapy — e.g. 10 psychology sessions across the plan period</span>
+</div>
+{(l.hoursMode||"weekly")==="sessions"?(
+<div className="flex items-center gap-2 flex-wrap">
+<span className="text-xs" style={{color:"#475569"}}>Sessions in plan period:</span>
+<SmallField value={l.sessionCount||0} step={1} onChange={v=>updateLine(l.id,{sessionCount:v})}/>
+<span className="text-xs" style={{color:"#475569"}}>× hours per session:</span>
+<SmallField value={l.sessionLength||0} step={0.25} onChange={v=>updateLine(l.id,{sessionLength:v})}/>
+<span className="text-xs" style={{color:"#475569"}}>@ $</span>
+<input type="number" step={0.01} value={Math.round((l.lineRates?.weekdayOrd||0)*100)/100||""} placeholder="0.00" onChange={e=>updateLine(l.id,{lineRates:{...(l.lineRates||rates),weekdayOrd:num(e.target.value)}})} onFocus={e=>e.target.select()} className="kv-input kv-money rounded-lg px-2 py-1" style={{width:"92px",fontSize:"0.85rem",fontWeight:600}}/>
+<span className="text-xs" style={{color:"#475569"}}>/hr</span>
+<span className="text-xs kv-money" style={{color:"#64748b"}}>= {(((l.sessionCount||0)*(l.sessionLength||0))%1===0?(l.sessionCount||0)*(l.sessionLength||0):((l.sessionCount||0)*(l.sessionLength||0)).toFixed(2))}h over {planWeeks.toFixed(planWeeks%1===0?0:2)} weeks</span>
+</div>
+):(
 <div className="flex items-center gap-2 flex-wrap">
 <span className="text-xs" style={{color:"#475569"}}>Hours per week:</span>
 <SmallField value={DAYS.reduce((s,d)=>s+(l.roster[d]?.enabled?((l.roster[d].hours||0)+(l.roster[d].nightHours||0)):0),0)} onChange={v=>updateLine(l.id,{roster:{...defaultRoster(),mon:{enabled:v>0,hours:v,nightHours:0,frequency:l.roster.mon?.frequency||"every"}}})}/>
 <SmallSelect value={l.roster.mon?.frequency||"every"} options={Object.entries(FREQ).map(([k,v])=>({value:k,label:v.label}))} onChange={v=>updateRosterDay(l.id,"mon",{frequency:v})}/>
 <span className="text-xs" style={{color:"#475569"}}>@ $</span>
-<SmallField value={Math.round((l.lineRates?.weekdayOrd||0)*100)/100} step={0.01} onChange={v=>updateLine(l.id,{lineRates:{...(l.lineRates||rates),weekdayOrd:v}})}/>
+<input type="number" step={0.01} value={Math.round((l.lineRates?.weekdayOrd||0)*100)/100||""} placeholder="0.00" onChange={e=>updateLine(l.id,{lineRates:{...(l.lineRates||rates),weekdayOrd:num(e.target.value)}})} onFocus={e=>e.target.select()} className="kv-input kv-money rounded-lg px-2 py-1" style={{width:"92px",fontSize:"0.85rem",fontWeight:600}}/>
 <span className="text-xs" style={{color:"#475569"}}>/hr — the rate you charge{(CATEGORY_PRESETS[l.code]?.rates.weekdayOrd||0)>0?<span style={{color:"#94a3b8"}}> (guide ${CATEGORY_PRESETS[l.code]?.rates.weekdayOrd})</span>:null}</span>
 </div>
+)}
 <div className="flex items-center gap-2 flex-wrap mt-2"><span className="text-xs" style={{color:"#475569"}}>KMs per week:</span><SmallField value={l.kmsPerWeek} step={1} onChange={v=>updateLine(l.id,{kmsPerWeek:v})}/><span className="text-xs" style={{color:"#475569"}}>@ $</span><SmallField value={l.kmRate} step={0.01} onChange={v=>updateLine(l.id,{kmRate:v})}/><span className="text-xs" style={{color:"#475569"}}>/km</span><SmallSelect value={l.kmFreq} options={Object.entries(FREQ).map(([k,v])=>({value:k,label:v.label}))} onChange={v=>updateLine(l.id,{kmFreq:v})}/></div>
-{DAYS.some(d=>d!=="mon"&&l.roster[d]?.enabled&&((l.roster[d].hours||0)>0||(l.roster[d].nightHours||0)>0))&&<div className="text-xs mt-2" style={{color:"#94a3b8"}}>Total includes hours saved across several days from an earlier roster — editing the number consolidates them into one weekly figure.</div>}
+{(l.hoursMode||"weekly")==="weekly"&&DAYS.some(d=>d!=="mon"&&l.roster[d]?.enabled&&((l.roster[d].hours||0)>0||(l.roster[d].nightHours||0)>0))&&<div className="text-xs mt-2" style={{color:"#94a3b8"}}>Total includes hours saved across several days from an earlier roster — editing the number consolidates them into one weekly figure.</div>}
 <div className="mt-4 text-sm" style={{color:"#334155"}}>
 <div>Weekly total: <span className="kv-money font-semibold" style={{color: "#0f172a"}}>{money(l.weeklyWithGST)}</span></div>
 <div>Plan total: <span className="kv-money font-semibold" style={{color: "#0f172a"}}>{money(l.planTotal)}</span></div>
 {(l as any).clinicalDraw>0&&<div>Clinical services from this budget: <span className="kv-money font-semibold" style={{color:"#1e40af"}}>{money((l as any).clinicalDraw)}</span></div>}
-<div className="text-lg font-bold mt-2 kv-money" style={{color:status.color}}>Remaining: {money(l.remaining)}</div>
+<div className="text-lg font-bold mt-2 kv-money" style={{color:status.color}}>Remaining: {money(shared?l.poolRemaining:l.remaining)}</div>
+{shared&&<div className="text-xs mt-0.5" style={{color:"#64748b"}}>Shared category {l.code} budget — {money(l.poolFunding)} pooled across {l.poolCount} lines; every line&apos;s supports deduct from it automatically.</div>}
 </div>
 </div>
 ):(
@@ -1933,7 +2039,8 @@ return(<button onClick={()=>updateRosterDay(l.id,d,{shifts:[...shifts,{s:"",e:""
 <div className="mt-1">Plan total: <span className="font-semibold" style={{color: "#0f172a"}}>{money(l.planTotal)}</span></div>
 {(l as any).clinicalDraw>0&&<div>Clinical services from this budget: <span className="font-semibold" style={{color:"#1e40af"}}>{money((l as any).clinicalDraw)}</span></div>}
 <div>Ratio: <span className="font-semibold" style={{color:"#d4a843"}}>{RATIOS[l.ratio]?.label||l.ratio}</span></div>
-<div className="text-lg font-bold mt-2" style={{color:status.color}}>Remaining: {money(l.remaining)}</div>
+<div className="text-lg font-bold mt-2" style={{color:status.color}}>Remaining: {money(shared?l.poolRemaining:l.remaining)}</div>
+{shared&&<div className="text-xs mt-0.5" style={{color:"#64748b"}}>Shared category {l.code} budget — {money(l.poolFunding)} pooled across {l.poolCount} lines; every line&apos;s supports deduct from it automatically.</div>}
 </div></div>
 )}
 </div>
@@ -1984,6 +2091,31 @@ return(<button onClick={()=>updateRosterDay(l.id,d,{shifts:[...shifts,{s:"",e:""
 </div>
 )}
 </div>}
+
+{(lineMode==="full"||lineMode==="weekday")&&(()=>{
+// Pick the NDIS item numbers right here on the roster — the Schedule of
+// Supports modal shows the same list, both edit the same saved overrides.
+const lineRows=saRows.filter(r=>r.key.startsWith(l.id+"_"));
+if(lineRows.length===0)return null;
+return(
+<details className="kv-fold kv-sub mt-4 rounded-xl">
+<summary className="px-4 py-3 text-sm font-semibold" style={{color:"#d4a843",cursor:"pointer"}}>NDIS item numbers <span style={{color:"#94a3b8",fontWeight:"normal",fontSize:"0.8rem"}}>— printed on the Schedule of Supports; type to search the catalogue</span></summary>
+<div className="px-4 pb-4">
+{l.code==="01"&&(
+<label className="flex items-center gap-2 mb-2 cursor-pointer">
+<input type="checkbox" checked={saUseSilItems} onChange={e=>setSaUseSilItems(e.target.checked)} style={{accentColor:"#d4a843",width:"14px",height:"14px"}}/>
+<span className="text-xs" style={{color:"#334155"}}>SIL roster — use the SIL items (01_801 series); off = Assistance with Daily Life (01_011 series)</span>
+</label>
+)}
+{lineRows.map(row=>(
+<div key={row.key} className="flex items-center gap-2 mb-1.5">
+<div className="text-xs flex-1 truncate" style={{color:"#1e293b",minWidth:0}}>{row.label}</div>
+<input value={saItemNumbers[row.key]||""} list="ndis-catalogue" onChange={e=>setSaItemNumbers(p=>({...p,[row.key]:e.target.value}))} placeholder={getDefaultItemNumber(row.code,row.rateType,saUseSilItems)||"e.g. 01_011_0107_1_1"} className="kv-input kv-money rounded px-2 py-1 text-xs" style={{width:"180px",flexShrink:0}}/>
+</div>
+))}
+</div>
+</details>
+);})()}
 
 {(lineMode==="full"||lineMode==="weekday")&&holidays.length>0&&(
 <div className="kv-sub mt-4 rounded-xl p-4">
@@ -2359,11 +2491,11 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
     {clinicalServices.map((si,idx)=>(
       <div key={si.id} className="grid px-3 py-2" style={{gridTemplateColumns:"1.8fr 2.5fr 1fr 1.3fr 1.5fr auto",gap:"8px",alignItems:"center",borderTop:"1px solid rgba(100,150,212,0.1)",minWidth:"640px"}}>
         <div>
-        <select value={si.typeKey||""} onChange={e=>{const i=idx;const k=e.target.value;const t=CLINICAL_TYPES.find(x=>x.key===k);setClinicalServices(p=>p.map((x,j)=>j===i?(t?{...x,typeKey:k,code:t.code,rate:t.rate,item:t.item,description:x.description||t.label}:x):x))}}
+        <select value={si.typeKey||""} onChange={e=>{const i=idx;const k=e.target.value;const t=CLINICAL_TYPES.find(x=>x.key===k);setClinicalServices(p=>p.map((x,j)=>j===i?(t?{...x,typeKey:k,code:t.code,rate:typeRate(t),item:t.item,description:x.description||t.label}:x):x))}}
           className="rounded px-2 py-1 text-xs outline-none w-full" style={{background: "#ffffff",border:"1px solid rgba(100,150,212,0.15)",color: "#0f172a"}}>
           <option value="">Service type…</option>
           {CLINICAL_TYPES.map(t=>(
-            <option key={t.key} value={t.key}>{t.label} — ${t.rate}/hr</option>
+            <option key={t.key} value={t.key}>{t.label} — ${typeRate(t).toFixed(2)}/hr</option>
           ))}
         </select>
         <input value={si.item||""} list="ndis-catalogue" onChange={e=>applyCatalogueToService(idx,e.target.value)} placeholder="item number — type to search"

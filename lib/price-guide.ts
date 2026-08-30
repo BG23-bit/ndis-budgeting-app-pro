@@ -40,18 +40,20 @@ export const BUILTIN_CATALOGUE: CatalogueItem[] = [
   { item: "04_102_0125_6_1", name: "Access Community, Social and Rec Activities - Public Holiday", unit: "H", price: 163.46 },
   // Coordination / plan management / capacity building
   { item: "07_002_0106_8_3", name: "Support Coordination Level 2: Coordination of Supports", unit: "H", price: 100.14 },
-  { item: "14_034_0127_8_3", name: "Plan Management - Monthly Fee", unit: "MON", price: 100.14 },
+  { item: "14_034_0127_8_3", name: "Plan Management - Monthly Fee", unit: "MON", price: 104.45 },
   { item: "13_030_0102_4_3", name: "Improved Learning - Transition Through School / Further Education", unit: "H", price: 83.87 },
   { item: "12_027_0126_3_3", name: "Exercise Physiology", unit: "H", price: 161.99 },
   { item: "11_022_0110_7_3", name: "Specialist Behavioural Intervention Support", unit: "H", price: 252.99 },
   { item: "10_806_0133_5_1", name: "Employment Related Assessment and Counselling", unit: "H", price: 73.58 },
-  // Therapy suite
-  { item: "15_056_0128_1_3", name: "Assessment, Recommendation, Therapy or Training - Other Therapy", unit: "H", price: 156.16 },
-  { item: "15_617_0128_1_3", name: "Occupational Therapy", unit: "H", price: 156.16 },
-  { item: "15_055_0128_1_3", name: "Physiotherapy", unit: "H", price: 156.16 },
-  { item: "15_622_0128_1_3", name: "Speech Pathology", unit: "H", price: 156.16 },
+  // Therapy suite — per-discipline national caps from the 2026-27 NDIS
+  // Pricing Schedule (each discipline has its OWN cap; they are not all equal)
+  { item: "15_056_0128_1_3", name: "Assessment, Recommendation, Therapy or Training - Other Therapy", unit: "H", price: 193.99 },
+  { item: "15_617_0128_1_3", name: "Occupational Therapy", unit: "H", price: 193.99 },
+  { item: "15_055_0128_1_3", name: "Physiotherapy", unit: "H", price: 183.99 },
+  { item: "15_622_0128_1_3", name: "Speech Pathology", unit: "H", price: 193.99 },
   { item: "15_054_0128_1_3", name: "Psychology", unit: "H", price: 252.99 },
-  { item: "15_062_0128_1_3", name: "Dietetics", unit: "H", price: 156.16 },
+  { item: "15_062_0128_1_3", name: "Dietetics", unit: "H", price: 178.99 },
+  { item: "15_043_0128_1_3", name: "Counselling", unit: "H", price: 156.16 },
   { item: "15_053_0128_1_3", name: "Therapy Assistant - Level 2", unit: "H", price: 86.79 },
 ];
 

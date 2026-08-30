@@ -103,8 +103,29 @@ check("leave unrelated 1:3 rate alone", migrateSleepoverRate("1:3", { fixedSleep
   check("plan cost = hrs x rate x occurrences", calcDayCountPlanCost(l, "2026-09-01", "2026-09-30", 30 / 7, R), 2 * R.weekdayOrd * 4);
 }
 
+// --- hourly service categories: exact fractional weeks, sessions, no PH ---
+{
+  // Weekly-hours therapy line: 1 h/wk over exactly 5.45 weeks bills 5.45 h.
+  const l = line({ code: "15", lineRates: getPresetRates("15"), roster: { ...defaultRoster(), mon: { enabled: true, hours: 1, nightHours: 0, frequency: "every" } } });
+  check("hourly line bills fractional weeks", calcDayCountPlanCost(l, "2026-07-20", "2026-08-26", 5.45, getPresetRates("15")), 1 * 193.99 * 5.45);
+}
+{
+  // Sessions mode: 10 sessions x 1.5 h at the psychology cap, roster ignored.
+  const l = line({ code: "15", hoursMode: "sessions", sessionCount: 10, sessionLength: 1.5, lineRates: { ...getPresetRates("15"), weekdayOrd: 252.99 } });
+  check("sessions mode bills sessions x length", calcDayCountPlanCost(l, "2026-07-20", "2026-08-26", 5.45, l.lineRates), 10 * 1.5 * 252.99);
+}
+{
+  // Public holidays never adjust hourly service categories.
+  const l = line({ code: "15", lineRates: getPresetRates("15"), roster: { ...defaultRoster(), mon: { enabled: true, hours: 1, nightHours: 0, frequency: "every" } } });
+  const ph = calcPHImpact(l, [{ date: "2026-09-07", name: "Test PH", dayOfWeek: 1 }], getPresetRates("15"));
+  check("hourly line PH extra", ph.extraCost, 0);
+  check("hourly line PH saved", ph.savedCost, 0);
+}
+
 // --- category presets stay wired ---
-check("therapy preset rate", getPresetRates("15").weekdayOrd, 156.16);
+// 15 preset moved to the Other Therapy cap ($193.99, 2026-27 schedule) —
+// the old flat $156.16 was the counselling rate applied to every discipline.
+check("therapy preset rate", getPresetRates("15").weekdayOrd, 193.99);
 check("behaviour support preset rate", getPresetRates("11").weekdayOrd, 252.99);
 
 if (failures) { console.error(`\n${failures} FAILURE(S)`); process.exit(1); }
