@@ -292,7 +292,7 @@ export function CompanyForm() {
         <p className="text-sm mb-3" style={{ color: "#64748b" }}>
           {catCount > 0
             ? <>Official Support Catalogue imported — <strong>{catCount} items</strong> selectable across the app (plus the {BUILTIN_CATALOGUE.length} built-ins).</>
-            : <>The app ships with {BUILTIN_CATALOGUE.length} common support items. Import the official <strong>NDIA Support Catalogue</strong> to make every support item selectable with its price limit: download it from ndis.gov.au (Pricing arrangements page), open it and <strong>save as CSV</strong>, then import it here.</>}
+            : <>The complete official <strong>2026&#8211;27 NDIA Support Catalogue</strong> is built in — every support item is already selectable with its national price limit. Only import a file here if you need to override it (e.g. a mid-year price change): save the NDIA catalogue as CSV and import it.</>}
         </p>
         <input ref={catFileRef} type="file" accept=".csv,text/csv" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleCatalogueImport(f); e.target.value = ""; }} />
         <div className="flex items-center gap-3 flex-wrap">
@@ -300,7 +300,7 @@ export function CompanyForm() {
           {catCount > 0 && <button onClick={clearCatalogue} style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", color: "#ef4444", padding: "9px 16px", borderRadius: "8px", cursor: "pointer", fontSize: "0.85rem" }}>Remove imported catalogue</button>}
         </div>
         {catMsg && <div className="text-sm mt-2" style={{ color: catMsg.startsWith("Imported") ? "#16a34a" : "#dc2626" }}>{catMsg}</div>}
-        <div className="text-xs mt-2" style={{ color: "#94a3b8" }}>Re-import each July when the NDIA publishes the new catalogue — rates update everywhere instantly.</div>
+        <div className="text-xs mt-2" style={{ color: "#94a3b8" }}>The built-in catalogue is refreshed with the app each July when the NDIA publishes new pricing; an imported file always takes precedence.</div>
       </div>
 
       <div className="kv-card p-6">

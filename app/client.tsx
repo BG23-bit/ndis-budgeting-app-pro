@@ -78,7 +78,8 @@ export const CLINICAL_TYPES:{key:string;code:string;label:string;rate:number;ite
   {key:"psych",code:"15",label:"Psychology",rate:252.99,item:"15_054_0128_1_3"},
   {key:"dietetics",code:"15",label:"Dietetics",rate:178.99,item:"15_062_0128_1_3"},
   {key:"counselling",code:"15",label:"Counselling",rate:156.16,item:"15_043_0128_1_3"},
-  {key:"other",code:"15",label:"Other Therapy",rate:193.99,item:"15_056_0128_1_3"},
+  {key:"podiatry",code:"15",label:"Podiatry",rate:188.99,item:"15_619_0128_1_3"},
+  {key:"other",code:"15",label:"Other Therapy / Professional",rate:156.16,item:"15_056_0128_1_3"},
   {key:"ta2",code:"15",label:"Therapy Assistant (Level 2)",rate:86.79,item:"15_053_0128_1_3"},
   {key:"exphys",code:"12",label:"Exercise Physiology",rate:161.99,item:"12_027_0126_3_3"},
   {key:"bsp",code:"11",label:"Behaviour Support Practitioner",rate:252.99,item:"11_022_0110_7_3"},
@@ -557,11 +558,17 @@ const[showSAModal,setShowSAModal]=useState(false);
 // Support Catalogue imported on the Company page (account-wide).
 const[catalogue,setCatalogue]=useState<CatalogueItem[]>(BUILTIN_CATALOGUE);
 useEffect(()=>{(async()=>{
-  try{const raw=localStorage.getItem("kevria_catalogue");if(raw){const arr=JSON.parse(raw);if(Array.isArray(arr)&&arr.length)setCatalogue(mergeWithBuiltins(arr));}}catch{}
+  // The complete official 2026-27 Support Catalogue ships with the app
+  // (every item number, name and national cap searchable out of the box);
+  // a user-imported file still wins over it below.
+  let bundled:CatalogueItem[]=[];
+  try{const res=await fetch("/ndis-catalogue-2026-27.json");if(res.ok){const arr=await res.json();if(Array.isArray(arr)&&arr.length){bundled=arr;setCatalogue(mergeWithBuiltins(arr));}}}catch{}
+  const applyImported=(arr:any)=>{if(Array.isArray(arr)&&arr.length){const have=new Set(arr.map((i:any)=>i.item));setCatalogue(mergeWithBuiltins([...arr,...bundled.filter(b=>!have.has(b.item))]));return true;}return false;};
+  try{const raw=localStorage.getItem("kevria_catalogue");if(raw)applyImported(JSON.parse(raw));}catch{}
   try{const{data:{user}}=await supabase.auth.getUser();if(user){
     const row={data:await dbGet("ndis_price_guide")};
     const arr=(row?.data as any)?.items;
-    if(Array.isArray(arr)&&arr.length){setCatalogue(mergeWithBuiltins(arr));try{localStorage.setItem("kevria_catalogue",JSON.stringify(arr))}catch{}}
+    if(applyImported(arr)){try{localStorage.setItem("kevria_catalogue",JSON.stringify(arr))}catch{}}
   }}catch{}
 })()},[]);
 // Type an item number (or pick from the suggestions) and the catalogue fills

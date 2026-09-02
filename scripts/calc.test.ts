@@ -107,7 +107,7 @@ check("leave unrelated 1:3 rate alone", migrateSleepoverRate("1:3", { fixedSleep
 {
   // Weekly-hours therapy line: 1 h/wk over exactly 5.45 weeks bills 5.45 h.
   const l = line({ code: "15", lineRates: getPresetRates("15"), roster: { ...defaultRoster(), mon: { enabled: true, hours: 1, nightHours: 0, frequency: "every" } } });
-  check("hourly line bills fractional weeks", calcDayCountPlanCost(l, "2026-07-20", "2026-08-26", 5.45, getPresetRates("15")), 1 * 193.99 * 5.45);
+  check("hourly line bills fractional weeks", calcDayCountPlanCost(l, "2026-07-20", "2026-08-26", 5.45, getPresetRates("15")), 1 * 156.16 * 5.45);
 }
 {
   // Sessions mode: 10 sessions x 1.5 h at the psychology cap, roster ignored.
@@ -123,9 +123,10 @@ check("leave unrelated 1:3 rate alone", migrateSleepoverRate("1:3", { fixedSleep
 }
 
 // --- category presets stay wired ---
-// 15 preset moved to the Other Therapy cap ($193.99, 2026-27 schedule) —
-// the old flat $156.16 was the counselling rate applied to every discipline.
-check("therapy preset rate", getPresetRates("15").weekdayOrd, 193.99);
+// 15 preset = Other Professional cap per the official 2026-27 catalogue
+// (matches the category's default item 15_056); discipline-specific caps
+// (psych 252.99, OT/speech 193.99…) come from the service-type picker.
+check("therapy preset rate", getPresetRates("15").weekdayOrd, 156.16);
 check("behaviour support preset rate", getPresetRates("11").weekdayOrd, 252.99);
 
 if (failures) { console.error(`\n${failures} FAILURE(S)`); process.exit(1); }

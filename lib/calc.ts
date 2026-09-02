@@ -90,7 +90,9 @@ export const CATEGORY_PRESETS:{[code:string]:{name:string;rates:Rates}}={
   "12":{name:"Improved Health and Wellbeing",rates:{weekdayOrd:161.99,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
   "13":{name:"Improved Learning",rates:{weekdayOrd:83.87,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
   "14":{name:"Improved Life Choices",rates:{weekdayOrd:100.14,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
-  "15":{name:"Improved Daily Living",rates:{weekdayOrd:193.99,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
+  // 15 preset carries the Other Professional cap (matches its default item
+  // 15_056); each discipline's own cap comes from the service-type picker.
+  "15":{name:"Improved Daily Living",rates:{weekdayOrd:156.16,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
   "16":{name:"Home and Living",rates:{weekdayOrd:73.58,weekdayNight:81.07,sat:103.54,sun:133.50,publicHoliday:163.46,activeSleepoverHourly:82.57,fixedSleepoverUnit:311.79,gstRate:0}},
   "17":{name:"Specialist Disability Accommodation",rates:{weekdayOrd:0,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},
   "18":{name:"Recurring Transport",rates:{weekdayOrd:0,weekdayNight:0,sat:0,sun:0,publicHoliday:0,activeSleepoverHourly:0,fixedSleepoverUnit:0,gstRate:0}},

@@ -47,7 +47,7 @@ export const BUILTIN_CATALOGUE: CatalogueItem[] = [
   { item: "10_806_0133_5_1", name: "Employment Related Assessment and Counselling", unit: "H", price: 73.58 },
   // Therapy suite — per-discipline national caps from the 2026-27 NDIS
   // Pricing Schedule (each discipline has its OWN cap; they are not all equal)
-  { item: "15_056_0128_1_3", name: "Assessment, Recommendation, Therapy or Training - Other Therapy", unit: "H", price: 193.99 },
+  { item: "15_056_0128_1_3", name: "Therapy - Other Professional - Direct Service", unit: "H", price: 156.16 },
   { item: "15_617_0128_1_3", name: "Occupational Therapy", unit: "H", price: 193.99 },
   { item: "15_055_0128_1_3", name: "Physiotherapy", unit: "H", price: 183.99 },
   { item: "15_622_0128_1_3", name: "Speech Pathology", unit: "H", price: 193.99 },
