@@ -1700,24 +1700,40 @@ return(
 <span className="text-xs" style={{color:"rgba(255,255,255,0.5)"}}>type the funding for each category here &mdash; build the rosters whenever you like</span>
 </div>
 <div className="grid grid-cols-1 gap-2">
-{lines.map(l=>{
+{lines.map((l,li)=>{
 const allocs=l.allocations||[];
 const allocated=allocs.reduce((t,a)=>t+(a.amount||0),0);
 const over=allocated>l.totalFunding+0.005&&l.totalFunding>0;
 const openA=openAllocs.has(l.id);
-const dupCode=lines.filter(x=>x.code===l.code).length>1;
+// Same-code lines share one pooled budget: the first line of the code
+// carries the total, followers indent underneath it and read as sharers.
+const group=lines.filter(x=>x.code===l.code);
+const dupCode=group.length>1;
+const isFirstOfCode=lines.findIndex(x=>x.code===l.code)===li;
+const pl:any=perLine.find(x=>x.id===l.id);
 return(
-<div key={l.id} className="rounded-lg px-2 py-1.5" style={{background:openA?"rgba(255,255,255,0.05)":"transparent"}}>
+<div key={l.id} className="rounded-lg px-2 py-1.5" style={{background:openA?"rgba(255,255,255,0.05)":"transparent",...(dupCode&&!isFirstOfCode?{marginLeft:"22px",borderLeft:"2px solid rgba(212,168,67,0.5)",borderRadius:"0 8px 8px 0"}:{})}}>
+{dupCode&&!isFirstOfCode&&(
+<div className="text-xs mb-1" style={{color:"rgba(255,255,255,0.6)"}}>↳ shares the <span style={{color:"#d4a843",fontWeight:700}}>{l.code}</span> budget above — leave funding at $0; this line&apos;s supports come out of the same total</div>
+)}
 <div className="flex items-center gap-2">
 <select value={l.code} onChange={e=>updateLineCode(l.id,e.target.value)} className="rounded-lg px-1.5 py-1 outline-none" style={{width:"64px",background:"rgba(255,255,255,0.12)",border:"none",color:"#d4a843",fontSize:"0.78rem",fontWeight:700,flexShrink:0}}>
 {Object.entries(CATEGORY_PRESETS).map(([k,v])=>(<option key={k} value={k} style={{color:"#241456"}}>{k} — {v.name}</option>))}
 </select>
 <input value={l.description} onChange={e=>updateLine(l.id,{description:e.target.value})} placeholder="Category name" className="rounded-lg px-2 py-1 outline-none" style={{flex:1,minWidth:0,background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.15)",color:"#ffffff",fontSize:"0.82rem"}}/>
-<input type="number" step={100} min={0} value={l.totalFunding||""} placeholder="$0" onChange={e=>updateLine(l.id,{totalFunding:num(e.target.value)})} onFocus={e=>e.target.select()} className="rounded-lg px-2 py-1 outline-none kv-money" style={{width:"110px",background:"rgba(255,255,255,0.92)",border:"none",color:"#241456",fontWeight:700,fontSize:"0.85rem",flexShrink:0}}/>
+<input type="number" step={100} min={0} value={l.totalFunding||""} placeholder={dupCode&&!isFirstOfCode?"$0 · shared":"$0"} onChange={e=>updateLine(l.id,{totalFunding:num(e.target.value)})} onFocus={e=>e.target.select()} className="rounded-lg px-2 py-1 outline-none kv-money" style={{width:"110px",background:dupCode&&!isFirstOfCode&&!(l.totalFunding>0)?"rgba(255,255,255,0.55)":"rgba(255,255,255,0.92)",border:"none",color:"#241456",fontWeight:700,fontSize:"0.85rem",flexShrink:0}}/>
 <button onClick={()=>setOpenAllocs(prev=>{const n=new Set(prev);n.has(l.id)?n.delete(l.id):n.add(l.id);return n})} title="Split this budget into named allocations (e.g. Psychology $7,500) — splits never change the total" style={{background:allocs.length?"rgba(212,168,67,0.2)":"none",border:"1px dashed rgba(255,255,255,0.3)",color:allocs.length?"#d4a843":"rgba(255,255,255,0.7)",borderRadius:"6px",cursor:"pointer",fontSize:"0.72rem",padding:"3px 8px",flexShrink:0}}>{openA?"▴":"▾"} split{allocs.length?` (${allocs.length})`:""}</button>
 <button onClick={()=>deleteLine(l.id)} disabled={lines.length<=1} title="Remove this category" style={{background:"none",border:"none",color:"rgba(255,255,255,0.45)",cursor:lines.length<=1?"not-allowed":"pointer",fontSize:"0.85rem",padding:"2px 4px",flexShrink:0}}>✕</button>
 </div>
-{dupCode&&<div className="text-xs mt-1" style={{color:"#fbbf24"}}>Lines with code {l.code} share ONE pooled category budget — enter the category total once and leave the other {l.code} lines at $0. Supports on any of them deduct from the shared remaining automatically.</div>}
+{dupCode&&isFirstOfCode&&(
+<div className="flex items-center gap-2 flex-wrap mt-1.5 rounded-md px-2 py-1" style={{background:"rgba(212,168,67,0.12)",border:"1px solid rgba(212,168,67,0.35)"}}>
+<span className="text-xs kv-money" style={{color:"#d4a843",fontWeight:800}}>Σ {l.code} shared budget · {money(pl?.poolFunding||0)}</span>
+<span className="text-xs" style={{color:"rgba(255,255,255,0.65)"}}>{group.length} lines draw from this one total — {money(pl?.poolRemaining||0)} left after planned supports</span>
+</div>
+)}
+{dupCode&&!isFirstOfCode&&(l.totalFunding||0)>0&&(
+<div className="text-xs mt-1" style={{color:"#fbbf24"}}>⚠ This amount ADDS to the shared {l.code} total (now {money(pl?.poolFunding||0)}). If the plan only funds {money((pl?.poolFunding||0)-(l.totalFunding||0))} for {l.code}, set this back to $0.</div>
+)}
 {openA&&(
 <div className="mt-2 pl-4" style={{borderLeft:"2px solid rgba(212,168,67,0.35)"}}>
 {allocs.map(a=>(
