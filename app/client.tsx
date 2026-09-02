@@ -212,6 +212,15 @@ useEffect(()=>{
   if(calcMode==="clinical")setActiveTab(hasFunding?"services":"setup");
   else if(hasFunding)setActiveTab("budgets");
 },[loaded]);
+// Switching modes can leave the active tab pointing at one that no longer
+// exists (e.g. Roster after moving to therapy-only) — snap to a valid tab.
+useEffect(()=>{
+  if(calcMode===null)return;
+  const sil=calcMode==="sil"||calcMode==="both";
+  const clin=calcMode==="clinical"||calcMode==="both";
+  const valid=["setup",...(sil?["budgets","roster"]:[]),...(clin?["services"]:[]),"documents"];
+  if(!valid.includes(activeTab))setActiveTab(clin&&!sil?"services":"setup");
+},[calcMode]);
 const totals=useMemo(()=>{const totalFunding=perLine.reduce((a,l)=>a+l.totalFunding,0);const weekly=perLine.reduce((a,l)=>a+l.weeklyWithGST,0);const planCost=perLine.reduce((a,l)=>a+l.planTotal+((l as any).clinicalDraw||0),0);const totalPH=perLine.reduce((a,l)=>a+l.phAdjustment,0);const remaining=totalFunding-planCost;const totalClaimed=perLine.reduce((a,l)=>a+(l as any).totalClaimed,0);const actualRemaining=totalFunding-totalClaimed;return{totalFunding,weekly,planCost,totalPH,remaining,totalClaimed,actualRemaining}},[perLine]);
 const saRows=useMemo(()=>perLine.flatMap((l:any)=>{
   const mode=getLineMode(l.code);const rows:{key:string;code:string;rateType:string;label:string}[]=[];
@@ -1540,7 +1549,7 @@ return(
 <div style={{position:"sticky",top:0,zIndex:40,background:"rgba(245,246,250,0.88)",backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",borderBottom:"1px solid #e9eaf2",marginBottom:"24px"}}>
 <div className="mx-auto max-w-6xl px-6 py-2.5 flex items-center justify-between gap-3 flex-wrap">
 <div className="kv-tabs">
-{([["setup","Setup"],["budgets","Budgets"],...(showSil?[["roster","Roster"]]:[]),...(showClinical?[["services","Services"]]:[]),["documents","Documents"]] as [string,string][]).map(([k,lbl])=>(
+{([["setup","Setup"],...(showSil?[["budgets","Budgets"],["roster","Roster"]]:[]),...(showClinical?[["services","Services"]]:[]),["documents","Documents"]] as [string,string][]).map(([k,lbl])=>(
 <button key={k} type="button" className={"kv-tab"+(activeTab===k?" active":"")} onClick={()=>{setActiveTab(k as any);window.scrollTo({top:0});}}>{lbl}</button>
 ))}
 </div>
@@ -1548,8 +1557,11 @@ return(
 {saveState!=="idle"&&<span className="text-xs" style={{color:saveState==="saving"?"#b8901a":"#94a3b8"}}>{saveState==="saving"?"Saving…":"Saved ✓"}</span>}
 {(()=>{
 // Live tracker: follows every tab so the numbers move as the roster is filled.
-const tFund=showSil?totals.totalFunding:clinicalFunding;
-const tCost=showSil?totals.planCost:clinicalTotal;
+// Plan budgets while rostering, PLUS a separate clinical budget when it
+// isn't drawn from the plan lines (linked clinical is already inside totals).
+const sepClin=showClinical&&!clinicalBudgetLinked;
+const tFund=(showSil?totals.totalFunding:0)+(sepClin?clinicalFunding:0);
+const tCost=(showSil?totals.planCost:0)+(sepClin||(showClinical&&!showSil)?clinicalTotal:0);
 const tRem=tFund-tCost;
 const tStatus=getBudgetStatus(tRem,tFund);
 return(<>
@@ -1583,8 +1595,11 @@ return(
 </div>
 )}
 {(()=>{
-const tFund=showSil?totals.totalFunding:clinicalFunding;
-const tCost=showSil?totals.planCost:clinicalTotal;
+// Plan budgets while rostering, PLUS a separate clinical budget when it
+// isn't drawn from the plan lines (linked clinical is already inside totals).
+const sepClin=showClinical&&!clinicalBudgetLinked;
+const tFund=(showSil?totals.totalFunding:0)+(sepClin?clinicalFunding:0);
+const tCost=(showSil?totals.planCost:0)+(sepClin||(showClinical&&!showSil)?clinicalTotal:0);
 const pctUsed=tFund>0?Math.min(100,(tCost/tFund)*100):0;
 const barCol=tCost>tFund&&tFund>0?"#ef4444":tFund>0&&tCost>tFund*0.9?"#f59e0b":"#22c55e";
 return(<div style={{height:"4px",background:"rgba(15,23,42,0.06)"}}><div style={{height:"100%",width:pctUsed+"%",background:barCol,transition:"width 0.35s ease, background 0.35s ease"}}/></div>);
@@ -2592,7 +2607,7 @@ Skipped: {[claimsImport.skippedDup>0?claimsImport.skippedDup+" already imported"
 {calcMode!==null&&(()=>{
 // Guided flow: every tab ends with the next step, so nobody has to guess
 // where to go — the last step loops back to the documents.
-const order=(["setup","budgets",...(showSil?["roster"]:[]),...(showClinical?["services"]:[]),"documents"]) as ("setup"|"budgets"|"roster"|"services"|"documents")[];
+const order=(["setup",...(showSil?["budgets","roster"]:[]),...(showClinical?["services"]:[]),"documents"]) as ("setup"|"budgets"|"roster"|"services"|"documents")[];
 const labels:{[k:string]:string}={setup:"Set up the plan",budgets:"Enter the budgets",roster:"Fill the roster",services:"Add therapy & services",documents:"Generate the documents"};
 const idx=order.indexOf(activeTab);
 const next=idx>=0?order[idx+1]:undefined;
