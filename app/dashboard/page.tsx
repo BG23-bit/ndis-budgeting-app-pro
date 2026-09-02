@@ -22,7 +22,7 @@ function money(n: number): string {
   return v.toLocaleString("en-AU", { style: "currency", currency: "AUD" });
 }
 
-type Budget = { totalFunding: number; planCost: number; remaining: number; status: string; planEnd?: string };
+type Budget = { totalFunding: number; planCost: number; remaining: number; status: string; planEnd?: string; docCount?: number };
 const EMPTY_BUDGET: Budget = { totalFunding: 0, planCost: 0, remaining: 0, status: "empty" };
 function daysUntil(dateStr?: string): number | null {
   if (!dateStr) return null;
@@ -83,7 +83,7 @@ function computeBudget(raw: any, customHolidays?: { date: string; name: string }
     else if (remaining < 0) status = "over";
     else if (totalFunding > 0 && (remaining / totalFunding) * 100 < 10) status = "low";
 
-    return { totalFunding, planCost, remaining, status, planEnd: planDates.end || undefined };
+    return { totalFunding, planCost, remaining, status, planEnd: planDates.end || undefined, docCount: Array.isArray(raw.docHistory) ? raw.docHistory.length : 0 };
   } catch {
     return EMPTY_BUDGET;
   }
@@ -111,6 +111,23 @@ export default function DashboardPage() {
   // The plan picker opens on demand (banner CTA, or hitting the participant gate).
   const [previewDismissed, setPreviewDismissed] = useState(true);
   const [budgets, setBudgets] = useState<{ [id: string]: Budget }>({});
+  // Getting-started checklist: shown until every step is done or dismissed.
+  const [orgName, setOrgName] = useState<string | null>(null);
+  const [checklistDismissed, setChecklistDismissed] = useState(true);
+  useEffect(() => { try { setChecklistDismissed(localStorage.getItem("kevria_checklist_done") === "1"); } catch {} }, []);
+  // Org profile is read on its own (not via the budgets loader) so the
+  // checklist knows about it even before the first participant exists.
+  useEffect(() => {
+    try { const raw = localStorage.getItem("kevria_provider_details"); if (raw) setOrgName((o) => o ?? (JSON.parse(raw)?.orgName || "")); } catch {}
+    (async () => {
+      try {
+        const { data: d } = await supabase.auth.getUser();
+        if (!d.user) return;
+        const prov = await dbGet("ndis_provider_details");
+        setOrgName((prov as any)?.orgName || "");
+      } catch {}
+    })();
+  }, []);
   const hasLoadedRef = useRef(false);
   const skipNextSaveRef = useRef(false);
   const deletedIdsRef = useRef<Set<string>>(new Set());
@@ -301,7 +318,7 @@ export default function DashboardPage() {
       let customHolidays: { date: string; name: string }[] = [];
       try {
         const rawProv = localStorage.getItem("kevria_provider_details");
-        if (rawProv) customHolidays = JSON.parse(rawProv)?.customHolidays || [];
+        if (rawProv) { const pd = JSON.parse(rawProv); customHolidays = pd?.customHolidays || []; setOrgName(pd?.orgName || ""); }
       } catch {}
       for (const p of participants) {
         try {
@@ -314,6 +331,7 @@ export default function DashboardPage() {
         if (d.user) {
           const prov = await dbGet("ndis_provider_details");
           if (Array.isArray((prov as any)?.customHolidays)) customHolidays = (prov as any).customHolidays;
+          setOrgName((prov as any)?.orgName || "");
           const keys = participants.map((p) => "ndis_participant_" + p.id);
           const rows = await dbGetMany(keys);
           for (const row of rows || []) {
@@ -391,15 +409,25 @@ export default function DashboardPage() {
       clinicalFunding: 12000,
       clinicalBudgetLinked: false,
       clinicalServices: [
-        { id: uid(), code: "11", description: "Functional Behaviour Assessment", hours: 15, rate: 252.99, note: "" },
-        { id: uid(), code: "15", description: "OT — Assistive Technology Assessment", hours: 12, rate: 156.16, note: "" },
+        { id: uid(), code: "11", description: "Functional Behaviour Assessment", hours: 15, rate: 252.99, note: "", item: "11_022_0110_7_3", typeKey: "bsp" },
+        { id: uid(), code: "15", description: "OT — Assistive Technology Assessment", hours: 12, rate: 193.99, note: "", item: "15_617_0128_1_3", typeKey: "ot" },
       ],
       lines: [
-        line("01", "Core Supports — Daily Living", 140000, mkRoster({
-          mon: { hours: 4 }, tue: { hours: 4 }, wed: { hours: 4 }, thu: { hours: 4 }, fri: { hours: 4 },
-          sat: { hours: 4 }, sun: { hours: 3 },
-        }), {
+        line("01", "Core Supports — Daily Living", 140000, (() => {
+          const r = mkRoster({
+            mon: { hours: 4 }, tue: { hours: 4 }, wed: { hours: 4 }, thu: { hours: 4 }, fri: { hours: 4 },
+            sat: { hours: 4 }, sun: { hours: 3 },
+          });
+          // Shift times print on the Schedule of Supports (day-by-day layout)
+          for (const d of ["mon", "tue", "wed", "thu", "fri"]) (r as any)[d].shifts = [{ s: "09:00", e: "13:00" }];
+          return r;
+        })(), {
           kmsPerWeek: 40,
+          // Splits: named amounts within the one category budget
+          allocations: [
+            { id: uid(), name: "Support worker roster", amount: 118000 },
+            { id: uid(), name: "Transport & community access", amount: 22000 },
+          ],
           claims: [
             { id: uid(), date: claimDate(21), amount: 2340.50, note: "Roster week — invoice #2041" },
             { id: uid(), date: claimDate(14), amount: 2298.75, note: "Roster week — invoice #2052" },
@@ -409,6 +437,11 @@ export default function DashboardPage() {
         line("04", "Community Participation", 15000, mkRoster({
           wed: { hours: 2 }, sat: { hours: 2, frequency: "2nd" },
         })),
+        // Therapy billed as sessions across the plan period
+        line("15", "Psychology", 4200, defaultRoster(), {
+          hoursMode: "sessions", sessionCount: 12, sessionLength: 1,
+          lineRates: { ...getPresetRates("15"), weekdayOrd: 252.99 },
+        }),
         line("03", "Consumables", 2500, defaultRoster()),
       ],
     };
@@ -686,6 +719,44 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {/* Getting-started checklist — walks new accounts to their first
+            generated document, then disappears for good. */}
+        {(() => {
+          if (checklistDismissed || loading) return null;
+          const budgetList = Object.values(budgets);
+          const steps: { label: string; hint: string; done: boolean; cta: string; go: () => void }[] = [
+            { label: "Set up your organisation", hint: "Name, ABN and logo — they brand every document you generate.", done: !!orgName, cta: "Company profile", go: () => router.push("/company") },
+            { label: "Add a participant", hint: "Or load Alex, our fully set-up sample, to poke around a finished workspace first.", done: activeParticipants.length > 0, cta: "+ Add participant", go: () => setShowAddForm(true) },
+            { label: "Enter budgets & build the roster", hint: "Type the plan's category budgets, then fill the weekly roster (or upload the plan PDF).", done: budgetList.some((b) => b.totalFunding > 0), cta: "Open participant", go: () => { const p = activeParticipants[0]; if (p) setActiveParticipant(p.id); else setShowAddForm(true); } },
+            { label: "Generate a Schedule of Supports", hint: "The signable document — budgets, roster, item numbers and signatures, ready to send.", done: budgetList.some((b) => (b.docCount || 0) > 0), cta: "Open participant", go: () => { const p = activeParticipants.find((x) => budgetFor(x.id).totalFunding > 0) || activeParticipants[0]; if (p) setActiveParticipant(p.id); } },
+          ];
+          const doneCount = steps.filter((s) => s.done).length;
+          if (doneCount === steps.length) { try { localStorage.setItem("kevria_checklist_done", "1"); } catch {} return null; }
+          return (
+            <div className="kv-card p-5 mb-6" style={{ border: "1px solid rgba(212,168,67,0.4)" }}>
+              <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+                <div className="text-sm font-bold" style={{ color: "#2d1b69" }}>Getting started — {doneCount} of {steps.length} done</div>
+                <div className="flex items-center gap-3">
+                  <button onClick={loadSampleParticipant} style={{ background: "rgba(45,27,105,0.06)", border: "1px solid rgba(45,27,105,0.18)", color: "#2d1b69", padding: "5px 12px", borderRadius: "8px", cursor: "pointer", fontSize: "0.78rem", fontWeight: 600 }}>Load sample participant</button>
+                  <button onClick={() => { setChecklistDismissed(true); try { localStorage.setItem("kevria_checklist_done", "1"); } catch {} }} style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", fontSize: "0.78rem", textDecoration: "underline" }}>dismiss</button>
+                </div>
+              </div>
+              <div className="grid gap-2">
+                {steps.map((s, i) => (
+                  <div key={i} className="flex items-center gap-3 rounded-lg px-3 py-2 flex-wrap" style={{ background: s.done ? "rgba(34,197,94,0.05)" : "rgba(15,23,42,0.02)", border: "1px solid " + (s.done ? "rgba(34,197,94,0.2)" : "rgba(15,23,42,0.06)") }}>
+                    <div style={{ width: "22px", height: "22px", borderRadius: "50%", flexShrink: 0, background: s.done ? "#22c55e" : "rgba(15,23,42,0.06)", color: s.done ? "#ffffff" : "#94a3b8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: 700 }}>{s.done ? "✓" : i + 1}</div>
+                    <div style={{ flex: 1, minWidth: "220px" }}>
+                      <div className="text-sm font-semibold" style={{ color: s.done ? "#16a34a" : "#1e293b", textDecoration: s.done ? "line-through" : "none" }}>{s.label}</div>
+                      {!s.done && <div className="text-xs" style={{ color: "#64748b" }}>{s.hint}</div>}
+                    </div>
+                    {!s.done && <button onClick={s.go} style={{ background: "rgba(212,168,67,0.12)", border: "1px solid rgba(212,168,67,0.35)", color: "#b8901a", padding: "6px 14px", borderRadius: "8px", cursor: "pointer", fontSize: "0.8rem", fontWeight: 600, flexShrink: 0 }}>{s.cta}</button>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Participant Cards */}
         {participants.length === 0 ? (
           <div className="kv-card p-12 text-center">
@@ -698,9 +769,10 @@ export default function DashboardPage() {
             }}>+ Add First Participant</button>
             <div>
               <button onClick={loadSampleParticipant} style={{
-                marginTop: "14px", background: "none", border: "none",
-                color: "#64748b", cursor: "pointer", fontSize: "0.9rem", textDecoration: "underline",
-              }}>or load a sample participant to explore</button>
+                marginTop: "14px", background: "rgba(45,27,105,0.06)", border: "1px solid rgba(45,27,105,0.2)",
+                color: "#2d1b69", padding: "11px 26px", borderRadius: "8px", cursor: "pointer", fontWeight: 600, fontSize: "0.92rem",
+              }}>Load Alex, a fully set-up sample participant</button>
+              <div className="text-xs mt-2" style={{ color: "#94a3b8" }}>Budgets, roster, shift times, therapy sessions and claims already filled — the quickest way to see how everything fits together.</div>
             </div>
           </div>
         ) : (
