@@ -824,10 +824,14 @@ function exportCSV(){
   out.push("");
   out.push("=== SUPPORT LINES ===");
   out.push(row("Code","Description","Ratio","Budget","Weekly Cost","KMs/wk","KM Cost/wk","PH Adjustment","Plan Total","Used %","Remaining","Status"));
-  for(const l of perLine){
-    const usedPct=l.totalFunding>0?((l.planTotal/l.totalFunding)*100).toFixed(1)+"%":"0.0%";
-    const status=l.remaining<0?"OVER BUDGET":l.totalFunding>0&&(l.remaining/l.totalFunding)<0.1?"LOW BUDGET":"ON TRACK";
-    out.push(row(l.code,l.description,l.ratio,money(l.totalFunding),money(l.weeklyWithGST),l.kmsPerWeek>0?l.kmsPerWeek+" km":"0 km",money(l.kmsPerWeek*l.kmRate*(FREQ[l.kmFreq]?.multiplier||1)),money(l.phAdjustment),money(l.planTotal),usedPct,money(l.remaining),status));
+  for(const l of perLine as any[]){
+    // Lines sharing a category code report against the pooled category budget
+    const pooled=l.poolCount>1;
+    const fundV=pooled?l.poolFunding:l.totalFunding;
+    const remV=pooled?l.poolRemaining:l.remaining;
+    const usedPct=fundV>0?(((fundV-remV)/fundV)*100).toFixed(1)+"%":"0.0%";
+    const status=remV<0?"OVER BUDGET":fundV>0&&(remV/fundV)<0.1?"LOW BUDGET":"ON TRACK";
+    out.push(row(l.code,l.description+(pooled?" (shared "+l.code+" budget)":""),l.ratio,money(l.totalFunding),money(l.weeklyWithGST),l.kmsPerWeek>0?l.kmsPerWeek+" km":"0 km",money(l.kmsPerWeek*l.kmRate*(FREQ[l.kmFreq]?.multiplier||1)),money(l.phAdjustment),money(l.planTotal),usedPct,money(remV)+(pooled?" (shared)":""),status));
   }
   out.push("");
   const withClaims=perLine.filter((l:any)=>l.claims&&l.claims.length>0);
@@ -862,18 +866,23 @@ function exportPDF(){
   const bc=totals.remaining<0?"#dc2626":totals.planCost>totals.totalFunding*0.9?"#d97706":"#16a34a";
   const slBg=totals.remaining<0?"#fef2f2":totals.totalFunding>0&&(totals.remaining/totals.totalFunding)<0.1?"#fffbeb":"#f0fdf4";
   const supportRows=perLine.map((l:any)=>{
-    const usedPct=l.totalFunding>0?((l.planTotal/l.totalFunding)*100).toFixed(0):"0";
-    const lc=l.remaining<0?"#dc2626":l.totalFunding>0&&(l.remaining/l.totalFunding)<0.1?"#d97706":"#16a34a";
-    const lb=l.remaining<0?"#fef2f2":l.totalFunding>0&&(l.remaining/l.totalFunding)<0.1?"#fffbeb":"#f0fdf4";
-    const ls=l.remaining<0?"OVER":l.totalFunding>0&&(l.remaining/l.totalFunding)<0.1?"LOW":"OK";
+    // Pooled categories report the shared remaining, so a $0-funded second
+    // line of the same code no longer prints as OVER budget.
+    const pooled=l.poolCount>1;
+    const fundV=pooled?l.poolFunding:l.totalFunding;
+    const remV=pooled?l.poolRemaining:l.remaining;
+    const usedPct=fundV>0?(((fundV-remV)/fundV)*100).toFixed(0):"0";
+    const lc=remV<0?"#dc2626":fundV>0&&(remV/fundV)<0.1?"#d97706":"#16a34a";
+    const lb=remV<0?"#fef2f2":fundV>0&&(remV/fundV)<0.1?"#fffbeb":"#f0fdf4";
+    const ls=remV<0?"OVER":fundV>0&&(remV/fundV)<0.1?"LOW":"OK";
     return "<tr>"
       +"<td><span style=\"font-family:monospace;background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:11px\">"+escapeHtml(l.code)+"</span></td>"
-      +"<td><strong>"+escapeHtml(l.description)+"</strong><div style=\"font-size:10px;color:#94a3b8\">"+l.ratio+" | "+usedPct+"% used</div></td>"
+      +"<td><strong>"+escapeHtml(l.description)+"</strong><div style=\"font-size:10px;color:#94a3b8\">"+l.ratio+" | "+usedPct+"% used"+(pooled?" | shared "+escapeHtml(l.code)+" budget":"")+"</div></td>"
       +"<td style=\"text-align:right\">"+escapeHtml(money(l.totalFunding))+"</td>"
       +"<td style=\"text-align:right\">"+escapeHtml(money(l.weeklyWithGST))+"</td>"
       +"<td style=\"text-align:right;color:"+(l.phAdjustment>0?"#dc2626":l.phAdjustment<0?"#16a34a":"#94a3b8")+"\">"+(l.phAdjustment!==0?(l.phAdjustment>0?"+":"")+escapeHtml(money(l.phAdjustment)):"&mdash;")+"</td>"
       +"<td style=\"text-align:right\"><strong>"+escapeHtml(money(l.planTotal))+"</strong></td>"
-      +"<td style=\"text-align:right;color:"+lc+"\"><strong>"+escapeHtml(money(l.remaining))+"</strong></td>"
+      +"<td style=\"text-align:right;color:"+lc+"\"><strong>"+escapeHtml(money(remV))+(pooled?"<div style=\"font-size:9px;color:#94a3b8;font-weight:400\">shared</div>":"")+"</strong></td>"
       +"<td style=\"text-align:center\"><span style=\"background:"+lb+";color:"+lc+";border:1px solid "+lc+";padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700\">"+ls+"</span></td></tr>";
   }).join("");
   const claimLines=perLine.filter((l:any)=>l.claims&&l.claims.length>0);
@@ -1194,12 +1203,26 @@ function generateScheduleOfSupports(){
   <tr class="total-row"><td colspan="4">Clinical services total${clinicalRemainTxt}</td><td style="text-align:right">${escapeHtml(money(clinicalGrand))}</td></tr></tbody></table>`:"";
   const budgetSummaryHtml=(()=>{
     if(!saShowRemaining)return"";
-    const rows=perLine.filter((l:any)=>l.totalFunding>0).map((l:any)=>{
-      const planned=(getLineMode(l.code)==="lump"?l.totalFunding:l.planTotal)+((l as any).clinicalDraw||0);
-      const rem=l.totalFunding-planned;
-      const subRows=(l.allocations||[]).filter((a:any)=>a.name||a.amount>0).map((a:any)=>`<tr><td style="padding-left:24px;color:#64748b;font-size:8.5pt">↳ ${escapeHtml(a.name||"Allocation")}</td><td style="text-align:right;color:#64748b;font-size:8.5pt">${escapeHtml(money(a.amount||0))}</td><td></td><td></td></tr>`).join("");
-      return`<tr><td>${escapeHtml(l.description)}${l.ratio&&l.ratio!=="1:1"?" ("+escapeHtml(l.ratio)+")":""}</td><td style="text-align:right">${escapeHtml(money(l.totalFunding))}</td><td style="text-align:right">${escapeHtml(money(planned))}</td><td style="text-align:right;font-weight:700;color:${rem<0?"#dc2626":"#16a34a"}">${escapeHtml(money(rem))}</td></tr>`+subRows;
-    });
+    // Pooled categories (several lines on one code) print as ONE combined row —
+    // pooled funding vs pooled spend — so a $0-funded provider line never
+    // reads as over budget, and its spend isn't missing from the summary.
+    const rows:string[]=[];
+    const doneCodes=new Set<string>();
+    for(const l of perLine as any[]){
+      const pooled=l.poolCount>1;
+      if(pooled&&doneCodes.has(l.code))continue;
+      if(pooled)doneCodes.add(l.code);
+      const group=pooled?(perLine as any[]).filter(x=>x.code===l.code):[l];
+      const funded=group.reduce((s:number,x:any)=>s+x.totalFunding,0);
+      if(funded<=0)continue;
+      const planned=group.reduce((s:number,x:any)=>s+(getLineMode(x.code)==="lump"?x.totalFunding:x.planTotal)+(x.clinicalDraw||0),0);
+      const rem=funded-planned;
+      const label=pooled
+        ?`${escapeHtml(CATEGORY_PRESETS[l.code]?.name||l.description)} <span style="color:#94a3b8;font-size:8pt">— ${group.map((x:any)=>escapeHtml(x.description)).join(" + ")}</span>`
+        :`${escapeHtml(l.description)}${l.ratio&&l.ratio!=="1:1"?" ("+escapeHtml(l.ratio)+")":""}`;
+      const subRows=group.flatMap((x:any)=>(x.allocations||[]).filter((a:any)=>a.name||a.amount>0)).map((a:any)=>`<tr><td style="padding-left:24px;color:#64748b;font-size:8.5pt">↳ ${escapeHtml(a.name||"Allocation")}</td><td style="text-align:right;color:#64748b;font-size:8.5pt">${escapeHtml(money(a.amount||0))}</td><td></td><td></td></tr>`).join("");
+      rows.push(`<tr><td>${label}</td><td style="text-align:right">${escapeHtml(money(funded))}</td><td style="text-align:right">${escapeHtml(money(planned))}</td><td style="text-align:right;font-weight:700;color:${rem<0?"#dc2626":"#16a34a"}">${escapeHtml(money(rem))}</td></tr>`+subRows);
+    }
     if(clinicalGrand>0&&!clinicalBudgetLinked&&clinicalFunding>0)rows.push(`<tr><td>Clinical / Therapy Services</td><td style="text-align:right">${escapeHtml(money(clinicalFunding))}</td><td style="text-align:right">${escapeHtml(money(clinicalGrand))}</td><td style="text-align:right;font-weight:700;color:${clinicalFunding-clinicalGrand<0?"#dc2626":"#16a34a"}">${escapeHtml(money(clinicalFunding-clinicalGrand))}</td></tr>`);
     if(rows.length===0)return"";
     return`<div class="section-heading" style="margin-top:16px">Category Budgets &amp; Remaining</div>
@@ -1901,6 +1924,18 @@ return(
 <TextField label="Description" value={l.description} onChange={v=>updateLine(l.id,{description:v})}/>
 <Field label="Total funding (AUD)" value={l.totalFunding} onChange={v=>updateLine(l.id,{totalFunding:v})} step={100}/>
 <SelectField label="Support Ratio" value={l.ratio} options={Object.entries(RATIOS).map(([k,v])=>({value:k,label:v.label}))} onChange={v=>updateLine(l.id,{ratio:v})}/>
+{(l.allocations||[]).length>0&&(
+<div className="rounded-lg px-3 py-2" style={{background:"rgba(212,168,67,0.06)",border:"1px solid rgba(212,168,67,0.3)"}}>
+<div className="text-xs font-semibold mb-1" style={{color:"#b8901a"}}>Budget splits</div>
+{(l.allocations||[]).map((a:any)=>(
+<div key={a.id} className="flex items-center justify-between text-xs py-0.5">
+<span style={{color:"#334155"}}>↳ {a.name||"Allocation"}</span>
+<span className="kv-money font-semibold" style={{color:"#0f172a"}}>{money(a.amount||0)}</span>
+</div>
+))}
+<div className="text-xs mt-1" style={{color:"#94a3b8"}}>Named amounts within this category&apos;s budget — edit them on the Budgets tab; they print on the Schedule of Supports summary.</div>
+</div>
+)}
 </div></div>
 
 {lineMode==="lump"?(
