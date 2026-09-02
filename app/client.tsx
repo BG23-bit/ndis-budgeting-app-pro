@@ -5,7 +5,7 @@ import { dbGet, dbSet } from "@/lib/team";
 import {type Rates,type PlanDates,type Shift,type DayRoster,type Claim,type BudgetAllocation,type SupportLine,DAYS,DAY_DOW,DL,FREQ,RATIOS,defaultRoster,getDayName,getWeeksInPlan,countDayOccurrences,calcDayCountPlanCost,calcWeeklyCost,shiftWindowBands,calcPHImpact,NDIS_RATES_2026_27,CATEGORY_PRESETS,getPresetRates,migrateSleepoverRate,applyProviderDefaults,SIL_ITEM_DEFAULTS,getDefaultItemNumber,getLineMode,hourlyTotalHours,splitShiftBands,shiftsToText,shiftHoursTotal} from "@/lib/calc";
 export * from "@/lib/calc";
 export type CustomHoliday = { date: string; name: string };
-export type ProviderDetails = { orgName: string; abn: string; contactName: string; email: string; phone: string; address: string; registrationNumber: string; defaultRates?: Partial<Rates>; customHolidays?: CustomHoliday[]; logo?: string; roleType?: string };
+export type ProviderDetails = { orgName: string; abn: string; contactName: string; email: string; phone: string; address: string; registrationNumber: string; defaultRates?: Partial<Rates>; customHolidays?: CustomHoliday[]; logo?: string; roleType?: string; digestOptOut?: boolean };
 export const ROLE_TYPES:{key:string;label:string;mode:"sil"|"clinical"|"both"}[]=[
   {key:"sil",label:"SIL / Support Provider",mode:"sil"},
   {key:"therapy",label:"Therapy / Allied Health",mode:"clinical"},

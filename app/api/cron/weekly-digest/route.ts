@@ -127,7 +127,13 @@ export async function GET(req: Request) {
       if (rows.length === 0) { skipped++; continue; }
 
       const { subject, html } = buildDigestEmail(prov?.orgName || "", rows, u.id);
-      if (!dryRun) await resend.emails.send({ from: FROM, to: u.email, subject, html });
+      // List-Unsubscribe (+ one-click POST per RFC 8058) so Gmail/Outlook
+      // render their native Unsubscribe button for this recurring email.
+      const unsubUrl = `https://kevriacalc.com/api/digest?u=${u.id}&t=${digestToken(u.id)}`;
+      if (!dryRun) await resend.emails.send({
+        from: FROM, to: u.email, subject, html,
+        headers: { "List-Unsubscribe": `<${unsubUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
+      });
       sent++;
       results.push({ email: u.email, participants: rows.length, subject, ...(dryRun ? { dry: true } : {}) });
     } catch (e: any) {

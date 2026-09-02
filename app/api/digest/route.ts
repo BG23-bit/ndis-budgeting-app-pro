@@ -20,19 +20,38 @@ function page(title: string, body: string): Response {
   );
 }
 
-export async function GET(req: Request) {
-  const url = new URL(req.url);
-  const userId = url.searchParams.get("u") || "";
-  const token = url.searchParams.get("t") || "";
-  if (!userId || !token || token !== digestToken(userId)) {
-    return page("Invalid link", "That unsubscribe link isn't valid — it may have been truncated by your mail client. Reply to the email and we'll sort it out.");
-  }
+async function setOptOut(userId: string, optOut: boolean): Promise<void> {
   const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
   const { data: row } = await db.from("calculator_data").select("data").eq("user_id", userId).eq("participant_id", "ndis_provider_details").maybeSingle();
-  const merged = { ...((row?.data && typeof row.data === "object") ? row.data : {}), digestOptOut: true };
+  const merged = { ...((row?.data && typeof row.data === "object") ? row.data : {}), digestOptOut: optOut };
   await db.from("calculator_data").upsert(
     { user_id: userId, participant_id: "ndis_provider_details", data: merged, updated_at: new Date().toISOString() },
     { onConflict: "user_id,participant_id" },
   );
-  return page("Unsubscribed", "Done — you won't receive the weekly caseload brief any more. Everything in the app keeps working exactly as before.");
+}
+
+function parseLink(req: Request): { userId: string; valid: boolean; resub: boolean } {
+  const url = new URL(req.url);
+  const userId = url.searchParams.get("u") || "";
+  const token = url.searchParams.get("t") || "";
+  return { userId, valid: !!userId && !!token && token === digestToken(userId), resub: url.searchParams.get("resub") === "1" };
+}
+
+export async function GET(req: Request) {
+  const { userId, valid, resub } = parseLink(req);
+  if (!valid) {
+    return page("Invalid link", "That unsubscribe link isn't valid — it may have been truncated by your mail client. Reply to the email and we'll sort it out.");
+  }
+  await setOptOut(userId, !resub);
+  if (resub) return page("Subscribed", "Welcome back — the weekly caseload brief will land in your inbox each Monday morning again.");
+  return page("Unsubscribed", `Done — you won't receive the weekly caseload brief any more. Everything in the app keeps working exactly as before, and you can turn it back on any time from your Company Profile.<br/><br/><a href="${new URL(req.url).pathname}?u=${userId}&t=${digestToken(userId)}&resub=1" style="color:#b8901a;">Changed your mind? Re-subscribe.</a>`);
+}
+
+// RFC 8058 one-click unsubscribe: mail clients POST to the List-Unsubscribe
+// URL with no user interaction, so this must unsubscribe unconditionally.
+export async function POST(req: Request) {
+  const { userId, valid } = parseLink(req);
+  if (!valid) return new Response("invalid", { status: 400 });
+  await setOptOut(userId, true);
+  return new Response("unsubscribed", { status: 200 });
 }

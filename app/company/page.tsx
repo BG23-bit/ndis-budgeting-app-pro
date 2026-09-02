@@ -288,6 +288,17 @@ export function CompanyForm() {
       </div>
 
       <div className="kv-card p-6">
+        <h2 className="text-lg font-semibold mb-1" style={{ color: "#2d1b69" }}>Weekly caseload brief</h2>
+        <p className="text-sm mb-3" style={{ color: "#64748b" }}>Every Monday morning we email a summary of your caseload — participants over budget or ahead of pace, and plans ending soon. Computed from your live data, same figures as the dashboard.</p>
+        <label className="flex items-center gap-3 cursor-pointer">
+          <button type="button" role="switch" aria-checked={!pd.digestOptOut} onClick={() => setPd((p) => ({ ...p, digestOptOut: !p.digestOptOut }))} style={{ flexShrink: 0, width: "40px", height: "22px", borderRadius: "11px", border: "none", cursor: "pointer", background: !pd.digestOptOut ? "#22c55e" : "rgba(15,23,42,0.15)", position: "relative", transition: "background 0.2s" }}>
+            <span style={{ position: "absolute", top: "2px", left: !pd.digestOptOut ? "20px" : "2px", width: "18px", height: "18px", borderRadius: "50%", background: "white", transition: "left 0.2s", display: "block" }} />
+          </button>
+          <span className="text-sm" style={{ color: "#334155" }}>{!pd.digestOptOut ? "On — the brief lands each Monday morning" : "Off — no weekly brief emails"}</span>
+        </label>
+      </div>
+
+      <div className="kv-card p-6">
         <h2 className="text-lg font-semibold mb-1" style={{ color: "#2d1b69" }}>NDIS Price Guide</h2>
         <p className="text-sm mb-3" style={{ color: "#64748b" }}>
           {catCount > 0
