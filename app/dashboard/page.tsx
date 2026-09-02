@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { teamCtx, dbGet, dbGetMany, dbKeys, dbDelete, dbListGet, dbListSave, TeamCtx } from "@/lib/team";
-import Client, { defaultRoster, getHolidaysInRange, mergeCustomHolidays, getWeeksInPlan, calcDayCountPlanCost, calcPHImpact, getPresetRates, migrateSleepoverRate, NDIS_RATES_2026_27 } from "../client";
+import Client, { defaultRoster, getPresetRates, NDIS_RATES_2026_27 } from "../client";
+import { computeBudget, computePace, daysUntil, EMPTY_BUDGET, type Budget } from "@/lib/overview";
 
 type Participant = {
   id: string;
@@ -20,73 +21,6 @@ function uid(): string {
 function money(n: number): string {
   const v = Number.isFinite(n) ? n : 0;
   return v.toLocaleString("en-AU", { style: "currency", currency: "AUD" });
-}
-
-type Budget = { totalFunding: number; planCost: number; remaining: number; status: string; planEnd?: string; docCount?: number };
-const EMPTY_BUDGET: Budget = { totalFunding: 0, planCost: 0, remaining: 0, status: "empty" };
-function daysUntil(dateStr?: string): number | null {
-  if (!dateStr) return null;
-  const d = Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86400000);
-  return Number.isFinite(d) ? d : null;
-}
-
-// Mirrors the per-line maths in client.tsx (roster data model + line rates + PH adjustment)
-// so the overview cards match what the calculator shows inside.
-function computeBudget(raw: any, customHolidays?: { date: string; name: string }[]): Budget {
-  try {
-    if (!raw) return EMPTY_BUDGET;
-    const lines = Array.isArray(raw.lines) ? raw.lines : [];
-    const planDates = raw.planDates || {};
-    const start = planDates.serviceStart || planDates.start || "";
-    const end = planDates.serviceEnd || planDates.end || "";
-    const planWeeks = raw.weeksOverride != null ? raw.weeksOverride : getWeeksInPlan(start, end);
-    const holidays = mergeCustomHolidays(getHolidaysInRange(start, end, planDates.state || "NSW"), customHolidays, start, end);
-    const globalRates = { ...NDIS_RATES_2026_27, ...(raw.rates || {}) };
-
-    let totalFunding = 0;
-    let planCost = 0;
-    for (const l of lines) {
-      const line = {
-        ...l,
-        ratio: l.ratio || "1:1",
-        excludedHolidays: l.excludedHolidays || [],
-        roster: l.roster || defaultRoster(),
-        activeSleepoverHours: l.activeSleepoverHours || 0,
-        activeSleepoverFreq: l.activeSleepoverFreq || "every",
-        fixedSleepovers: l.fixedSleepovers || 0,
-        fixedSleepoverFreq: l.fixedSleepoverFreq || "every",
-        kmsPerWeek: l.kmsPerWeek || 0,
-        kmRate: l.kmRate || 1.00,
-        kmFreq: l.kmFreq || "every",
-      };
-      const lr = migrateSleepoverRate(line.ratio, l.lineRates || getPresetRates(l.code) || globalRates);
-      totalFunding += line.totalFunding || 0;
-      const base = calcDayCountPlanCost(line, start, end, planWeeks, lr) * (1 + (lr.gstRate || 0));
-      const ph = calcPHImpact(line, holidays, lr);
-      planCost += base + ph.extraCost - ph.savedCost;
-    }
-
-    const services = Array.isArray(raw.clinicalServices) ? raw.clinicalServices : [];
-    if (!raw.clinicalBudgetLinked) {
-      // Standalone clinical budget
-      totalFunding += raw.clinicalFunding || 0;
-      planCost += services.reduce((s: number, i: any) => s + (i.hours || 0) * (i.rate || 0), 0);
-    } else {
-      // Linked: services draw down the matching category lines (mirror client.tsx)
-      const lineCodes = new Set(lines.map((l: any) => l.code));
-      planCost += services.reduce((s: number, i: any) => s + (lineCodes.has(i.code || "15") ? (i.hours || 0) * (i.rate || 0) : 0), 0);
-    }
-
-    const remaining = totalFunding - planCost;
-    let status = "on_track";
-    if (totalFunding <= 0 && planCost <= 0) status = "empty";
-    else if (remaining < 0) status = "over";
-    else if (totalFunding > 0 && (remaining / totalFunding) * 100 < 10) status = "low";
-
-    return { totalFunding, planCost, remaining, status, planEnd: planDates.end || undefined, docCount: Array.isArray(raw.docHistory) ? raw.docHistory.length : 0 };
-  } catch {
-    return EMPTY_BUDGET;
-  }
 }
 
 export default function DashboardPage() {
@@ -107,6 +41,13 @@ export default function DashboardPage() {
   const [editName, setEditName] = useState("");
   const [editNdis, setEditNdis] = useState("");
   const [search, setSearch] = useState("");
+  // Caseload view: the whole caseload as one sortable table (funding, pace,
+  // plan end) — the working view for coordinators with many participants.
+  const [view, setView] = useState<"cards" | "table">("cards");
+  useEffect(() => { try { if (localStorage.getItem("kevria_dash_view") === "table") setView("table"); } catch {} }, []);
+  const setViewPersist = (v: "cards" | "table") => { setView(v); try { localStorage.setItem("kevria_dash_view", v); } catch {} };
+  const [sortKey, setSortKey] = useState<"name" | "funding" | "remaining" | "used" | "end">("name");
+  const [sortDir, setSortDir] = useState<1 | -1>(1);
   // Trial-first: unpaid users land straight in the 1-participant free preview.
   // The plan picker opens on demand (banner CTA, or hitting the participant gate).
   const [previewDismissed, setPreviewDismissed] = useState(true);
@@ -703,19 +644,26 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Search — only once the list is big enough to need it */}
-        {activeParticipants.length >= 6 && (
+        {/* Search + view toggle */}
+        {activeParticipants.length >= 2 && (
           <div className="mb-4 flex items-center gap-3 flex-wrap">
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="🔍 Search participants by name or NDIS number…"
-              className="rounded-xl px-4 py-2.5 outline-none"
-              style={{ background: "#ffffff", border: "1px solid rgba(212,168,67,0.35)", color: "#0f172a", width: "100%", maxWidth: "420px", fontSize: "0.92rem" }}
-            />
-            {search && (
-              <button onClick={() => setSearch("")} style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: "0.85rem", textDecoration: "underline" }}>clear</button>
-            )}
+            {activeParticipants.length >= 6 && (<>
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="🔍 Search participants by name or NDIS number…"
+                className="rounded-xl px-4 py-2.5 outline-none"
+                style={{ background: "#ffffff", border: "1px solid rgba(212,168,67,0.35)", color: "#0f172a", width: "100%", maxWidth: "420px", fontSize: "0.92rem" }}
+              />
+              {search && (
+                <button onClick={() => setSearch("")} style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: "0.85rem", textDecoration: "underline" }}>clear</button>
+              )}
+            </>)}
+            <div className="flex items-center gap-1 rounded-xl p-1" style={{ background: "rgba(15,23,42,0.04)", border: "1px solid rgba(15,23,42,0.08)", marginLeft: "auto" }}>
+              {([["cards", "Cards"], ["table", "Caseload"]] as ["cards" | "table", string][]).map(([v, lbl]) => (
+                <button key={v} onClick={() => setViewPersist(v)} style={{ background: view === v ? "#ffffff" : "none", border: view === v ? "1px solid rgba(212,168,67,0.4)" : "1px solid transparent", color: view === v ? "#b8901a" : "#64748b", padding: "6px 14px", borderRadius: "9px", cursor: "pointer", fontSize: "0.82rem", fontWeight: 600 }}>{lbl}</button>
+              ))}
+            </div>
           </div>
         )}
 
@@ -777,7 +725,73 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="grid gap-4">
-            {(() => {
+            {view === "table" ? (() => {
+              // Caseload table — the whole book of budgets at a glance.
+              const q = search.trim().toLowerCase();
+              const shown = q ? activeParticipants.filter((p) => p.name.toLowerCase().includes(q) || (p.ndisNumber || "").toLowerCase().includes(q)) : activeParticipants;
+              const rows = shown.map((p) => {
+                const b = budgetFor(p.id);
+                return { p, b, pace: computePace(b), used: b.totalFunding > 0 ? (b.planCost / b.totalFunding) * 100 : 0, end: daysUntil(b.planEnd) };
+              });
+              rows.sort((a, z) => {
+                switch (sortKey) {
+                  case "funding": return (a.b.totalFunding - z.b.totalFunding) * sortDir;
+                  case "remaining": return (a.b.remaining - z.b.remaining) * sortDir;
+                  case "used": return (a.used - z.used) * sortDir;
+                  case "end": return ((a.end ?? 99999) - (z.end ?? 99999)) * sortDir;
+                  default: return a.p.name.localeCompare(z.p.name) * sortDir;
+                }
+              });
+              const paceChip = (s: string) => {
+                const m: { [k: string]: { c: string; l: string } } = {
+                  on_pace: { c: "#22c55e", l: "On pace" }, over_pace: { c: "#ef4444", l: "Over pace" },
+                  under_pace: { c: "#f59e0b", l: "Under pace" }, ended: { c: "#64748b", l: "Ended" },
+                  not_started: { c: "#64748b", l: "Not started" }, unknown: { c: "#cbd5e1", l: "—" },
+                };
+                const v = m[s] || m.unknown;
+                return <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ color: v.c, border: "1px solid " + v.c, background: v.c + "14" }}>{v.l}</span>;
+              };
+              const TH = (k: typeof sortKey, label: string, align: "left" | "right" = "right") => (
+                <th onClick={() => { if (sortKey === k) setSortDir((d) => (d === 1 ? -1 : 1)); else { setSortKey(k); setSortDir(k === "name" ? 1 : -1); } }}
+                  style={{ textAlign: align, padding: "10px 14px", fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "#64748b", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}>
+                  {label}{sortKey === k ? (sortDir === 1 ? " ↑" : " ↓") : ""}
+                </th>
+              );
+              return (
+                <div className="kv-card" style={{ overflowX: "auto", padding: 0 }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "760px" }}>
+                    <thead><tr style={{ borderBottom: "2px solid rgba(45,27,105,0.12)" }}>
+                      {TH("name", "Participant", "left")}
+                      {TH("funding", "Funding")}
+                      {TH("remaining", "Remaining")}
+                      {TH("used", "Used")}
+                      <th style={{ textAlign: "center", padding: "10px 14px", fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "#64748b" }}>Pace</th>
+                      {TH("end", "Plan ends")}
+                    </tr></thead>
+                    <tbody>
+                      {rows.map(({ p, b, pace, used, end }) => (
+                        <tr key={p.id} onClick={() => setActiveParticipant(p.id)} style={{ borderBottom: "1px solid rgba(15,23,42,0.05)", cursor: "pointer" }}
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "rgba(241,245,249,0.7)"; }}
+                          onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "transparent"; }}>
+                          <td style={{ padding: "11px 14px" }}>
+                            <div className="text-sm font-semibold" style={{ color: "#1e293b" }}>{p.name}</div>
+                            {p.ndisNumber && <div className="text-xs" style={{ color: "#94a3b8" }}>{p.ndisNumber}</div>}
+                          </td>
+                          <td className="kv-money text-sm" style={{ textAlign: "right", padding: "11px 14px", color: "#334155" }}>{money(b.totalFunding)}</td>
+                          <td className="kv-money text-sm font-semibold" style={{ textAlign: "right", padding: "11px 14px", color: b.remaining < 0 ? "#ef4444" : b.status === "low" ? "#f59e0b" : "#16a34a" }}>{money(b.remaining)}</td>
+                          <td className="kv-money text-sm" style={{ textAlign: "right", padding: "11px 14px", color: "#475569" }}>{b.totalFunding > 0 ? used.toFixed(0) + "%" : "—"}</td>
+                          <td style={{ textAlign: "center", padding: "11px 14px" }}>{paceChip(pace.status)}</td>
+                          <td className="text-sm" style={{ textAlign: "right", padding: "11px 14px", whiteSpace: "nowrap", color: end !== null && end <= 60 ? (end < 0 ? "#ef4444" : "#b45309") : "#475569", fontWeight: end !== null && end <= 60 ? 700 : 400 }}>
+                            {b.planEnd ? (end !== null && end < 0 ? "ended" : b.planEnd + (end !== null && end <= 60 ? ` (${end}d)` : "")) : "—"}
+                          </td>
+                        </tr>
+                      ))}
+                      {rows.length === 0 && <tr><td colSpan={6} style={{ padding: "24px", textAlign: "center", color: "#64748b" }}>No participants match &ldquo;{search}&rdquo;</td></tr>}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })() : (() => {
               const q = search.trim().toLowerCase();
               const shown = q ? activeParticipants.filter((p) => p.name.toLowerCase().includes(q) || (p.ndisNumber || "").toLowerCase().includes(q)) : activeParticipants;
               if (q && shown.length === 0) return (
